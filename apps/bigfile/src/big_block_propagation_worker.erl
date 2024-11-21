@@ -1,4 +1,4 @@
--module(ar_block_propagation_worker).
+-module(big_block_propagation_worker).
 
 -behaviour(gen_server).
 
@@ -6,7 +6,7 @@
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 
 -record(state, {}).
 
@@ -31,7 +31,7 @@ handle_call(Request, _From, State) ->
 handle_cast({send_block, SendFun, RetryCount, From}, State) ->
 	case SendFun() of
 		{ok, {{<<"412">>, _}, _, _, _, _}} when RetryCount > 0 ->
-			ar_util:cast_after(2000, self(),
+			big_util:cast_after(2000, self(),
 					{send_block, SendFun, RetryCount - 1, From}),
 			{noreply, State};
 		_ ->
@@ -42,20 +42,20 @@ handle_cast({send_block, SendFun, RetryCount, From}, State) ->
 handle_cast({send_block2, Peer, SendAnnouncementFun, SendFun, RetryCount, From}, State) ->
 	case SendAnnouncementFun() of
 		{ok, {{<<"412">>, _}, _, _, _, _}} when RetryCount > 0 ->
-			ar_util:cast_after(2000, self(),
+			big_util:cast_after(2000, self(),
 					{send_block2, Peer, SendAnnouncementFun, SendFun,
 							RetryCount - 1, From});
 		{ok, {{<<"200">>, _}, _, Body, _, _}} ->
-			case catch ar_serialize:binary_to_block_announcement_response(Body) of
+			case catch big_serialize:binary_to_block_announcement_response(Body) of
 				{'EXIT', Reason} ->
-					?LOG_INFO([{event, send_announcement_response}, {peer, ar_util:format_peer(Peer)},
+					?LOG_INFO([{event, send_announcement_response}, {peer, big_util:format_peer(Peer)},
 						{exit, Reason}]),
-					ar_peers:issue_warning(Peer, block_announcement, Reason),
+					big_peers:issue_warning(Peer, block_announcement, Reason),
 					From ! {worker_sent_block, self()};
 				{error, Reason} ->
-					?LOG_INFO([{event, send_announcement_response}, {peer, ar_util:format_peer(Peer)},
+					?LOG_INFO([{event, send_announcement_response}, {peer, big_util:format_peer(Peer)},
 						{error, Reason}]),
-					ar_peers:issue_warning(Peer, block_announcement, Reason),
+					big_peers:issue_warning(Peer, block_announcement, Reason),
 					From ! {worker_sent_block, self()};
 				{ok, #block_announcement_response{ missing_tx_indices = L,
 						missing_chunk = MissingChunk, missing_chunk2 = MissingChunk2 }} ->

@@ -1,9 +1,9 @@
--module(ar_block_pre_validator_sup).
+-module(big_block_pre_validator_sup).
 
 -behaviour(supervisor).
 
--include_lib("arweave/include/ar_sup.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big_sup.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -export([start_link/0]).
 -export([init/1]).
@@ -20,5 +20,5 @@ start_link() ->
 %%%===================================================================
 
 init([]) ->
-	Children = [?CHILD(ar_block_pre_validator, worker)],
+	Children = [?CHILD(big_block_pre_validator, worker)],
 	{ok, {{one_for_one, 5, 10}, Children}}.

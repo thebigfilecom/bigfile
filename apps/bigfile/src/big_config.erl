@@ -1,13 +1,13 @@
--module(ar_config).
+-module(big_config).
 
 -export([validate_config/1, set_dependent_flags/1, use_remote_vdf_server/0,
 		pull_from_remote_vdf_server/0, compute_own_vdf/0, is_vdf_server/0,
 		is_public_vdf_server/0, parse/1, parse_storage_module/1, log_config/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_p3.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_p3.hrl").
 
 %%%===================================================================
 %%% Public interface.
@@ -29,7 +29,7 @@ set_dependent_flags(Config) ->
 	Config2.
 
 use_remote_vdf_server() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case Config#config.nonce_limiter_server_trusted_peers of
 		[] ->
 			false;
@@ -38,11 +38,11 @@ use_remote_vdf_server() ->
 	end.
 
 pull_from_remote_vdf_server() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	not lists:member(vdf_server_pull, Config#config.disable).
 
 compute_own_vdf() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case Config#config.nonce_limiter_server_trusted_peers of
 		[] ->
 			%% Not a VDF client - compute VDF unless explicitly disabled.
@@ -53,7 +53,7 @@ compute_own_vdf() ->
 	end.
 
 is_vdf_server() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case Config#config.nonce_limiter_client_peers of
 		[] ->
 			lists:member(public_vdf_server, Config#config.enable);
@@ -62,11 +62,11 @@ is_vdf_server() ->
 	end.
 
 is_public_vdf_server() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	lists:member(public_vdf_server, Config#config.enable).
 
 parse(Config) when is_binary(Config) ->
-	case ar_serialize:json_decode(Config) of
+	case big_serialize:json_decode(Config) of
 		{ok, JsonValue} -> parse_options(JsonValue);
 		{error, _} -> {error, bad_json, Config}
 	end.
@@ -153,7 +153,7 @@ parse_options([{<<"start_from_latest_state">>, Opt} | _], _) ->
 	{error, {bad_type, start_from_latest_state, boolean}, Opt};
 
 parse_options([{<<"start_from_block">>, H} | Rest], Config) when is_binary(H) ->
-	case ar_util:safe_decode(H) of
+	case big_util:safe_decode(H) of
 		{ok, Decoded} when byte_size(Decoded) == 48 ->
 			parse_options(Rest, Config#config{ start_from_block = Decoded });
 		_ ->
@@ -258,7 +258,7 @@ parse_options([{<<"diff">>, Diff} | _], _) ->
 parse_options([{<<"mining_addr">>, Addr} | Rest], Config) when is_binary(Addr) ->
 	case Config#config.mining_addr of
 		not_set ->
-			case ar_util:safe_decode(Addr) of
+			case big_util:safe_decode(Addr) of
 				{ok, D} when byte_size(D) == 32 ->
 					parse_options(Rest, Config#config{ mining_addr = D });
 				_ -> {error, bad_mining_addr, Addr}
@@ -582,7 +582,7 @@ parse_options([{<<"defragment_modules">>, Bin} | _], _) ->
 
 parse_options([{<<"p3">>, {P3Config}} | Rest], Config) ->
 	try
-		P3 = ar_p3_config:parse_p3(P3Config, #p3_config{}),
+		P3 = big_p3_config:parse_p3(P3Config, #p3_config{}),
 		parse_options(Rest, Config#config{ p3 = P3 })
 	catch error:Reason ->
 		{error,
@@ -618,7 +618,7 @@ parse_options([{<<"cm_peers">>, Peers} | Rest], Config) when is_list(Peers) ->
 	end;
 
 parse_options([{<<"cm_exit_peer">>, Peer} | Rest], Config) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ParsedPeer} ->
 			parse_options(Rest, Config#config{ cm_exit_peer = ParsedPeer });
 		{error, _} ->
@@ -698,9 +698,9 @@ parse_storage_module(RangeNumber, RangeSize, PackingBin) ->
 				PackingDifficulty = binary_to_integer(PackingDifficultyBin),
 				true = PackingDifficulty >= 1
 						andalso PackingDifficulty =< ?MAX_PACKING_DIFFICULTY,
-				{composite, ar_util:decode(MiningAddr), PackingDifficulty};
+				{composite, big_util:decode(MiningAddr), PackingDifficulty};
 			MiningAddr when byte_size(MiningAddr) == 43 ->
-				{spora_2_6, ar_util:decode(MiningAddr)}
+				{spora_2_6, big_util:decode(MiningAddr)}
 		end,
 	{ok, {RangeSize, RangeNumber, Packing}}.
 
@@ -713,9 +713,9 @@ parse_storage_module(RangeNumber, RangeSize, PackingBin, ToPackingBin) ->
 				PackingDifficulty = binary_to_integer(PackingDifficultyBin),
 				true = PackingDifficulty >= 1
 						andalso PackingDifficulty =< ?MAX_PACKING_DIFFICULTY,
-				{composite, ar_util:decode(MiningAddr), PackingDifficulty};
+				{composite, big_util:decode(MiningAddr), PackingDifficulty};
 			MiningAddr when byte_size(MiningAddr) == 43 ->
-				{spora_2_6, ar_util:decode(MiningAddr)}
+				{spora_2_6, big_util:decode(MiningAddr)}
 		end,
 	ToPacking =
 		case ToPackingBin of
@@ -725,9 +725,9 @@ parse_storage_module(RangeNumber, RangeSize, PackingBin, ToPackingBin) ->
 				ToPackingDifficulty = binary_to_integer(ToPackingDifficultyBin),
 				true = ToPackingDifficulty >= 1
 						andalso ToPackingDifficulty =< ?MAX_PACKING_DIFFICULTY,
-				{composite, ar_util:decode(ToMiningAddr), ToPackingDifficulty};
+				{composite, big_util:decode(ToMiningAddr), ToPackingDifficulty};
 			ToMiningAddr when byte_size(ToMiningAddr) == 43 ->
-				{spora_2_6, ar_util:decode(ToMiningAddr)}
+				{spora_2_6, big_util:decode(ToMiningAddr)}
 		end,
 	{repack_in_place, {{RangeSize, RangeNumber, Packing}, ToPacking}}.
 
@@ -739,7 +739,7 @@ safe_map(Fun, List) ->
 	end.
 
 parse_peers([Peer | Rest], ParsedPeers) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ParsedPeer} -> parse_peers(Rest, [ParsedPeer | ParsedPeers]);
 		{error, _} -> error
 	end;
@@ -804,7 +804,7 @@ parse_requests_per_minute_limit_by_ip(Input) ->
 	parse_requests_per_minute_limit_by_ip(Input, #{}).
 
 parse_requests_per_minute_limit_by_ip({[{IP, Object} | Pairs]}, Parsed) ->
-	case ar_util:safe_parse_peer(IP) of
+	case big_util:safe_parse_peer(IP) of
 		{error, invalid} ->
 			error;
 		{ok, {A, B, C, D, _Port}} ->
@@ -871,9 +871,9 @@ log_config_value(_, FieldValue) ->
 	FieldValue.
 
 format_peers(Peers) ->
-	[ar_util:format_peer(Peer) || Peer <- Peers].
+	[big_util:format_peer(Peer) || Peer <- Peers].
 format_binary(Address) ->
-	ar_util:encode(Address).
+	big_util:encode(Address).
 format_storage_module({RangeSize, RangeNumber, {spora_2_6, MiningAddress}}) ->
 	{RangeSize, RangeNumber, {spora_2_6, format_binary(MiningAddress)}};
 format_storage_module({RangeSize, RangeNumber, {composite, MiningAddress, PackingDiff}}) ->
@@ -910,13 +910,13 @@ validate_storage_modules(#config{ storage_modules = StorageModules }) ->
 			false
 	end.
 validate_repack_in_place(Config) ->
-	Modules = [ar_storage_module:id(M) || M <- Config#config.storage_modules],
+	Modules = [big_storage_module:id(M) || M <- Config#config.storage_modules],
 	validate_repack_in_place(Config#config.repack_in_place_storage_modules, Modules).
 
 validate_repack_in_place([], _Modules) ->
 	true;
 validate_repack_in_place([{Module, _ToPacking} | L], Modules) ->
-	ID = ar_storage_module:id(Module),
+	ID = big_storage_module:id(Module),
 	case lists:member(ID, Modules) of
 		true ->
 			io:format("~nCannot use the storage module ~s "

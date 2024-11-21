@@ -1,18 +1,18 @@
--module(ar_blacklist_middleware).
+-module(big_blacklist_middleware).
 
 -behaviour(cowboy_middleware).
 
 -export([start/0, execute/2, reset/0, reset_rate_limit/3,
 		ban_peer/2, is_peer_banned/1, cleanup_ban/1, decrement_ip_addr/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_blacklist_middleware.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_blacklist_middleware.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 execute(Req, Env) ->
 	IPAddr = requesting_ip_addr(Req),
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case lists:member(blacklist, Config#config.disable) of
 		true ->
 			{ok, Req, Env};
@@ -30,7 +30,7 @@ execute(Req, Env) ->
 	end.
 
 start() ->
-	?LOG_INFO([{event, ar_blacklist_middleware_start}]),
+	?LOG_INFO([{event, big_blacklist_middleware_start}]),
 	{ok, _} =
 		timer:apply_after(
 			?BAN_CLEANUP_INTERVAL,
@@ -43,7 +43,7 @@ start() ->
 %% Ban a peer completely for TTLSeconds seoncds. Since we cannot trust the port,
 %% we ban the whole IP address.
 ban_peer(Peer, TTLSeconds) ->
-	?LOG_DEBUG([{event, ban_peer}, {peer, ar_util:format_peer(Peer)}, {seconds, TTLSeconds}]),
+	?LOG_DEBUG([{event, ban_peer}, {peer, big_util:format_peer(Peer)}, {seconds, TTLSeconds}]),
 	Key = {ban, peer_to_ip_addr(Peer)},
 	Expires = os:system_time(seconds) + TTLSeconds,
 	ets:insert(?MODULE, {Key, Expires}).
@@ -139,7 +139,7 @@ requesting_ip_addr(Req) ->
 peer_to_ip_addr({A, B, C, D, _}) -> {A, B, C, D}.
 
 get_key_limit(IPAddr, Req) ->
-	Path = ar_http_iface_server:split_path(cowboy_req:path(Req)),
+	Path = big_http_iface_server:split_path(cowboy_req:path(Req)),
 	{ok, Config} = application:get_env(arweave, config),
 	Map = maps:get(IPAddr, Config#config.requests_per_minute_limit_by_ip, #{}),
 	?RPM_BY_PATH(Path, Map)().

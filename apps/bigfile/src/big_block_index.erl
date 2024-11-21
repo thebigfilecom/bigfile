@@ -1,4 +1,4 @@
--module(ar_block_index).
+-module(big_block_index).
 
 -export([init/1, update/2, member/1, get_list/1, get_list_by_hash/1, get_element_by_height/1,
 		get_block_bounds/1, get_intersection/2, get_intersection/1, get_range/2, get_last/0]).

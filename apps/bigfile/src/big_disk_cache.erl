@@ -3,7 +3,7 @@
 %% with this file, You can obtain one at
 %% https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 
--module(ar_disk_cache).
+-module(big_disk_cache).
 
 -behaviour(gen_server).
 
@@ -13,9 +13,9 @@
 -export([start_link/0, init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
 		code_change/3]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_wallets.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_wallets.hrl").
 
 %% Internal state definition.
 -record(state, {
@@ -32,24 +32,24 @@
 lookup_block_filename(H) when is_binary(H)->
 	%% Use the process dictionary to keep the path.
 	PathBlock =
-		case get(ar_disk_cache_path) of
+		case get(big_disk_cache_path) of
 			undefined ->
-				{ok, Config} = application:get_env(arweave, config),
+				{ok, Config} = application:get_env(bigfile, config),
 				Path = filename:join(Config#config.data_dir, ?DISK_CACHE_DIR),
-				put(ar_disk_cache_path, Path),
+				put(big_disk_cache_path, Path),
 				filename:join(Path, ?DISK_CACHE_BLOCK_DIR);
 			Path ->
 				filename:join(Path, ?DISK_CACHE_BLOCK_DIR)
 		end,
-	FileName = binary_to_list(ar_util:encode(H)),
+	FileName = binary_to_list(big_util:encode(H)),
 	FilePath = filename:join(PathBlock, FileName),
 	FilePathJSON = iolist_to_binary([FilePath, ".json"]),
-	case ar_storage:is_file(FilePathJSON) of
+	case big_storage:is_file(FilePathJSON) of
 		true ->
 			{ok, {FilePathJSON, json}};
 		_ ->
 			FilePathBin = iolist_to_binary([FilePath, ".bin"]),
-			case ar_storage:is_file(FilePathBin) of
+			case big_storage:is_file(FilePathBin) of
 				true ->
 					{ok, {FilePathBin, binary}};
 				_ ->
@@ -58,18 +58,18 @@ lookup_block_filename(H) when is_binary(H)->
 	end.
 
 lookup_tx_filename(Hash) when is_binary(Hash) ->
-	PathTX = case get(ar_disk_cache_path) of
+	PathTX = case get(big_disk_cache_path) of
 		undefined ->
-			{ok, Config} = application:get_env(arweave, config),
+			{ok, Config} = application:get_env(bigfile, config),
 			Path = filename:join(Config#config.data_dir, ?DISK_CACHE_DIR),
-			put(ar_disk_cache_path, Path),
+			put(big_disk_cache_path, Path),
 			filename:join(Path, ?DISK_CACHE_TX_DIR);
 		Path ->
 			filename:join(Path, ?DISK_CACHE_TX_DIR)
 	end,
-	FileName = binary_to_list(ar_util:encode(Hash)) ++ ".json",
+	FileName = binary_to_list(big_util:encode(Hash)) ++ ".json",
 	File = filename:join(PathTX, FileName),
-	case ar_storage:is_file(File) of
+	case big_storage:is_file(File) of
 		true ->
 			{ok, File};
 		_ ->
@@ -77,14 +77,14 @@ lookup_tx_filename(Hash) when is_binary(Hash) ->
 	end.
 
 write_block_shadow(B) ->
-	Name = binary_to_list(ar_util:encode(B#block.indep_hash)) ++ ".bin",
+	Name = binary_to_list(big_util:encode(B#block.indep_hash)) ++ ".bin",
 	File = filename:join(get_block_path(), Name),
-	Bin = ar_serialize:block_to_binary(B),
+	Bin = big_serialize:block_to_binary(B),
 	Size = byte_size(Bin),
 	?LOG_DEBUG([{event, write_block_shadow},
-		{hash, ar_util:encode(B#block.indep_hash)}, {size, Size}]),
+		{hash, big_util:encode(B#block.indep_hash)}, {size, Size}]),
 	gen_server:cast(?MODULE, {record_written_data, Size}),
-	case ar_storage:write_file_atomic(File, Bin) of
+	case big_storage:write_file_atomic(File, Bin) of
 		ok ->
 			ok;
 		{error, Reason} = Error ->
@@ -142,7 +142,7 @@ start_link() ->
 init([]) ->
 	%% Trap exit to avoid corrupting any open files on quit.
 	process_flag(trap_exit, true),
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Path = filename:join(Config#config.data_dir, ?DISK_CACHE_DIR),
 	BlockPath = filename:join(Path, ?DISK_CACHE_BLOCK_DIR),
 	TXPath = filename:join(Path, ?DISK_CACHE_TX_DIR),
@@ -281,25 +281,25 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 get_block_path() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Path = filename:join(Config#config.data_dir, ?DISK_CACHE_DIR),
 	filename:join(Path, ?DISK_CACHE_BLOCK_DIR).
 
 get_tx_path() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Path = filename:join(Config#config.data_dir, ?DISK_CACHE_DIR),
 	filename:join(Path, ?DISK_CACHE_TX_DIR).
 
 write_tx(TX) ->
-	Name = binary_to_list(ar_util:encode(TX#tx.id)) ++ ".json",
+	Name = binary_to_list(big_util:encode(TX#tx.id)) ++ ".json",
 	File = filename:join(get_tx_path(), Name),
 	TXHeader = case TX#tx.format of 1 -> TX; 2 -> TX#tx{ data = <<>> } end,
-	JSONStruct = ar_serialize:tx_to_json_struct(TXHeader),
-	Data = ar_serialize:jsonify(JSONStruct),
+	JSONStruct = big_serialize:tx_to_json_struct(TXHeader),
+	Data = big_serialize:jsonify(JSONStruct),
 	Size = byte_size(Data),
-	?LOG_DEBUG([{event, write_tx}, {txid, ar_util:encode(TX#tx.id)}, {size, Size}]),
+	?LOG_DEBUG([{event, write_tx}, {txid, big_util:encode(TX#tx.id)}, {size, Size}]),
 	gen_server:cast(?MODULE, {record_written_data, Size}),
-	case ar_storage:write_file_atomic(File, Data) of
+	case big_storage:write_file_atomic(File, Data) of
 		ok ->
 			ok;
 		{error, Reason} = Error ->

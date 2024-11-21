@@ -1,10 +1,10 @@
--module(ar_block_time_history).
+-module(big_block_time_history).
 
 -export([history_length/0, has_history/1, get_history/1, get_history_from_blocks/2, 
 	set_history/2, get_hashes/1, sum_history/1, compute_block_interval/1,
 	validate_hashes/2, hash/1, update_history/2]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 
 -ifdef(DEBUG).
 	-define(BLOCK_TIME_HISTORY_BLOCKS, 3).
@@ -18,7 +18,7 @@ history_length() ->
 	?BLOCK_TIME_HISTORY_BLOCKS.
 
 has_history(Height) ->
-	Height - history_length() > ar_fork:height_2_7().
+	Height - history_length() > big_fork:height_2_7().
 
 get_history(B) ->
 	lists:sublist(B#block.block_time_history, history_length()).
@@ -26,7 +26,7 @@ get_history(B) ->
 get_history_from_blocks([], _PrevB) ->
 	[];
 get_history_from_blocks([B | Blocks], PrevB) ->
-	case B#block.height >= ar_fork:height_2_7() of
+	case B#block.height >= big_fork:height_2_7() of
 		false ->
 			get_history_from_blocks(Blocks, B);
 		true ->
@@ -43,7 +43,7 @@ set_history([B | Blocks], History) ->
 
 get_hashes(Blocks) ->
 	TipB = hd(Blocks),
-	Len = min(TipB#block.height - ar_fork:height_2_7() + 1, ?STORE_BLOCKS_BEHIND_CURRENT),
+	Len = min(TipB#block.height - big_fork:height_2_7() + 1, ?STORE_BLOCKS_BEHIND_CURRENT),
 	[B#block.block_time_history_hash || B <- lists:sublist(Blocks, Len)].
 
 sum_history(B) ->
@@ -99,18 +99,18 @@ validate_hash(H, History) ->
 
 hash(History) ->
 	History2 = lists:sublist(History, history_length()),
-	hash(History2, [ar_serialize:encode_int(length(History2), 8)]).
+	hash(History2, [big_serialize:encode_int(length(History2), 8)]).
 
 hash([], IOList) ->
 	crypto:hash(sha256, iolist_to_binary(IOList));
 hash([{BlockInterval, VDFInterval, ChunkCount} | History], IOList) ->
-	BlockIntervalBin = ar_serialize:encode_int(BlockInterval, 8),
-	VDFIntervalBin = ar_serialize:encode_int(VDFInterval, 8),
-	ChunkCountBin = ar_serialize:encode_int(ChunkCount, 8),
+	BlockIntervalBin = big_serialize:encode_int(BlockInterval, 8),
+	VDFIntervalBin = big_serialize:encode_int(VDFInterval, 8),
+	ChunkCountBin = big_serialize:encode_int(ChunkCount, 8),
 	hash(History, [BlockIntervalBin, VDFIntervalBin, ChunkCountBin | IOList]).
 
 update_history(B, PrevB) ->
-	case B#block.height >= ar_fork:height_2_7() of
+	case B#block.height >= big_fork:height_2_7() of
 		false ->
 			PrevB#block.block_time_history;
 		true ->
@@ -119,7 +119,7 @@ update_history(B, PrevB) ->
 
 get_history_element(B, PrevB) ->
 	BlockInterval = max(1, B#block.timestamp - PrevB#block.timestamp),
-	VDFInterval = ar_block:vdf_step_number(B) - ar_block:vdf_step_number(PrevB),
+	VDFInterval = big_block:vdf_step_number(B) - big_block:vdf_step_number(PrevB),
 	ChunkCount =
 		case B#block.recall_byte2 of
 			undefined ->

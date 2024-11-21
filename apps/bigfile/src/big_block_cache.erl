@@ -1,6 +1,6 @@
 %%% @doc The module maintains a DAG of blocks that have passed the PoW validation, in ETS.
 %%% NOTE It is not safe to call functions which modify the state from different processes.
--module(ar_block_cache).
+-module(big_block_cache).
 
 -export([new/2, initialize_from_list/2, add/2, mark_nonce_limiter_validated/2,
 		add_validated/2,
@@ -10,7 +10,7 @@
 		get_by_solution_hash/5, is_known_solution_hash/2,
 		get_siblings/2, get_fork_blocks/2, update_timestamp/3]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %% The expiration time in seconds for every "alternative" block (a block with non-unique
@@ -50,7 +50,7 @@
 new(Tab, B) ->
 	#block{ indep_hash = H, hash = SolutionH, cumulative_diff = CDiff, height = Height } = B,
 	ets:delete_all_objects(Tab),
-	ar_ignore_registry:add(H),
+	big_ignore_registry:add(H),
 	insert(Tab, [
 		{max_cdiff, {CDiff, H}},
 		{links, gb_sets:from_list([{Height, H}])},
@@ -80,7 +80,7 @@ add(Tab,
 		} = B) ->
 	case ets:lookup(Tab, {block, H}) of
 		[] ->
-			ar_ignore_registry:add(H),
+			big_ignore_registry:add(H),
 			RemainingHs = remove_expired_alternative_blocks(Tab, SolutionH),
 			SolutionSet = sets:from_list([H | RemainingHs]),
 			[{_, Set}] = ets:lookup(Tab, links),
@@ -88,7 +88,7 @@ add(Tab,
 			Set2 = gb_sets:insert({Height, H}, Set),
 			Status = {not_validated, awaiting_nonce_limiter_validation},
 			%% If CDiff > MaxCDiff it means this block belongs to the heaviest fork we're aware
-			%% of. If our current tip is not on this fork, ar_node_worker may switch to this fork.
+			%% of. If our current tip is not on this fork, big_node_worker may switch to this fork.
 			insert(Tab, [
 				{max_cdiff, maybe_increase_max_cdiff(Tab, B, Status)},
 				{links, Set2},
@@ -101,8 +101,8 @@ add(Tab,
 			insert(Tab, {{block, H}, {B, CurrentStatus, CurrentTimestamp, Children}});
 		_ ->
 			?LOG_WARNING([{event, attempt_to_update_already_validated_cached_block},
-					{h, ar_util:encode(H)}, {height, Height},
-					{previous_block, ar_util:encode(PrevH)}]),
+					{h, big_util:encode(H)}, {height, Height},
+					{previous_block, big_util:encode(PrevH)}]),
 			ok
 	end.
 
@@ -361,7 +361,7 @@ remove(Tab, H) ->
 				{{block, PrevH}, {PrevB, PrevBStatus, PrevTimestamp,
 						sets:del_element(H, PrevBChildren)}}
 			]),
-			ar_ignore_registry:remove(H),
+			big_ignore_registry:remove(H),
 			ok
 	end.
 
@@ -556,7 +556,7 @@ remove2(Tab, H) ->
 		[{_, {#block{ hash = SolutionH, height = Height }, _Status, _Timestamp, Children}}] ->
 			%% Don't update the cache here. remove/2 will do it.
 			delete(Tab, {block, H}, false), 
-			ar_ignore_registry:remove(H),
+			big_ignore_registry:remove(H),
 			remove_solution(Tab, H, SolutionH),
 			insert(Tab, {links, gb_sets:del_element({Height, H}, Set)}, false),
 			sets:fold(
@@ -589,28 +589,28 @@ get_checkpoint_height(TipHeight) ->
 
 get_checkpoint_block2([{H, _, _}], _N, _CheckpointDepth) ->
 	%% The genesis block.
-	ar_block_cache:get(block_cache, H);
+	big_block_cache:get(block_cache, H);
 get_checkpoint_block2([{H, _, _} | BI], N, CheckpointDepth) ->
-	 B = ar_block_cache:get(block_cache, H),
+	 B = big_block_cache:get(block_cache, H),
 	 get_checkpoint_block2(BI, N + 1, B, CheckpointDepth).
 
 get_checkpoint_block2([{H, _, _}], _N, B, _CheckpointDepth) ->
 	%% The genesis block.
-	case ar_block_cache:get(block_cache, H) of
+	case big_block_cache:get(block_cache, H) of
 		not_found ->
 			B;
 		B2 ->
 			B2
 	end;
 get_checkpoint_block2([{H, _, _} | _], N, B, CheckpointDepth) when N == CheckpointDepth ->
-	case ar_block_cache:get(block_cache, H) of
+	case big_block_cache:get(block_cache, H) of
 		not_found ->
 			B;
 		B2 ->
 			B2
 	end;
 get_checkpoint_block2([{H, _, _} | BI], N, B, CheckpointDepth) ->
-	case ar_block_cache:get(block_cache, H) of
+	case big_block_cache:get(block_cache, H) of
 		not_found ->
 			B;
 		B2 ->
@@ -628,7 +628,7 @@ is_valid_fork(Tab, B, Status) ->
 
 is_valid_fork(_Tab, #block{ height = Height, indep_hash = H }, _Status, CheckpointHeight)
   		when Height < CheckpointHeight ->
-	?LOG_WARNING([{event, found_invalid_heavy_fork}, {hash, ar_util:encode(H)},
+	?LOG_WARNING([{event, found_invalid_heavy_fork}, {hash, big_util:encode(H)},
 				{height, Height}, {checkpoint_height, CheckpointHeight}]),
 	false;
 is_valid_fork(_Tab, _B, on_chain, _CheckpointHeight) ->
@@ -697,7 +697,7 @@ prune2(Tab, Depth, TipHeight) ->
 					),
 					remove_solution(Tab, H, SolutionH),
 					delete(Tab, {block, H}),
-					ar_ignore_registry:remove(H),
+					big_ignore_registry:remove(H),
 					prune2(Tab, Depth, TipHeight)
 			end
 	end.

@@ -1,4 +1,4 @@
--module(ar_data_discovery).
+-module(big_data_discovery).
 
 -behaviour(gen_server).
 
@@ -6,8 +6,8 @@
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_data_discovery.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_data_discovery.hrl").
 
 -record(state, {
 	peer_queue,
@@ -46,7 +46,7 @@ start_link() ->
 %% data synced in the given Bucket of size ?NETWORK_DATA_BUCKET_SIZE. 80% of the peers
 %% are chosen from the 20% of peers with the biggest share in the given bucket.
 get_bucket_peers(Bucket) ->
-	case ets:member(ar_peers, block_connections) of
+	case ets:member(big_peers, block_connections) of
 		true ->
 			[];
 		false ->
@@ -75,7 +75,7 @@ init([]) ->
 	{ok, _} = timer:apply_interval(
 		?DATA_DISCOVERY_COLLECT_PEERS_FREQUENCY_MS, ?MODULE, collect_peers, []),
 	gen_server:cast(?MODULE, update_network_data_map),
-	ok = ar_events:subscribe(peer),
+	ok = big_events:subscribe(peer),
 	{ok, #state{
 		peer_queue = queue:new(),
 		peers_pending = 0,
@@ -94,12 +94,12 @@ handle_cast(update_network_data_map, #state{ peers_pending = N } = State)
 		when N < ?DATA_DISCOVERY_PARALLEL_PEER_REQUESTS ->
 	case queue:out(State#state.peer_queue) of
 		{empty, _} ->
-			ar_util:cast_after(200, ?MODULE, update_network_data_map),
+			big_util:cast_after(200, ?MODULE, update_network_data_map),
 			{noreply, State};
 		{{value, Peer}, Queue} ->
 			monitor(process, spawn_link(
 				fun() ->
-					case ar_http_iface_client:get_sync_buckets(Peer) of
+					case big_http_iface_client:get_sync_buckets(Peer) of
 						{ok, SyncBuckets} ->
 							gen_server:cast(?MODULE, {add_peer_sync_buckets, Peer,
 									SyncBuckets});
@@ -107,7 +107,7 @@ handle_cast(update_network_data_map, #state{ peers_pending = N } = State)
 							get_sync_buckets(Peer);
 						Error ->
 							?LOG_DEBUG([{event, failed_to_fetch_sync_buckets},
-								{peer, ar_util:format_peer(Peer)},
+								{peer, big_util:format_peer(Peer)},
 								{reason, io_lib:format("~p", [Error])}])
 					end
 				end
@@ -116,14 +116,14 @@ handle_cast(update_network_data_map, #state{ peers_pending = N } = State)
 			{noreply, State#state{ peers_pending = N + 1, peer_queue = Queue }}
 	end;
 handle_cast(update_network_data_map, State) ->
-	ar_util:cast_after(200, ?MODULE, update_network_data_map),
+	big_util:cast_after(200, ?MODULE, update_network_data_map),
 	{noreply, State};
 
 handle_cast({add_peer_sync_buckets, Peer, SyncBuckets}, State) ->
 	#state{ network_map = Map } = State,
 	State2 = refresh_expiration_timer(Peer, State),
 	Map2 = maps:put(Peer, SyncBuckets, Map),
-	ar_sync_buckets:foreach(
+	big_sync_buckets:foreach(
 		fun(Bucket, Share) ->
 			ets:insert(?MODULE, {{Bucket, Share, Peer}})
 		end,
@@ -139,7 +139,7 @@ handle_cast({remove_peer, Peer}, State) ->
 			error ->
 				Map;
 			{SyncBuckets, Map3} ->
-				ar_sync_buckets:foreach(
+				big_sync_buckets:foreach(
 					fun(Bucket, Share) ->
 						ets:delete(?MODULE, {Bucket, Share, Peer})
 					end,
@@ -195,17 +195,17 @@ pick_peers(Peers, PeerLen, N) ->
 	{Best, Other} = lists:split(max(PeerLen div 5, 1), Peers),
 	%% TakeBest: Select 80% of N worth of Best - or all of Best if Best is short.
 	TakeBest = max((8 * N) div 10, 1),
-	Part1 = ar_util:pick_random(Best, min(length(Best), TakeBest)),
+	Part1 = big_util:pick_random(Best, min(length(Best), TakeBest)),
 	%% TakeOther: rather than strictly take 20% of N, take enough to ensure we're
 	%% getting the full N of picked peers.
 	TakeOther = N - length(Part1),
-	Part2 = ar_util:pick_random(Other, min(length(Other), TakeOther)),
+	Part2 = big_util:pick_random(Other, min(length(Other), TakeOther)),
 	Part1 ++ Part2.
 
 collect_peers() ->
 	N = ?DATA_DISCOVERY_COLLECT_PEERS_COUNT,
 	%% rank peers by their current rating since we care about their recent throughput performance
-	collect_peers(lists:sublist(ar_peers:get_peers(current), N)).
+	collect_peers(lists:sublist(big_peers:get_peers(current), N)).
 
 collect_peers([Peer | Peers]) ->
 	gen_server:cast(?MODULE, {add_peer, Peer}),
@@ -214,14 +214,14 @@ collect_peers([]) ->
 	ok.
 
 get_sync_buckets(Peer) ->
-	case ar_http_iface_client:get_sync_record(Peer) of
+	case big_http_iface_client:get_sync_record(Peer) of
 		{ok, SyncRecord} ->
-			SyncBuckets = ar_sync_buckets:from_intervals(SyncRecord),
-			{SyncBuckets2, _} = ar_sync_buckets:serialize(SyncBuckets, ?MAX_SYNC_BUCKETS_SIZE),
+			SyncBuckets = big_sync_buckets:from_intervals(SyncRecord),
+			{SyncBuckets2, _} = big_sync_buckets:serialize(SyncBuckets, ?MAX_SYNC_BUCKETS_SIZE),
 			gen_server:cast(?MODULE, {add_peer_sync_buckets, Peer, SyncBuckets2});
 		Error ->
 			?LOG_DEBUG([{event, failed_to_fetch_sync_record_from_peer},
-					{peer, ar_util:format_peer(Peer)}, {reason, io_lib:format("~p", [Error])}])
+					{peer, big_util:format_peer(Peer)}, {reason, io_lib:format("~p", [Error])}])
 	end.
 
 refresh_expiration_timer(Peer, State) ->
@@ -232,5 +232,5 @@ refresh_expiration_timer(Peer, State) ->
 		Timer ->
 			timer:cancel(Timer)
 	end,
-	Timer2 = ar_util:cast_after(?PEER_EXPIRATION_TIME_MS, ?MODULE, {remove_peer, Peer}),
+	Timer2 = big_util:cast_after(?PEER_EXPIRATION_TIME_MS, ?MODULE, {remove_peer, Peer}),
 	State#state{ expiration_map = maps:put(Peer, Timer2, Map) }.

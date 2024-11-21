@@ -1,6 +1,6 @@
 %%% @doc The module maintains a queue of processes fetching data from the network
 %%% and from the local storage modules.
--module(ar_data_sync_worker_master).
+-module(big_data_sync_worker_master).
 
 -behaviour(gen_server).
 
@@ -8,11 +8,11 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_data_sync.hrl").
--include_lib("arweave/include/ar_peers.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_data_sync.hrl").
+-include_lib("bigfile/include/big_peers.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -define(REBALANCE_FREQUENCY_MS, 10*1000).
@@ -49,7 +49,7 @@ start_link(Workers) ->
 
 %% @doc Returns true if syncing is enabled (i.e. sync_jobs > 0).
 is_syncing_enabled() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Config#config.sync_jobs > 0.
 
 %% @doc Returns true if we can accept new tasks. Will always return false if syncing is
@@ -63,7 +63,7 @@ ready_for_work() ->
 	end.
 
 read_range(Start, End, OriginStoreID, TargetStoreID, SkipSmall) ->
-	case ar_data_sync_worker_master:ready_for_work() of
+	case big_data_sync_worker_master:ready_for_work() of
 		true ->
 			gen_server:cast(?MODULE,
 					{read_range, {Start, End, OriginStoreID, TargetStoreID, SkipSmall}}),
@@ -77,7 +77,7 @@ read_range(Start, End, OriginStoreID, TargetStoreID, SkipSmall) ->
 
 init(Workers) ->
 	gen_server:cast(?MODULE, process_main_queue),
-	ar_util:cast_after(?REBALANCE_FREQUENCY_MS, ?MODULE, rebalance_peers),
+	big_util:cast_after(?REBALANCE_FREQUENCY_MS, ?MODULE, rebalance_peers),
 
 	{ok, #state{
 		workers = queue:from_list(Workers),
@@ -94,10 +94,10 @@ handle_call(Request, _From, State) ->
 	{reply, ok, State}.
 
 handle_cast(process_main_queue, #state{ task_queue_len = 0 } = State) ->
-	ar_util:cast_after(200, ?MODULE, process_main_queue),
+	big_util:cast_after(200, ?MODULE, process_main_queue),
 	{noreply, State};
 handle_cast(process_main_queue, State) ->
-	ar_util:cast_after(200, ?MODULE, process_main_queue),
+	big_util:cast_after(200, ?MODULE, process_main_queue),
 	{noreply, process_main_queue(State)};
 
 handle_cast({read_range, _Args}, #state{ worker_count = 0 } = State) ->
@@ -117,17 +117,17 @@ handle_cast({task_completed, {read_range, {Worker, _, _}}}, State) ->
 handle_cast({task_completed, {sync_range, {Worker, Result, Args, ElapsedNative}}}, State) ->
 	{Start, End, Peer, _, _} = Args,
 	DataSize = End - Start,
-	State2 = update_scheduled_task_count(Worker, sync_range, ar_util:format_peer(Peer), -1, State),
+	State2 = update_scheduled_task_count(Worker, sync_range, big_util:format_peer(Peer), -1, State),
 	PeerTasks = get_peer_tasks(Peer, State2),
 	{PeerTasks2, State3} = complete_sync_range(PeerTasks, Result, ElapsedNative, DataSize, State2),
 	{PeerTasks3, State4} = process_peer_queue(PeerTasks2, State3),	
 	{noreply, set_peer_tasks(PeerTasks3, State4)};
 
 handle_cast(rebalance_peers, State) ->
-	ar_util:cast_after(?REBALANCE_FREQUENCY_MS, ?MODULE, rebalance_peers),
+	big_util:cast_after(?REBALANCE_FREQUENCY_MS, ?MODULE, rebalance_peers),
 	State2 = purge_empty_peers(State),
 	Peers = maps:keys(State2#state.peer_tasks),
-	AllPeerPerformances = ar_peers:get_peer_performances(Peers),
+	AllPeerPerformances = big_peers:get_peer_performances(Peers),
 	TotalMaxActive = calculate_total_max_active(State2),
 	{TargetLatency, TotalThroughput} = calculate_targets(Peers, AllPeerPerformances),
 	State3 = rebalance_peers(
@@ -212,7 +212,7 @@ process_peer_queue(PeerTasks, State) ->
 	end.
 
 %% @doc the maximum number of tasks we can have in process - including stasks queued here as well
-%% as those scheduled on ar_data_sync_workers.
+%% as those scheduled on big_data_sync_workers.
 max_tasks(WorkerCount) ->
 	WorkerCount * 50.
 
@@ -237,8 +237,8 @@ max_peer_queue(Performance, TotalThroughput, WorkerCount) ->
 	max(trunc((PeerThroughput / TotalThroughput) * max_tasks(WorkerCount)), ?MIN_PEER_QUEUE).
 
 %% @doc Cut a peer's queue to store roughly 15 minutes worth of tasks. This prevents
-%% a slow peer from filling up the ar_data_sync_worker_master queues, stalling the
-%% workers and preventing ar_data_sync from pushing new tasks.
+%% a slow peer from filling up the big_data_sync_worker_master queues, stalling the
+%% workers and preventing big_data_sync from pushing new tasks.
 cut_peer_queue(_MaxQueue, PeerTasks, #state{ scheduled_task_count = 0 } = State) ->
 	{PeerTasks, State};
 cut_peer_queue(undefined, PeerTasks, State) ->
@@ -251,7 +251,7 @@ cut_peer_queue(MaxQueue, PeerTasks, State) ->
 			%% The peer has a large queue of tasks. Reduce the queue size by removing the
 			%% oldest tasks.
 			?LOG_DEBUG([{event, cut_peer_queue},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{active_count, PeerTasks#peer_tasks.active_count},
 				{scheduled_tasks, State#state.scheduled_task_count},
 				{max_queue, MaxQueue}, {tasks_to_cut, TasksToCut}]),
@@ -259,7 +259,7 @@ cut_peer_queue(MaxQueue, PeerTasks, State) ->
 			{
 				PeerTasks#peer_tasks{ 
 					task_queue = TaskQueue2, task_queue_len = queue:len(TaskQueue2) },
-				update_queued_task_count(sync_range, ar_util:format_peer(Peer), -TasksToCut, State)
+				update_queued_task_count(sync_range, big_util:format_peer(Peer), -TasksToCut, State)
 			};
 		_ ->
 			{PeerTasks, State}
@@ -325,7 +325,7 @@ complete_sync_range(PeerTasks, Result, ElapsedNative, DataSize, State) ->
 	PeerTasks2 = PeerTasks#peer_tasks{ 
 		active_count = PeerTasks#peer_tasks.active_count - 1
 	},
-	ar_peers:rate_fetched_data(
+	big_peers:rate_fetched_data(
 		PeerTasks2#peer_tasks.peer, chunk, Result,
 		erlang:convert_time_unit(ElapsedNative, native, microsecond), DataSize,
 		PeerTasks2#peer_tasks.max_active),
@@ -463,7 +463,7 @@ format_peer(Task, Args) ->
 	case Task of
 		read_range -> "localhost";
 		sync_range ->
-			ar_util:format_peer(element(3, Args))
+			big_util:format_peer(element(3, Args))
 	end.
 
 %%%===================================================================
@@ -542,8 +542,8 @@ test_format_peer() ->
 test_enqueue_main_task() ->
 	Peer1 = {1, 2, 3, 4, 1984},
 	Peer2 = {5, 6, 7, 8, 1985},
-	StoreID1 = ar_storage_module:id({?PARTITION_SIZE, 1, default}),
-	StoreID2 = ar_storage_module:id({?PARTITION_SIZE, 2, default}),
+	StoreID1 = big_storage_module:id({?PARTITION_SIZE, 1, default}),
+	StoreID2 = big_storage_module:id({?PARTITION_SIZE, 2, default}),
 	State0 = #state{},
 	
 	State1 = enqueue_main_task(read_range, {0, 100, StoreID1, StoreID2, true}, State0),
@@ -570,7 +570,7 @@ test_enqueue_main_task() ->
 test_enqueue_peer_task() ->
 	PeerA = {1, 2, 3, 4, 1984},
 	PeerB = {5, 6, 7, 8, 1985},
-	StoreID1 = ar_storage_module:id({?PARTITION_SIZE, 1, default}),
+	StoreID1 = big_storage_module:id({?PARTITION_SIZE, 1, default}),
 
 	PeerATasks = #peer_tasks{ peer = PeerA },
 	PeerBTasks = #peer_tasks{ peer = PeerB },
@@ -599,8 +599,8 @@ test_enqueue_peer_task() ->
 test_process_main_queue() ->
 	Peer1 = {1, 2, 3, 4, 1984},
 	Peer2 = {5, 6, 7, 8, 1985},
-	StoreID1 = ar_storage_module:id({?PARTITION_SIZE, 1, default}),
-	StoreID2 = ar_storage_module:id({?PARTITION_SIZE, 2, default}),
+	StoreID1 = big_storage_module:id({?PARTITION_SIZE, 1, default}),
+	StoreID2 = big_storage_module:id({?PARTITION_SIZE, 2, default}),
 	State0 = #state{
 		workers = queue:from_list([worker1, worker2, worker3]), worker_count = 3
 	},
@@ -644,9 +644,9 @@ test_max_peer_queue() ->
 	?assertEqual(20, max_peer_queue(#performance{ current_rating = 1 }, 100, 10)).
 
 test_cut_peer_queue() ->
-	{ok, OriginalConfig} = application:get_env(arweave, config),
+	{ok, OriginalConfig} = application:get_env(bigfile, config),
 	try
-		ok = application:set_env(arweave, config, OriginalConfig#config{
+		ok = application:set_env(bigfile, config, OriginalConfig#config{
 			sync_jobs = 10
 		}),
 
@@ -679,7 +679,7 @@ test_cut_peer_queue() ->
 		assert_peer_tasks(TaskQueue, 0, 8, PeerTasks4),
 		?assertEqual(100, State4#state.queued_task_count)
 	after
-		application:set_env(arweave, config, OriginalConfig)
+		application:set_env(bigfile, config, OriginalConfig)
 	end.
 
 test_update_active() ->

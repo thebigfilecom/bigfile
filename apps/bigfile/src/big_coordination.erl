@@ -1,4 +1,4 @@
--module(ar_coordination).
+-module(big_coordination).
 
 -behaviour(gen_server).
 
@@ -13,10 +13,10 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_mining.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_mining.hrl").
 
 -record(state, {
 	last_peer_response = #{},
@@ -104,14 +104,14 @@ garbage_collect() ->
 
 %% Return true if we are an exit peer in the coordinated mining setup.
 is_exit_peer() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Config#config.coordinated_mining == true andalso
 			Config#config.cm_exit_peer == not_set.
 
 %% Return true if we are a CM miner in the coordinated mining setup.
 %% A CM miner may be but does not have to be an exit node.
 is_coordinated_miner() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Config#config.coordinated_mining == true.
 
 %% @doc Return a list of unique partitions including local partitions and all of
@@ -132,7 +132,7 @@ is_coordinated_miner() ->
 %%   {pdiff, PackingDifficulty}
 %% ]}
 get_self_plus_external_partitions_list() ->
-	PoolPeer = ar_pool:pool_peer(),
+	PoolPeer = big_pool:pool_peer(),
 	PoolPartitions = get_peer_partitions(PoolPeer),
 	LocalPartitions = get_unique_partitions_set(),
 	lists:sort(sets:to_list(get_unique_partitions_set(PoolPartitions, LocalPartitions))).
@@ -162,9 +162,9 @@ get_cluster_partitions_list() ->
 %%%===================================================================
 
 init([]) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	
-	ar_util:cast_after(?BATCH_POLL_INTERVAL_MS, ?MODULE, check_batches),
+	big_util:cast_after(?BATCH_POLL_INTERVAL_MS, ?MODULE, check_batches),
 	State = #state{
 		last_peer_response = #{}
 	},
@@ -174,13 +174,13 @@ init([]) ->
 		true ->
 			case Config#config.cm_exit_peer of
 				not_set ->
-					ar:console(
+					big:console(
 						"This node is configured as a Coordinated Mining Exit Node. If this is "
 						"not correct, set 'cm_exit_peer' and relaunch.~n");
 				_ ->
 					ok
 			end,
-			ar_util:cast_after(?START_DELAY, ?MODULE, refetch_peer_partitions),
+			big_util:cast_after(?START_DELAY, ?MODULE, refetch_peer_partitions),
 			State#state{
 				last_peer_response = #{}
 			}
@@ -216,7 +216,7 @@ handle_call(get_cluster_partitions_list, _From, State) ->
 					fun	({{pool, _}, _, _}, Acc2) ->
 							Acc2;
 						({_Peer, PackingAddr, PackingDifficulty}, Acc2) ->
-							sets:add_element(ar_serialize:partition_to_json_struct(
+							sets:add_element(big_serialize:partition_to_json_struct(
 									PartitionID, ?PARTITION_SIZE, PackingAddr,
 									PackingDifficulty), Acc2)
 					end,
@@ -227,7 +227,7 @@ handle_call(get_cluster_partitions_list, _From, State) ->
 			sets:new(),
 			State#state.peers_by_partition
 		),
-	Set = get_unique_partitions_set(ar_mining_io:get_partitions(), PeerPartitions),
+	Set = get_unique_partitions_set(big_mining_io:get_partitions(), PeerPartitions),
 	{reply, lists:sort(sets:to_list(Set)), State};
 
 handle_call(Request, _From, State) ->
@@ -235,7 +235,7 @@ handle_call(Request, _From, State) ->
 	{reply, ok, State}.
 
 handle_cast(check_batches, State) ->
-	ar_util:cast_after(?BATCH_POLL_INTERVAL_MS, ?MODULE, check_batches),
+	big_util:cast_after(?BATCH_POLL_INTERVAL_MS, ?MODULE, check_batches),
 	OutBatches = check_out_batches(State),
 	{noreply, State#state{ out_batches = OutBatches }};
 
@@ -258,10 +258,10 @@ handle_cast({computed_h1, ShareableCandidate, H1, Nonce}, State) ->
 	{noreply, State#state{ out_batches = OutBatches2 }};
 
 handle_cast({compute_h2_for_peer, Candidate}, State) ->
-	%% No don't need to batch inbound batches since ar_mining_io will cache the recall
+	%% No don't need to batch inbound batches since big_mining_io will cache the recall
 	%% range for a short period greatly lowering the cost of processing the same
 	%% multiple times across several batches.
-	ar_mining_server:compute_h2_for_peer(Candidate),
+	big_mining_server:compute_h2_for_peer(Candidate),
 	{noreply, State};
 
 handle_cast({computed_h2_for_peer, Candidate}, State) ->
@@ -270,7 +270,7 @@ handle_cast({computed_h2_for_peer, Candidate}, State) ->
 	{noreply, State};
 
 handle_cast(refetch_peer_partitions, State) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Peers = Config#config.cm_peers,
 	Peers2 =
 		case Config#config.cm_exit_peer == not_set
@@ -282,7 +282,7 @@ handle_cast(refetch_peer_partitions, State) ->
 			false ->
 				[Config#config.cm_exit_peer | Peers]
 		end,
-	ar_util:cast_after(Config#config.cm_poll_interval, ?MODULE, refetch_peer_partitions),
+	big_util:cast_after(Config#config.cm_poll_interval, ?MODULE, refetch_peer_partitions),
 	refetch_peer_partitions(Peers2),
 	{noreply, State};
 
@@ -305,7 +305,7 @@ handle_cast({remove_peer, Peer}, State) ->
 			State2 = State#state{
 				last_peer_response = maps:put(Peer, SetValue, State#state.last_peer_response)
 			},
-			?LOG_INFO([{event, cm_peer_removed}, {peer, ar_util:format_peer(Peer)}]),
+			?LOG_INFO([{event, cm_peer_removed}, {peer, big_util:format_peer(Peer)}]),
 			remove_mining_peer(Peer, State2)
 	end,
 	{noreply, State3};
@@ -329,7 +329,7 @@ handle_cast(refetch_pool_peer_partitions, State) ->
 
 handle_cast(garbage_collect, State) ->
 	erlang:garbage_collect(self(),
-		[{async, {ar_coordination, self(), erlang:monotonic_time()}}]),
+		[{async, {big_coordination, self(), erlang:monotonic_time()}}]),
 	{noreply, State};
 
 handle_cast(Cast, State) ->
@@ -405,25 +405,25 @@ send_h1(Candidate, State) ->
 		Peer ->
 			Candidate2 = Candidate#mining_candidate{ label = <<"cm">> },
 			spawn(fun() ->
-				ar_http_iface_client:cm_h1_send(Peer, Candidate2)
+				big_http_iface_client:cm_h1_send(Peer, Candidate2)
 			end),
 			case Peer of
 				{pool, _} ->
-					ar_mining_stats:h1_sent_to_peer(pool, length(H1List));
+					big_mining_stats:h1_sent_to_peer(pool, length(H1List));
 				_ ->
-					ar_mining_stats:h1_sent_to_peer(Peer, length(H1List))
+					big_mining_stats:h1_sent_to_peer(Peer, length(H1List))
 			end
 	end.
 
 send_h2(Peer, Candidate) ->
 	spawn(fun() ->
-		ar_http_iface_client:cm_h2_send(Peer, Candidate)
+		big_http_iface_client:cm_h2_send(Peer, Candidate)
 	end),
 	case Peer of
 		{pool, _} ->
-			ar_mining_stats:h2_sent_to_peer(pool);
+			big_mining_stats:h2_sent_to_peer(pool);
 		_ ->
-			ar_mining_stats:h2_sent_to_peer(Peer)
+			big_mining_stats:h2_sent_to_peer(Peer)
 	end.
 
 add_mining_peer({Peer, StorageModules}, State) ->
@@ -431,9 +431,9 @@ add_mining_peer({Peer, StorageModules}, State) ->
 		fun({PartitionID, _PartitionSize, PackingAddr, PackingDifficulty}) ->
 			{PartitionID, PackingAddr, PackingDifficulty} end, StorageModules),
 	?LOG_INFO([{event, cm_peer_updated},
-		{peer, ar_util:format_peer(Peer)},
+		{peer, big_util:format_peer(Peer)},
 		{partitions, io_lib:format("~p",
-			[[{ID, ar_util:encode(Addr), PackingDifficulty}
+			[[{ID, big_util:encode(Addr), PackingDifficulty}
 				|| {ID, Addr, PackingDifficulty} <- Partitions]])}]),
 	PeersByPartition =
 		lists:foldl(
@@ -461,19 +461,19 @@ remove_mining_peer(Peer, State) ->
 refetch_peer_partitions(Peers) ->
 	spawn(fun() ->
 		
-		ar_util:pmap(
+		big_util:pmap(
 			fun(Peer) ->
-				case ar_http_iface_client:get_cm_partition_table(Peer) of
+				case big_http_iface_client:get_cm_partition_table(Peer) of
 					{ok, PartitionList} ->
-						ar_coordination:update_peer(Peer, PartitionList);
+						big_coordination:update_peer(Peer, PartitionList);
 					_ ->
 						ok
 				end end,
 				Peers
 			),
-		%% ar_util:pmap ensures we fetch all the local up-to-date CM peer partitions first,
+		%% big_util:pmap ensures we fetch all the local up-to-date CM peer partitions first,
 		%% then share them with the Pool to fetch the complementary pool CM peer partitions.
-		case {ar_pool:is_client(), ar_coordination:is_exit_peer()} of
+		case {big_pool:is_client(), big_coordination:is_exit_peer()} of
 			{true, true} ->
 				refetch_pool_peer_partitions();
 			_ ->
@@ -485,11 +485,11 @@ refetch_pool_peer_partitions() ->
 	gen_server:cast(?MODULE, refetch_pool_peer_partitions).
 
 get_unique_partitions_list() ->
-	Set = get_unique_partitions_set(ar_mining_io:get_partitions(), sets:new()),
+	Set = get_unique_partitions_set(big_mining_io:get_partitions(), sets:new()),
 	lists:sort(sets:to_list(Set)).
 
 get_unique_partitions_set() ->
-	get_unique_partitions_set(ar_mining_io:get_partitions(), sets:new()).
+	get_unique_partitions_set(big_mining_io:get_partitions(), sets:new()).
 
 get_unique_partitions_set([], UniquePartitions) ->
 	UniquePartitions;
@@ -497,7 +497,7 @@ get_unique_partitions_set([{PartitionID, MiningAddress, PackingDifficulty} | Par
 		UniquePartitions) ->
 	get_unique_partitions_set(
 		Partitions,
-		sets:add_element(ar_serialize:partition_to_json_struct(PartitionID, ?PARTITION_SIZE,
+		sets:add_element(big_serialize:partition_to_json_struct(PartitionID, ?PARTITION_SIZE,
 				MiningAddress, PackingDifficulty), UniquePartitions)
 	);
 get_unique_partitions_set([{PartitionID, BucketSize, MiningAddress, PackingDifficulty}
@@ -505,17 +505,17 @@ get_unique_partitions_set([{PartitionID, BucketSize, MiningAddress, PackingDiffi
 	get_unique_partitions_set(
 		Partitions,
 		sets:add_element(
-			ar_serialize:partition_to_json_struct(PartitionID, BucketSize,
+			big_serialize:partition_to_json_struct(PartitionID, BucketSize,
 					MiningAddress, PackingDifficulty), UniquePartitions)
 	).
 
 refetch_pool_peer_partitions(UniquePeerPartitions) ->
 	spawn(fun() ->
-		JSON = ar_serialize:jsonify(lists:sort(sets:to_list(UniquePeerPartitions))),
-		PoolPeer = ar_pool:pool_peer(),
-		case ar_http_iface_client:post_cm_partition_table_to_pool(PoolPeer, JSON) of
+		JSON = big_serialize:jsonify(lists:sort(sets:to_list(UniquePeerPartitions))),
+		PoolPeer = big_pool:pool_peer(),
+		case big_http_iface_client:post_cm_partition_table_to_pool(PoolPeer, JSON) of
 			{ok, PartitionList} ->
-				ar_coordination:update_peer(PoolPeer, PartitionList);
+				big_coordination:update_peer(PoolPeer, PartitionList);
 			_ ->
 				ok
 		end

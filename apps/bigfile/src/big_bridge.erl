@@ -4,7 +4,7 @@
 %% https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 
 %%% @doc The module gossips blocks to peers.
--module(ar_bridge).
+-module(big_bridge).
 
 -behaviour(gen_server).
 
@@ -12,8 +12,8 @@
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -record(state, {
 	block_propagation_queue = gb_sets:new(),
@@ -49,7 +49,7 @@ start_link(Name, Workers) ->
 %% @end
 %%--------------------------------------------------------------------
 init(Workers) ->
-	ar_events:subscribe(block),
+	big_events:subscribe(block),
 	WorkerMap = lists:foldl(fun(W, Acc) -> maps:put(W, free, Acc) end, #{}, Workers),
 	State = #state{ workers = WorkerMap },
 	{ok, State}.
@@ -117,17 +117,17 @@ handle_info({event, block, {new, _B, #{ gossip := false }}}, State) ->
 	{noreply, State};
 handle_info({event, block, {new, B, _}}, State) ->
 	#state{ block_propagation_queue = Q, workers = Workers } = State,
-	case ar_block_cache:get(block_cache, B#block.previous_block) of
+	case big_block_cache:get(block_cache, B#block.previous_block) of
 		not_found ->
 			%% The cache should have been just pruned and this block is old.
 			{noreply, State};
 		_ ->
-			{ok, Config} = application:get_env(arweave, config),
-			TrustedPeers = ar_peers:get_trusted_peers(),
+			{ok, Config} = application:get_env(bigfile, config),
+			TrustedPeers = big_peers:get_trusted_peers(),
 			SpecialPeers = Config#config.block_gossip_peers,
-			Peers = ((SpecialPeers ++ ar_peers:get_peers(lifetime)) -- TrustedPeers) ++ TrustedPeers,
+			Peers = ((SpecialPeers ++ big_peers:get_peers(lifetime)) -- TrustedPeers) ++ TrustedPeers,
 			JSON =
-				case B#block.height >= ar_fork:height_2_6() of
+				case B#block.height >= big_fork:height_2_6() of
 					true ->
 						none;
 					false ->
@@ -168,7 +168,7 @@ handle_info(Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
-	?LOG_INFO([{event, ar_bridge_terminated}, {module, ?MODULE}]),
+	?LOG_INFO([{event, big_bridge_terminated}, {module, ?MODULE}]),
 	ok.
 
 %%%===================================================================
@@ -196,9 +196,9 @@ dequeue(Q) ->
 send_to_worker(Peer, {JSON, B}, W) ->
 	#block{ height = Height, indep_hash = H, previous_block = PrevH, txs = TXs,
 			hash = SolutionH } = B,
-	Release = ar_peers:get_peer_release(Peer),
-	Fork_2_6 = ar_fork:height_2_6(),
-	SolutionH2 = case Height >= ar_fork:height_2_6() of true -> SolutionH; _ -> undefined end,
+	Release = big_peers:get_peer_release(Peer),
+	Fork_2_6 = big_fork:height_2_6(),
+	SolutionH2 = case Height >= big_fork:height_2_6() of true -> SolutionH; _ -> undefined end,
 	case Release >= 52 orelse Height >= Fork_2_6 of
 		true ->
 			SendAnnouncementFun =
@@ -208,27 +208,27 @@ send_to_worker(Peer, {JSON, B}, W) ->
 							recall_byte = B#block.recall_byte,
 							recall_byte2 = B#block.recall_byte2,
 							solution_hash = SolutionH2,
-							tx_prefixes = [ar_node_worker:tx_id_prefix(ID)
+							tx_prefixes = [big_node_worker:tx_id_prefix(ID)
 									|| #tx{ id = ID } <- TXs] },
-					ar_http_iface_client:send_block_announcement(Peer, Announcement)
+					big_http_iface_client:send_block_announcement(Peer, Announcement)
 				end,
 			SendFun =
 				fun(MissingChunk, MissingChunk2, MissingTXs) ->
 					%% Some transactions might be absent from our mempool. We still gossip
 					%% this block further and search for the missing transactions afterwads
-					%% (the process is initiated by ar_node_worker). We are gradually moving
+					%% (the process is initiated by big_node_worker). We are gradually moving
 					%% to the new process where blocks are sent over POST /block2 along with
 					%% all the missing transactions specified in the preceding
 					%% POST /block_announcement reply. Once the network adopts the new release,
 					%% we will turn off POST /block and remove the missing transactions search
-					%% in ar_node_worker.
+					%% in big_node_worker.
 					case determine_included_transactions(TXs, MissingTXs) of
 						missing ->
-							case Height >= ar_fork:height_2_6() of
+							case Height >= big_fork:height_2_6() of
 								true ->
 									%% POST /block is not supported after 2.6.
 									%% The recipient would have to download this block
-									%% along with its transactions via ar_poller (which
+									%% along with its transactions via big_poller (which
 									%% we made trustless in the 2.6 release).
 									ok;
 								false ->
@@ -240,7 +240,7 @@ send_to_worker(Peer, {JSON, B}, W) ->
 							PoA2 = case MissingChunk2 of false ->
 									(B#block.poa2)#poa{ chunk = <<>> };
 									_ -> B#block.poa2 end,
-							Bin = ar_serialize:block_to_binary(B#block{ txs = TXs2,
+							Bin = big_serialize:block_to_binary(B#block{ txs = TXs2,
 									poa = PoA, poa2 = PoA2 }),
 							send_and_log(Peer, H, Height, binary, Bin, B#block.recall_byte)
 					end
@@ -252,37 +252,37 @@ send_to_worker(Peer, {JSON, B}, W) ->
 	end.
 
 send_and_log(Peer, H, Height, Format, Bin, RecallByte) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Reply =
 		case Format of
 			json ->
-				ar_http_iface_client:send_block_json(Peer, H, Bin);
+				big_http_iface_client:send_block_json(Peer, H, Bin);
 			binary ->
-				ar_http_iface_client:send_block_binary(Peer, H, Bin, RecallByte)
+				big_http_iface_client:send_block_binary(Peer, H, Bin, RecallByte)
 		end,
 	case lists:member(Peer, Config#config.block_gossip_peers) of
 		true ->
 			?LOG_INFO([{event, sent_block_to_block_gossip_peer},
 				{format, Format},
 				{height, Height},
-				{block, ar_util:encode(H)},
-				{peer, ar_util:format_peer(Peer)},
-				{reply, ar_metrics:get_status_class(Reply)}]);
+				{block, big_util:encode(H)},
+				{peer, big_util:format_peer(Peer)},
+				{reply, big_metrics:get_status_class(Reply)}]);
 		false ->
 			ok
 	end.
 
 block_to_json(B) ->
-	BDS = ar_block:generate_block_data_segment(B),
-	{BlockProps} = ar_serialize:block_to_json_struct(B),
+	BDS = big_block:generate_block_data_segment(B),
+	{BlockProps} = big_serialize:block_to_json_struct(B),
 	PostProps = [
 		{<<"new_block">>, {BlockProps}},
 		%% Add the P2P port field to be backwards compatible with nodes
 		%% running the old version of the P2P port feature.
 		{<<"port">>, ?DEFAULT_HTTP_IFACE_PORT},
-		{<<"block_data_segment">>, ar_util:encode(BDS)}
+		{<<"block_data_segment">>, big_util:encode(BDS)}
 	],
-	ar_serialize:jsonify({PostProps}).
+	big_serialize:jsonify({PostProps}).
 
 %% @doc Return the list of transactions to gossip or 'missing'. TXs is a list of possibly
 %% both tx records and transaction identifiers - whatever is found in the gossiped block.
