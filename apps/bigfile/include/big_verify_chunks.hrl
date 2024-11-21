@@ -1,5 +1,5 @@
--ifndef(AR_VERIFY_CHUNKS_HRL).
--define(AR_VERIFY_CHUNKS_HRL, true).
+-ifndef(BIG_VERIFY_CHUNKS_HRL).
+-define(BIG_VERIFY_CHUNKS_HRL, true).
 
 -record(verify_report, {
 	start_time :: non_neg_integer(),

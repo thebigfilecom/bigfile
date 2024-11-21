@@ -1,6 +1,6 @@
 %% @doc This module is very strongly inspired by OTP's base64 source code.
 %% See https://github.com/erlang/otp/blob/93ec8bb2dbba9456395a54551fe9f1e0f86184b1/lib/stdlib/src/base64.erl#L66-L80
--module(ar_base32).
+-module(big_base32).
 
 -export([encode/1]).
 

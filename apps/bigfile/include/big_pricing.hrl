@@ -10,8 +10,8 @@
 -else.
 -define(N_REPLICATIONS, fun(MACRO_Height) ->
 	MACRO_Forks = {
-		ar_fork:height_2_5(),
-		ar_fork:height_2_6()
+		big_fork:height_2_5(),
+		big_fork:height_2_6()
 	},
 	case MACRO_Forks of
 		{_MACRO_Fork_2_5, MACRO_Fork_2_6} when MACRO_Height >= MACRO_Fork_2_6 ->
@@ -96,7 +96,7 @@ end).
 %% expressed as a decimal fraction, with the precision of math:log.
 -define(LN_PRICE_DECAY_ANNUAL, {-5012541823544286, 1000000000000000000}).
 
-%% The assumed annual decay rate of the Arweave prices, expressed as a decimal fraction.
+%% The assumed annual decay rate of the BigFile prices, expressed as a decimal fraction.
 -define(PRICE_DECAY_ANNUAL, {995, 1000}). % 0.995, i.e., 0.5% annual decay rate.
 
 %% The precision of computing the natural exponent as a decimal fraction,
@@ -155,31 +155,31 @@ end).
 %% and INITIAL_USD_TO_AR_DIFF. The protocol uses these constants to estimate the
 %% USD to AR rate at any block based on the change in the network difficulty and inflation
 %% rewards.
--define(INITIAL_USD_TO_AR(Height), fun() ->
+-define(INITIAL_USD_TO_BIG(Height), fun() ->
 	Forks = {
-		ar_fork:height_2_4(),
-		ar_fork:height_2_5()
+		big_fork:height_2_4(),
+		big_fork:height_2_5()
 	},
 	case Forks of
 		{_Fork_2_4, Fork_2_5} when Height >= Fork_2_5 ->
 			{1, 65};
 		{Fork_2_4, _Fork_2_5} when Height >= Fork_2_4 ->
-			?INITIAL_USD_TO_AR_PRE_FORK_2_5
+			?INITIAL_USD_TO_BIG_PRE_FORK_2_5
 	end
 end).
 
 %% The original USD to AR conversion rate, defined as a fraction. Set up at fork 2.4.
 %% Used until the fork 2.5.
--define(INITIAL_USD_TO_AR_PRE_FORK_2_5, {1, 5}).
+-define(INITIAL_USD_TO_BIG_PRE_FORK_2_5, {1, 5}).
 
 %% The network difficulty at the time when the USD to AR exchange rate was
 %% ?INITIAL_USD_TO_AR(Height). Used to account for the change in the network
 %% difficulty when estimating the new USD to AR rate.
--define(INITIAL_USD_TO_AR_DIFF(Height), fun() ->
+-define(INITIAL_USD_TO_BIG_DIFF(Height), fun() ->
 	Forks = {
-		ar_fork:height_1_9(),
-		ar_fork:height_2_2(),
-		ar_fork:height_2_5()
+		big_fork:height_1_9(),
+		big_fork:height_2_2(),
+		big_fork:height_2_5()
 	},
 	case Forks of
 		{_Fork_1_9, _Fork_2_2, Fork_2_5} when Height >= Fork_2_5 ->
@@ -193,15 +193,15 @@ end).
 	end
 end).
 
-%% The network height at the time when the USD to AR exchange rate was
-%% ?INITIAL_USD_TO_AR(Height). Used to account for the change in inflation
-%% rewards when estimating the new USD to AR rate.
--define(INITIAL_USD_TO_AR_HEIGHT(Height), fun() ->
+%% The network height at the time when the USD to BIG exchange rate was
+%% ?INITIAL_USD_TO_BIG(Height). Used to account for the change in inflation
+%% rewards when estimating the new USD to BIG rate.
+-define(INITIAL_USD_TO_BIG_HEIGHT(Height), fun() ->
 	Forks = {
-		ar_fork:height_1_9(),
-		ar_fork:height_2_2(),
-		ar_fork:height_2_5(),
-		ar_fork:height_2_6()
+		big_fork:height_1_9(),
+		big_fork:height_2_2(),
+		big_fork:height_2_5(),
+		big_fork:height_2_6()
 	},
 	%% In case the fork heights are reset to 0 (e.g. on testnets),
 	%% set the initial height to 1 - the height where the inflation
@@ -214,14 +214,14 @@ end).
 		{_Fork_1_9, Fork_2_2, _Fork_2_5, _Fork_2_6} when Height >= Fork_2_2 ->
 			max(Fork_2_2, 1);
 		{Fork_1_9, _Fork_2_2, _Fork_2_5, _Fork_2_6} when Height < Fork_1_9 ->
-			max(ar_fork:height_1_8(), 1);
+			max(big_fork:height_1_8(), 1);
 		{Fork_1_9, _Fork_2_2, _Fork_2_5, _Fork_2_6} ->
 			max(Fork_1_9, 1)
 	end
 end).
 
 %% The base wallet generation fee in USD, defined as a fraction.
-%% The amount in AR depends on the current difficulty and height.
+%% The amount in BIG depends on the current difficulty and height.
 %% Used until the transition to the new fee calculation method is complete.
 -define(WALLET_GEN_FEE_USD, {1, 10}).
 

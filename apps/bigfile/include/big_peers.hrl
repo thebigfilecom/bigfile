@@ -1,5 +1,5 @@
--ifndef(AR_PEERS_HRL).
--define(AR_PEERS_HRL, true).
+-ifndef(BIG_PEERS_HRL).
+-define(BIG_PEERS_HRL, true).
 
 -include_lib("ar.hrl").
 

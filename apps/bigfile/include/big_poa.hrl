@@ -1,5 +1,5 @@
--ifndef(AR_POA_HRL).
--define(AR_POA_HRL, true).
+-ifndef(BIG_POA_HRL).
+-define(BIG_POA_HRL, true).
 
 -record(chunk_proof, {
 	absolute_offset :: non_neg_integer(),

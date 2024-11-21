@@ -1,5 +1,5 @@
--ifndef(AR_MINING_HRL).
--define(AR_MINING_HRL, true).
+-ifndef(BIG_MINING_HRL).
+-define(BIG_MINING_HRL, true).
 
 -define(GC_LOG_THRESHOLD, 1000).
 

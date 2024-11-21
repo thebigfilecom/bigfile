@@ -4,7 +4,7 @@ set -e
 
 SCRIPT_DIR="$(dirname "$0")"
 
-# Sets $ARWEAVE and $ARWEAVE_* variables
-source $SCRIPT_DIR/arweave.env
+# Sets $BIGFILEand $BIGFILE_* variables
+source $SCRIPT_DIR/bigfile.env
 
-$ARWEAVE foreground $ARWEAVE_OPTS -run ar benchmark_hash ${@:1}
+$BIGFILE foreground $BIGFILE_OPTS -run ar benchmark_hash ${@:1}

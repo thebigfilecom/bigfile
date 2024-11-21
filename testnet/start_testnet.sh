@@ -7,26 +7,26 @@ display_help() {
     echo "                  launching the pilot node with the start_from_block flag."
 }
 
-ARWEAVE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BIGFILE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-if ! $ARWEAVE_DIR/testnet/assert_testnet.sh; then
+if ! $BIGFILE_DIR/testnet/assert_testnet.sh; then
 	echo "Error: This script must be run on a testnet server."
 	exit 1
 fi
 
-if [[ ! -f "/arweave-build/testnet/bin/start" ]]; then
-    echo "Arweave start script not found. Please run rebuild_testnet.sh first."
+if [[ ! -f "/bigfile-build/testnet/bin/start" ]]; then
+    echo "BigFile start script not found. Please run rebuild_testnet.sh first."
 	exit 1
 fi
 
 node=$(hostname -f)
-config_file="$ARWEAVE_DIR/testnet/config/$(hostname -f).json"
+config_file="$BIGFILE_DIR/testnet/config/$(hostname -f).json"
 blacklist="transaction_blacklist_url \"${BLACKLIST_URL}\""
-SCREEN_CMD="screen -dmsL arweave /arweave-build/testnet/bin/start $blacklist config_file $config_file $*"
+SCREEN_CMD="screen -dmsL bigfile /bigfile-build/testnet/bin/start $blacklist config_file $config_file $*"
 
 echo "$SCREEN_CMD"
-echo "$SCREEN_CMD" > /arweave-build/testnet/run.sh
-chmod +x /arweave-build/testnet/run.sh
+echo "$SCREEN_CMD" > /bigfile-build/testnet/run.sh
+chmod +x /bigfile-build/testnet/run.sh
 
-cd /arweave-build/testnet
+cd /bigfile-build/testnet
 ./run.sh

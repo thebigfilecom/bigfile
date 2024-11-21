@@ -111,8 +111,8 @@
 -ifndef(SPORA_MIN_DIFFICULTY).
 -define(SPORA_MIN_DIFFICULTY(Height), fun() ->
 	Forks = {
-		ar_fork:height_2_4(),
-		ar_fork:height_2_6()
+		big_fork:height_2_4(),
+		big_fork:height_2_6()
 	},
 	case Forks of
 		{_Fork_2_4, Fork_2_6} when Height >= Fork_2_6 ->
@@ -143,7 +143,7 @@ end()).
 -define(SPORA_SEARCH_SPACE_SUBSPACES_COUNT, 1024).
 
 %% The key to initialize the RandomX state from, for RandomX packing.
--define(RANDOMX_PACKING_KEY, <<"default arweave 2.5 pack key">>).
+-define(RANDOMX_PACKING_KEY, <<"default bigfile 2.5 pack key">>).
 
 -define(RANDOMX_HASHING_MODE_FAST, 0).
 -define(RANDOMX_HASHING_MODE_LIGHT, 1).

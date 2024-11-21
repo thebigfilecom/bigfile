@@ -1,18 +1,18 @@
 #!/bin/bash
 
-ARWEAVE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BIGFILE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-if ! $ARWEAVE_DIR/testnet/assert_testnet.sh; then
+if ! $BIGFILE_DIR/testnet/assert_testnet.sh; then
 	echo "Error: This script must be run on a testnet server."
 	exit 1
 fi
 
-mkdir -p /arweave-build/testnet
-rm -rf /arweave-build/testnet/*
+mkdir -p /bigfile-build/testnet
+rm -rf /bigfile-build/testnet/*
 
-echo "$0 $@" > /arweave-build/testnet/build.command
+echo "$0 $@" > /bigfile-build/testnet/build.command
 
-cd $ARWEAVE_DIR
-rm -rf $ARWEAVE_DIR/_build/testnet/rel/arweave/*
-$ARWEAVE_DIR/rebar3 as testnet tar
-tar xf $ARWEAVE_DIR/_build/testnet/rel/arweave/arweave-*.tar.gz -C /arweave-build/testnet
+cd $BIGFILE_DIR
+rm -rf $BIGFILE_DIR/_build/testnet/rel/bigfile/*
+$BIGFILE_DIR/rebar3 as testnet tar
+tar xf $BIGFILE_DIR/_build/testnet/rel/bigfile/bigfile-*.tar.gz -C /bigfile-build/testnet

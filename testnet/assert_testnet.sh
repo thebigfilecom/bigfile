@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ARWEAVE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BIGFILE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 ALL_NODES+=(
 testnet-1
@@ -28,5 +28,5 @@ if [[ "$is_testnet_server" -eq 0 ]]; then
     exit 1
 fi
 
-mkdir -p /arweave-build/mainnet
-mkdir -p /arweave-build/testnet
+mkdir -p /bigfile-build/mainnet
+mkdir -p /bigfile-build/testnet

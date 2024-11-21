@@ -4,12 +4,12 @@ set -e
 
 SCRIPT_DIR="$(dirname "$0")"
 
-# Sets $ARWEAVE and $ARWEAVE_* variables
-source $SCRIPT_DIR/arweave.env
+# Sets $BIGFILE and $BIGFILE_* variables
+source $SCRIPT_DIR/bigfile.env
 
-# Initialize arrays for Erlang and Arweave arguments
+# Initialize arrays for Erlang and BigFile arguments
 ERLANG_ARGS=()
-ARWEAVE_ARGS=()
+BIGFILE_ARGS=()
 
 echo "$@"
 
@@ -24,12 +24,12 @@ if [[ "$*" == *" -- "* ]]; then
         if $parsing_erlang; then
             ERLANG_ARGS+=("$arg")
         else
-            ARWEAVE_ARGS+=("$arg")
+            BIGFILE_ARGS+=("$arg")
         fi
     done
 else
-    # If no --, all arguments go to Arweave
-    ARWEAVE_ARGS=("$@")
+    # If no --, all arguments go to BigFile
+    BIGFILE_ARGS=("$@")
 fi
 
 echo "Custom Erlang Options: ${ERLANG_ARGS[@]}"
@@ -38,13 +38,13 @@ while true; do
     echo Launching Erlang Virtual Machine...
     if
         # -run ar main: call ar:main() on launch
-        $ARWEAVE $ARWEAVE_COMMAND $ARWEAVE_OPTS ${ERLANG_ARGS[@]} -run ar main $RANDOMX_JIT ${ARWEAVE_ARGS[@]}
+        $BIGFILE $BIGFILE_COMMAND $BIGFILE_OPTS ${ERLANG_ARGS[@]} -run ar main $RANDOMX_JIT ${BIGFILE_ARGS[@]}
     then
-        echo "Arweave Heartbeat: Server terminated safely."
+        echo "BigFile Heartbeat: Server terminated safely."
         exit 0
     else
-        echo "Arweave Heartbeat: The Arweave server has terminated. It will restart in 15 seconds."
-        echo "Arweave Heartbeat: If you would like to avoid this, press control+c to kill the server."
+        echo "BigFile Heartbeat: The BigFile server has terminated. It will restart in 15 seconds."
+        echo "BigFile Heartbeat: If you would like to avoid this, press control+c to kill the server."
         sleep 15
     fi
 done
