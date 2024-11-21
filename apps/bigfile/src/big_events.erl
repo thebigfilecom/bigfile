@@ -3,7 +3,7 @@
 %% with this file, You can obtain one at
 %% https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 
--module(ar_events).
+-module(big_events).
 
 -behaviour(gen_server).
 
@@ -24,8 +24,8 @@
 	code_change/3
 ]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -39,7 +39,7 @@
 %%% API
 %%%===================================================================
 
-event_to_process(Event) when is_atom(Event) -> list_to_atom("ar_event_" ++ atom_to_list(Event)).
+event_to_process(Event) when is_atom(Event) -> list_to_atom("big_event_" ++ atom_to_list(Event)).
 
 subscribe(Event) when is_atom(Event) ->
 	Process = event_to_process(Event),
@@ -70,7 +70,7 @@ send(Event, Value) ->
 %% @end
 %%--------------------------------------------------------------------
 start_link(Name) ->
-    RegName = ar_events:event_to_process(Name),
+    RegName = big_events:event_to_process(Name),
 	gen_server:start_link({local, RegName}, ?MODULE, Name, []).
 
 %%% gen_server callbacks
@@ -197,16 +197,16 @@ code_change(_OldVsn, State, _Extra) ->
 subscribe_send_cancel_test() ->
 	%% Check whether all the "event"-processes are alive.
 	%% This list should be aligned with the total number
-	%% of running gen_server's by ar_events_sup.
+	%% of running gen_server's by big_events_sup.
 	Processes = [tx, block, testing],
-	true = lists:all(fun(P) -> whereis(ar_events:event_to_process(P)) /= undefined end, Processes),
-	EventNetworkStateOnStart = sys:get_state(ar_events:event_to_process(testing)),
-	ok = ar_events:subscribe(testing),
-	already_subscribed = ar_events:subscribe(testing),
-	[ok, already_subscribed] = ar_events:subscribe([tx, testing]),
+	true = lists:all(fun(P) -> whereis(big_events:event_to_process(P)) /= undefined end, Processes),
+	EventNetworkStateOnStart = sys:get_state(big_events:event_to_process(testing)),
+	ok = big_events:subscribe(testing),
+	already_subscribed = big_events:subscribe(testing),
+	[ok, already_subscribed] = big_events:subscribe([tx, testing]),
 
 	%% Sender shouldn't receive its own event.
-	ok = ar_events:send(testing, 12345),
+	ok = big_events:send(testing, 12345),
 	receive
 		{event, testing, 12345} ->
 			?assert(false, "Received an unexpected event.")
@@ -214,20 +214,20 @@ subscribe_send_cancel_test() ->
 		ok
 	end,
 	%% Sender should receive an event triggered by another process.
-	spawn(fun() -> ar_events:send(testing, 12345) end),
+	spawn(fun() -> big_events:send(testing, 12345) end),
 	receive
 		{event, testing, 12345} ->
 			ok
 	after 200 ->
 		?assert(false, "Did not receive an expected event within 200 milliseconds.")
 	end,
-	ok = ar_events:cancel(testing),
-	EventNetworkStateOnStart = sys:get_state(ar_events:event_to_process(testing)).
+	ok = big_events:cancel(testing),
+	EventNetworkStateOnStart = sys:get_state(big_events:event_to_process(testing)).
 
 process_terminated_test() ->
 	%% If a subscriber has been terminated without implicit "cancel" call
 	%% it should be cleaned up from the subscription list.
-	EventNetworkStateOnStart = sys:get_state(ar_events:event_to_process(testing)),
-	spawn(fun() -> ar_events:subscribe(testing) end),
+	EventNetworkStateOnStart = sys:get_state(big_events:event_to_process(testing)),
+	spawn(fun() -> big_events:subscribe(testing) end),
 	timer:sleep(200),
-	EventNetworkStateOnStart = sys:get_state(ar_events:event_to_process(testing)).
+	EventNetworkStateOnStart = sys:get_state(big_events:event_to_process(testing)).

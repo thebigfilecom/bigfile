@@ -22,14 +22,14 @@
 %%% @doc The server is a modified version of disksup from Erlang OTP - it periodically
 %%% checks for available disk space and returns it in bytes (disksup only serves it in %).
 %%% @end
--module(ar_disksup).
+-module(big_disksup).
 -behaviour(gen_server).
 
 -export([start_link/0, get_disk_space_check_frequency/0, get_disk_data/0, pause/0, resume/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -record(state, {
 	timeout,
@@ -47,7 +47,7 @@ start_link() ->
 	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 get_disk_space_check_frequency() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Config#config.disk_space_check_frequency.
 
 get_disk_data() ->
@@ -224,7 +224,7 @@ disk_free_cmd({unix, _}, Df, DataDirPath, Port) ->
 check_for_hardware_error(DfOutput, ThrowOnError) ->
     case lists:member("Input/output error", DfOutput) of
         true ->
-            ar:console("~nERROR: one or more of your disks are in corrupt/failing state.~n~p~n", [DfOutput]),
+            big:console("~nERROR: one or more of your disks are in corrupt/failing state.~n~p~n", [DfOutput]),
             case ThrowOnError of
                 true ->
                     erlang:error({input_output_error_detected, DfOutput});
@@ -243,7 +243,7 @@ broadcast_disk_free({unix, _} = Os, Port) ->
 	DataDirDfResult = disk_free_cmd(Os, Df, DataDirPath, Port),
 	check_for_hardware_error(DataDirDfResult, true),
 	[DataDirFs, DataDirBytes, DataDirPercentage] = parse_df_2(DataDirDfResult),
-	ar_events:send(disksup, {
+	big_events:send(disksup, {
 		remaining_disk_space,
 			DataDirID,
 			true,
@@ -255,12 +255,12 @@ broadcast_disk_free({unix, _} = Os, Port) ->
 		HasDiskError = check_for_hardware_error(Result, false),
 		case HasDiskError of
 			true ->
-						ar:console("~nERROR: storage module ~p is offline.~n", [StorageModulePath]),
+						big:console("~nERROR: storage module ~p is offline.~n", [StorageModulePath]),
 						ok;
 			false ->
 						[StorageModuleFs, Bytes, Percentage] = parse_df_2(Result),
 						IsDataDirDrive = string:equal(DataDirFs, StorageModuleFs),
-						ar_events:send(disksup, {
+						big_events:send(disksup, {
 							remaining_disk_space,
 							StoreID, IsDataDirDrive, Percentage, Bytes
 						})
@@ -268,7 +268,7 @@ broadcast_disk_free({unix, _} = Os, Port) ->
 end,
 	lists:foreach(HandleSmPath, StorageModulePaths);
 broadcast_disk_free(_, _) ->
-	ar:console("~nWARNING: disk space checks are not supported on your platform. The node "
+	big:console("~nWARNING: disk space checks are not supported on your platform. The node "
 			"may stop working if it runs out of space.~n", []).
 
 %% This code works for Linux and FreeBSD as well.
@@ -402,11 +402,11 @@ skip_to_eol([_ | T]) ->
 	skip_to_eol(T).
 
 get_storage_modules_paths() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	DataDir = Config#config.data_dir,
 	SMDirs = lists:map(
 		fun(StorageModule) ->
-			StoreID = ar_storage_module:id(StorageModule),
+			StoreID = big_storage_module:id(StorageModule),
 			{StoreID, filename:join([DataDir, "storage_modules", StoreID])}
 		end,
 		Config#config.storage_modules

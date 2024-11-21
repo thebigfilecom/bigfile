@@ -1,11 +1,11 @@
 %%% @doc Tracks the availability and performance of the network peers.
--module(ar_peers).
+-module(big_peers).
 
 -behaviour(gen_server).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_peers.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfie/include/big_peers.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -187,7 +187,7 @@ filter_peers(Peers, {timestamp, Seconds})
 	when is_integer(Seconds) ->
 		Timefilter = erlang:system_time(seconds) - Seconds,
 		Tag = {connection, last},
-		Pattern = {{ar_tags, ?MODULE, '$1', Tag}, '$3'},
+		Pattern = {{big_tags, ?MODULE, '$1', Tag}, '$3'},
 		Guard = [{'>=', '$3', Timefilter}],
 		Select = ['$1'],
 		TaggedPeers = ets:select(?MODULE, [{Pattern, Guard, Select}]),
@@ -206,7 +206,7 @@ get_peer_performances(Peers) ->
 resolve_peers([]) ->
 	[];
 resolve_peers([RawPeer | Peers]) ->
-	case ar_util:safe_parse_peer(RawPeer) of
+	case big_util:safe_parse_peer(RawPeer) of
 		{ok, Peer} ->
 			[Peer | resolve_peers(Peers)];
 		{error, invalid} ->
@@ -216,7 +216,7 @@ resolve_peers([RawPeer | Peers]) ->
 	end.
 
 get_trusted_peers() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case Config#config.peers of
 		[] ->
 			ArweavePeers = [
@@ -228,7 +228,7 @@ get_trusted_peers() ->
 	end.
 -else.
 get_trusted_peers() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Config#config.peers.
 -endif.
 %% @doc Return true if the given peer has a public IPv4 address.
@@ -327,7 +327,7 @@ discover_peers() ->
 		[] ->
 			ok;
 		Peers ->
-			Peer = ar_util:pick_random(Peers),
+			Peer = big_util:pick_random(Peers),
 			discover_peers(get_peer_peers(Peer))
 	end.
 
@@ -339,7 +339,7 @@ resolve_and_cache_peer(RawPeer, Type) ->
 	Now = os:system_time(second),
 	case ets:lookup(?MODULE, {raw_peer, RawPeer}) of
 		[] ->
-			case ar_util:safe_parse_peer(RawPeer) of
+			case big_util:safe_parse_peer(RawPeer) of
 				{ok, Peer} ->
 					ets:insert(?MODULE, {{raw_peer, RawPeer}, {Peer, Now}}),
 					ets:insert(?MODULE, {{Type, Peer}, RawPeer}),
@@ -350,7 +350,7 @@ resolve_and_cache_peer(RawPeer, Type) ->
 		[{_, {Peer, Timestamp}}] ->
 			case Timestamp + ?STORE_RESOLVED_DOMAIN_S < Now of
 				true ->
-					case ar_util:safe_parse_peer(RawPeer) of
+					case big_util:safe_parse_peer(RawPeer) of
 						{ok, Peer2} ->
 							%% The cache entry has expired.
 							ets:delete(?MODULE, {Type, {Peer, Timestamp}}),
@@ -370,14 +370,14 @@ resolve_and_cache_peer(RawPeer, Type) ->
 %%%===================================================================
 
 init([]) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case Config#config.verify of
 		true ->
 			ok;
 		false ->
 			%% Trap exit to avoid corrupting any open files on quit.
 			process_flag(trap_exit, true),
-			ok = ar_events:subscribe(block),
+			ok = big_events:subscribe(block),
 			load_peers(),
 			gen_server:cast(?MODULE, rank_peers),
 			gen_server:cast(?MODULE, ping_peers),
@@ -397,10 +397,10 @@ handle_cast({add_peer, Peer, Release}, State) ->
 handle_cast(rank_peers, State) ->
 	LifetimePeers = score_peers(lifetime),
 	CurrentPeers = score_peers(current),
-	prometheus_gauge:set(arweave_peer_count, length(LifetimePeers)),
+	prometheus_gauge:set(bigfile_peer_count, length(LifetimePeers)),
 	set_ranked_peers(lifetime, rank_peers(LifetimePeers)),
 	set_ranked_peers(current, rank_peers(CurrentPeers)),
-	ar_util:cast_after(?RANK_PEERS_FREQUENCY_MS, ?MODULE, rank_peers),
+	big_util:cast_after(?RANK_PEERS_FREQUENCY_MS, ?MODULE, rank_peers),
 	{noreply, State};
 
 handle_cast(ping_peers, State) ->
@@ -438,7 +438,7 @@ handle_info({event, block, {rejected, Reason, _H, Peer}}, State) when Peer /= no
 
 	case {IssueBan, IssueWarning, Ignore} of
 		{true, false, false} ->
-			ar_blacklist_middleware:ban_peer(Peer, ?BAD_BLOCK_BAN_TIME),
+			big_blacklist_middleware:ban_peer(Peer, ?BAD_BLOCK_BAN_TIME),
 			remove_peer(Peer);
 		{false, true, false} ->
 			issue_warning(Peer, block_rejected, Reason);
@@ -469,7 +469,7 @@ terminate(_Reason, _State) ->
 %%%===================================================================
 
 get_peer_peers(Peer) ->
-	case ar_http_iface_client:get_peers(Peer) of
+	case big_http_iface_client:get_peers(Peer) of
 		unavailable -> [];
 		Peers -> Peers
 	end.
@@ -525,7 +525,7 @@ discover_peers([Peer | Peers]) ->
 		false ->
 			case check_peer(Peer, is_public_peer(Peer)) of
 				ok ->
-					case ar_http_iface_client:get_info(Peer) of
+					case big_http_iface_client:get_info(Peer) of
 						info_unavailable ->
 							ok;
 						Info ->
@@ -551,50 +551,50 @@ format_stats(lifetime, Peer, Perf) ->
 	KB = Perf#performance.total_bytes / 1024,
 	io:format(
 		"\t~s ~.2f kB/s (~.2f kB, ~.2f success, ~p transfers)~n",
-		[string:pad(ar_util:format_peer(Peer), 21, trailing, $\s),
+		[string:pad(big_util:format_peer(Peer), 21, trailing, $\s),
 			float(Perf#performance.lifetime_rating), KB,
 			Perf#performance.average_success, Perf#performance.total_transfers]);
 format_stats(current, Peer, Perf) ->
 	io:format(
 		"\t~s ~.2f kB/s (~.2f success)~n",
-		[string:pad(ar_util:format_peer(Peer), 21, trailing, $\s),
+		[string:pad(big_util:format_peer(Peer), 21, trailing, $\s),
 			float(Perf#performance.current_rating),
 			Perf#performance.average_success]).
 
 load_peers() ->
-	case ar_storage:read_term(peers) of
+	case big_storage:read_term(peers) of
 		not_found ->
 			ok;
 		{ok, {_TotalRating, Records}} ->
 			?LOG_INFO([{event, polling_saved_peers}, {records, length(Records)}]),
-			ar:console("Polling saved peers...~n"),
+			big:console("Polling saved peers...~n"),
 			load_peers(Records),
 			recalculate_total_rating(lifetime),
 			recalculate_total_rating(current),
 			?LOG_INFO([{event, polled_saved_peers}]),
-			ar:console("Polled saved peers.~n");
+			big:console("Polled saved peers.~n");
 		{ok, {_TotalRating, Records, Tags}} ->
 			?LOG_INFO([{event, polling_saved_peers}, {records, length(Records)}]),
-			ar:console("Polling saved peers...~n"),
+			big:console("Polling saved peers...~n"),
 			load_peers(Records),
 			recalculate_total_rating(lifetime),
 			recalculate_total_rating(current),
 			[ ets:insert(?MODULE, {K, V}) || {K, V} <- Tags ],
 			?LOG_INFO([{event, polled_saved_peers}]),
-			ar:console("Polled saved peers.~n")
+			big:console("Polled saved peers.~n")
 	end.
 
 load_peers(Peers) when length(Peers) < 20 ->
-	ar_util:pmap(fun load_peer/1, Peers);
+	big_util:pmap(fun load_peer/1, Peers);
 load_peers(Peers) ->
 	{Peers2, Peers3} = lists:split(20, Peers),
-	ar_util:pmap(fun load_peer/1, Peers2),
+	big_util:pmap(fun load_peer/1, Peers2),
 	load_peers(Peers3).
 
 load_peer({Peer, Performance}) ->
-	case ar_http_iface_client:get_info(Peer, network) of
+	case big_http_iface_client:get_info(Peer, network) of
 		info_unavailable ->
-			?LOG_DEBUG([{event, peer_unavailable}, {peer, ar_util:format_peer(Peer)}]),
+			?LOG_DEBUG([{event, peer_unavailable}, {peer, big_util:format_peer(Peer)}]),
 			ok;
 		<<?NETWORK_NAME>> ->
 			maybe_rotate_peer_ports(Peer),
@@ -632,7 +632,7 @@ load_peer({Peer, Performance}) ->
 			ok;
 		Network ->
 			?LOG_DEBUG([{event, peer_from_the_wrong_network},
-					{peer, ar_util:format_peer(Peer)}, {network, Network}]),
+					{peer, big_util:format_peer(Peer)}, {network, Network}]),
 			ok
 	end.
 
@@ -692,17 +692,17 @@ shift_port_map_left(PortMap, Max, N) ->
 	shift_port_map_left(PortMap2, Max, N + 1).
 
 ping_peers(Peers) when length(Peers) < 100 ->
-	ar_util:pmap(fun ar_http_iface_client:add_peer/1, Peers);
+	big_util:pmap(fun big_http_iface_client:add_peer/1, Peers);
 ping_peers(Peers) ->
 	{Send, Rest} = lists:split(100, Peers),
-	ar_util:pmap(fun ar_http_iface_client:add_peer/1, Send),
+	big_util:pmap(fun big_http_iface_client:add_peer/1, Send),
 	ping_peers(Rest).
 
 -ifdef(DEBUG).
 %% Do not filter out loopback IP addresses with custom port in the debug mode
 %% to allow multiple local VMs to peer with each other.
 is_loopback_ip({127, _, _, _, Port}) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Port == Config#config.port;
 is_loopback_ip({_, _, _, _, _}) ->
 	false.
@@ -775,7 +775,7 @@ check_peer(Peer) ->
 	check_peer(Peer, not is_loopback_ip(Peer)).
 check_peer(Peer, IsPeerScopeValid) ->
 	IsBlacklisted = lists:member(Peer, ?PEER_PERMANENT_BLACKLIST),
-	IsBanned = ar_blacklist_middleware:is_peer_banned(Peer) == banned,
+	IsBanned = big_blacklist_middleware:is_peer_banned(Peer) == banned,
 	case IsPeerScopeValid andalso not IsBlacklisted andalso not IsBanned of
 		true ->
 			ok;
@@ -830,7 +830,7 @@ update_rating(Peer, LatencyMilliseconds, DataSize, Concurrency, IsSuccess) ->
 		undefined -> TotalTransfers;
 		_ -> TotalTransfers + 1
 	end,
-	AverageSuccess2 = calculate_ema(AverageSuccess, ar_util:bool_to_int(IsSuccess), ?SUCCESS_ALPHA),
+	AverageSuccess2 = calculate_ema(AverageSuccess, big_util:bool_to_int(IsSuccess), ?SUCCESS_ALPHA),
 	%% Rating is an estimate of the peer's effective throughput in bytes per millisecond.
 	%% 'lifetime' considers all data ever received from this peer
 	%% 'current' considers recently received data
@@ -885,7 +885,7 @@ maybe_add_peer(Peer, Release) ->
 remove_peer(RemovedPeer) ->
 	?LOG_DEBUG([
 		{event, remove_peer},
-		{peer, ar_util:format_peer(RemovedPeer)}
+		{peer, big_util:format_peer(RemovedPeer)}
 	]),
 	Performance = get_or_init_performance(RemovedPeer),
 	TotalLifetimeRating = get_total_rating(lifetime),
@@ -894,7 +894,7 @@ remove_peer(RemovedPeer) ->
 	set_total_rating(current, TotalCurrentRating - get_peer_rating(current, Performance)),
 	ets:delete(?MODULE, {peer, RemovedPeer}),
 	remove_peer_port(RemovedPeer),
-	ar_events:send(peer, {removed, RemovedPeer}).
+	big_events:send(peer, {removed, RemovedPeer}).
 
 remove_peer_port(Peer) ->
 	{IP, Port} = get_ip_port(Peer),
@@ -944,7 +944,7 @@ store_peers() ->
 					[],
 					?MODULE
 				),
-			Tags = ets:foldl(fun ({{ar_tags, _, _, _}, _} = Tag, Acc) ->
+			Tags = ets:foldl(fun ({{big_tags, _, _, _}, _} = Tag, Acc) ->
 						[Tag|Acc];
 					     (_, Acc) -> Acc
 					end, [], ?MODULE),
@@ -952,7 +952,7 @@ store_peers() ->
 				   , {total, Total}
 				   , {records, length(Records)}
 				   , {tags, length(Tags)}]),
-			ar_storage:write_term(peers, {Total, Records, Tags})
+			big_storage:write_term(peers, {Total, Records, Tags})
 	end.
 
 %%--------------------------------------------------------------------
@@ -961,7 +961,7 @@ store_peers() ->
 %% @end
 %%--------------------------------------------------------------------
 set_tag(Peer, Tag, Value) ->
-	ets:insert(?MODULE, {{ar_tags, ?MODULE, Peer, Tag}, Value}).
+	ets:insert(?MODULE, {{big_tags, ?MODULE, Peer, Tag}, Value}).
 
 %%--------------------------------------------------------------------
 %% @hidden
@@ -969,7 +969,7 @@ set_tag(Peer, Tag, Value) ->
 %% @end
 %%--------------------------------------------------------------------
 get_tag(Peer, Tag) ->
-	Pattern = {{ar_tags, ?MODULE, Peer, Tag}, '$1'},
+	Pattern = {{big_tags, ?MODULE, Peer, Tag}, '$1'},
 	Guard = [],
 	Select = ['$1'],
 	case ets:select(?MODULE, [{Pattern, Guard, Select}]) of
@@ -1221,29 +1221,29 @@ block_rejected_test_() ->
 	].
 
 test_block_rejected() ->
-	ar_blacklist_middleware:cleanup_ban(whereis(ar_blacklist_middleware)),
-	Peer = {127, 0, 0, 1, ar_test_node:get_unused_port()},
-	ar_peers:add_peer(Peer, -1),
+	big_blacklist_middleware:cleanup_ban(whereis(big_blacklist_middleware)),
+	Peer = {127, 0, 0, 1, big_test_node:get_unused_port()},
+	big_peers:add_peer(Peer, -1),
 
-	ar_events:send(block, {rejected, invalid_signature, <<>>, Peer}),
+	big_events:send(block, {rejected, invalid_signature, <<>>, Peer}),
 	timer:sleep(5000),
 
-	?assertEqual(#{Peer => #performance{}}, ar_peers:get_peer_performances([Peer])),
-	?assertEqual(not_banned, ar_blacklist_middleware:is_peer_banned(Peer)),
+	?assertEqual(#{Peer => #performance{}}, big_peers:get_peer_performances([Peer])),
+	?assertEqual(not_banned, big_blacklist_middleware:is_peer_banned(Peer)),
 
-	ar_events:send(block, {rejected, failed_to_fetch_first_chunk, <<>>, Peer}),
+	big_events:send(block, {rejected, failed_to_fetch_first_chunk, <<>>, Peer}),
 	timer:sleep(5000),
 
 	?assertEqual(
 		#{Peer => #performance{ average_success = 0.965 }},
-		ar_peers:get_peer_performances([Peer])),
-	?assertEqual(not_banned, ar_blacklist_middleware:is_peer_banned(Peer)),
+		big_peers:get_peer_performances([Peer])),
+	?assertEqual(not_banned, big_blacklist_middleware:is_peer_banned(Peer)),
 
-	ar_events:send(block, {rejected, invalid_previous_solution_hash, <<>>, Peer}),
+	big_events:send(block, {rejected, invalid_previous_solution_hash, <<>>, Peer}),
 	timer:sleep(5000),
 
-	?assertEqual(#{Peer => #performance{}}, ar_peers:get_peer_performances([Peer])),
-	?assertEqual(banned, ar_blacklist_middleware:is_peer_banned(Peer)).
+	?assertEqual(#{Peer => #performance{}}, big_peers:get_peer_performances([Peer])),
+	?assertEqual(banned, big_blacklist_middleware:is_peer_banned(Peer)).
 
 rate_data_test() ->
 	ets:delete_all_objects(?MODULE),
@@ -1253,13 +1253,13 @@ rate_data_test() ->
 	?assertEqual(0, get_total_rating(lifetime)),
 	?assertEqual(0, get_total_rating(current)),
 
-	ar_peers:rate_fetched_data(Peer1, chunk, {error, timeout}, 1000000, 100, 10),
+	big_peers:rate_fetched_data(Peer1, chunk, {error, timeout}, 1000000, 100, 10),
 	timer:sleep(500),
 	assert_performance(#performance{ average_success = 0.965 }, get_or_init_performance(Peer1)),
 	?assertEqual(0, get_total_rating(lifetime)),
 	?assertEqual(0, get_total_rating(current)),
 
-	ar_peers:rate_fetched_data(Peer1, block, 1000000, 100),
+	big_peers:rate_fetched_data(Peer1, block, 1000000, 100),
 	timer:sleep(500),
 	assert_performance(#performance{
 			total_bytes = 100,
@@ -1274,7 +1274,7 @@ rate_data_test() ->
 	?assertEqual(0.0966, round(get_total_rating(lifetime), 4)),
 	?assertEqual(0.0048, round(get_total_rating(current), 4)),
 
-	ar_peers:rate_fetched_data(Peer1, tx, ok, 1000000, 100, 2),
+	big_peers:rate_fetched_data(Peer1, tx, ok, 1000000, 100, 2),
 	timer:sleep(500),
 	assert_performance(#performance{
 			total_bytes = 200,
@@ -1289,7 +1289,7 @@ rate_data_test() ->
 	?assertEqual(0.0967, round(get_total_rating(lifetime), 4)),
 	?assertEqual(0.0143, round(get_total_rating(current), 4)),
 
-	ar_peers:rate_gossiped_data(Peer1, block, 1000000, 100),
+	big_peers:rate_gossiped_data(Peer1, block, 1000000, 100),
 	timer:sleep(500),
 	assert_performance(#performance{
 			total_bytes = 300,

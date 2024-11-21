@@ -1,5 +1,5 @@
 %%% A wrapper library for gun.
--module(ar_http).
+-module(big_http).
 
 -behaviour(gen_server).
 
@@ -8,8 +8,8 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -record(state, {
 	pid_by_peer = #{},
@@ -36,7 +36,7 @@ req(#{ peer := {_, _} } = Args) ->
 	req(Args, false);
 req(Args) ->
 	#{ peer := Peer } = Args,
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case Config#config.port == element(5, Peer) of
 		true ->
 			%% Do not block requests to self.
@@ -65,7 +65,7 @@ req(Args, ReestablishedConnection) ->
 	#{ peer := Peer, path := Path, method := Method } = Args,
 	Response = case catch gen_server:call(?MODULE, {get_connection, Args}, infinity) of
 		{ok, PID} ->
-			ar_rate_limiter:throttle(Peer, Path),
+			big_rate_limiter:throttle(Peer, Path),
 			case request(PID, Args) of
 				{error, Error} when Error == {shutdown, normal}; Error == noproc ->
 					case ReestablishedConnection of
@@ -94,10 +94,10 @@ req(Args, ReestablishedConnection) ->
 			%%       native units and it converts it to <unit> .To query native units, use:
 			%%       erlant:monotonic_time() without any arguments.
 			%%       See: https://github.com/deadtrickster/prometheus.erl/blob/6dd56bf321e99688108bb976283a80e4d82b3d30/src/prometheus_time.erl#L2-L84
-			prometheus_histogram:observe(ar_http_request_duration_seconds, [
+			prometheus_histogram:observe(big_http_request_duration_seconds, [
 					method_to_list(Method),
-					ar_http_iface_server:label_http_path(list_to_binary(Path)),
-					ar_metrics:get_status_class(Response)
+					big_http_iface_server:label_http_path(list_to_binary(Path)),
+					big_metrics:get_status_class(Response)
 				], EndTime - StartTime)
 	end,
 	Response.
@@ -147,12 +147,12 @@ handle_info({gun_up, PID, _Protocol}, #state{ status_by_pid = StatusByPID } = St
 			[gen_server:reply(ReplyTo, {ok, PID}) || {ReplyTo, _} <- PendingRequests],
 			StatusByPID2 = maps:put(PID, {connected, MonitorRef, Peer}, StatusByPID),
 			prometheus_gauge:inc(outbound_connections),
-			ar_peers:connected_peer(Peer),
+			big_peers:connected_peer(Peer),
 			{noreply, State#state{ status_by_pid = StatusByPID2 }};
 		{connected, _MonitorRef, Peer} ->
 			?LOG_WARNING([{event, gun_up_pid_already_exists},
-					{peer, ar_util:format_peer(Peer)}]),
-			ar_peers:connected_peer(Peer),
+					{peer, big_util:format_peer(Peer)}]),
+			big_peers:connected_peer(Peer),
 			{noreply, State}
 	end;
 
@@ -181,7 +181,7 @@ handle_info({gun_error, PID, Reason},
 					prometheus_gauge:dec(outbound_connections),
 					ok
 			end,
-			ar_peers:disconnected_peer(Peer),
+			big_peers:disconnected_peer(Peer),
 			gun:shutdown(PID),
 			?LOG_DEBUG([{event, connection_error}, {reason, io_lib:format("~p", [Reason])}]),
 			{noreply, State#state{ status_by_pid = StatusByPID2, pid_by_peer = PIDByPeer2 }}
@@ -211,7 +211,7 @@ handle_info({gun_down, PID, Protocol, Reason, _KilledStreams, _UnprocessedStream
 					prometheus_gauge:dec(outbound_connections),
 					ok
 			end,
-			ar_peers:disconnected_peer(Peer),
+			big_peers:disconnected_peer(Peer),
 			{noreply, State#state{ status_by_pid = StatusByPID2, pid_by_peer = PIDByPeer2 }}
 	end;
 
@@ -230,7 +230,7 @@ handle_info({'DOWN', _Ref, process, PID, Reason},
 					prometheus_gauge:dec(outbound_connections),
 					ok
 			end,
-			ar_peers:disconnected_peer(Peer),
+			big_peers:disconnected_peer(Peer),
 			{noreply, State#state{ status_by_pid = StatusByPID2, pid_by_peer = PIDByPeer2 }}
 	end;
 
@@ -272,8 +272,8 @@ reply_error([PendingRequest | PendingRequests], Reason) ->
 
 record_response_status(Method, Path, Response) ->
 	prometheus_counter:inc(gun_requests_total, [method_to_list(Method),
-			ar_http_iface_server:label_http_path(list_to_binary(Path)),
-			ar_metrics:get_status_class(Response)]).
+			big_http_iface_server:label_http_path(list_to_binary(Path)),
+			big_metrics:get_status_class(Response)]).
 
 method_to_list(get) ->
 	"GET";
@@ -372,13 +372,13 @@ await_response(Args) ->
 	end.
 
 log(Type, Event, #{method := Method, peer := Peer, path := Path}, Reason) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case lists:member(http_logging, Config#config.enable) of
 		true when Type == warn ->
 			?LOG_WARNING([
 				{event, Event},
 				{http_method, Method},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{path, Path},
 				{reason, Reason}
 			]);
@@ -386,7 +386,7 @@ log(Type, Event, #{method := Method, peer := Peer, path := Path}, Reason) ->
 			?LOG_ERROR([
 				{event, Event},
 				{http_method, Method},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{path, Path},
 				{reason, Reason}
 			]);
@@ -397,14 +397,14 @@ log(Type, Event, #{method := Method, peer := Peer, path := Path}, Reason) ->
 download_metric(Data, #{path := Path}) ->
 	prometheus_counter:inc(
 		http_client_downloaded_bytes_total,
-		[ar_http_iface_server:label_http_path(list_to_binary(Path))],
+		[big_http_iface_server:label_http_path(list_to_binary(Path))],
 		byte_size(Data)
 	).
 
 upload_metric(#{method := post, path := Path, body := Body}) ->
 	prometheus_counter:inc(
 		http_client_uploaded_bytes_total,
-		[ar_http_iface_server:label_http_path(list_to_binary(Path))],
+		[big_http_iface_server:label_http_path(list_to_binary(Path))],
 		byte_size(Body)
 	);
 upload_metric(_) ->

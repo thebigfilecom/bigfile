@@ -1,7 +1,7 @@
 %%%
 %%% @doc Arweave server entrypoint and basic utilities.
 %%%
--module(ar).
+-module(big).
 
 -behaviour(application).
 
@@ -12,9 +12,9 @@
 		tests/0, tests/1, tests/2, shell/0, stop_shell/0,
 		docs/0, shutdown/1, console/1, console/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -36,7 +36,7 @@ main(Args) ->
 	start(parse_config_file(Args, [], #config{})).
 
 show_help() ->
-	io:format("Usage: arweave-server [options]~n"),
+	io:format("Usage: bigfile-server [options]~n"),
 	io:format("Compatible with network: ~s~n", [?NETWORK_NAME]),
 	io:format("Options:~n"),
 	lists:foreach(
@@ -372,7 +372,7 @@ parse_config_file([], Skipped, Config) ->
 
 read_config_from_file(Path) ->
 	case file:read_file(Path) of
-		{ok, FileData} -> ar_config:parse(FileData);
+		{ok, FileData} -> big_config:parse(FileData);
 		{error, _} -> {error, file_unreadable, Path}
 	end.
 
@@ -382,7 +382,7 @@ parse_cli_args(["mine" | Rest], C) ->
 parse_cli_args(["verify" | Rest], C) ->
 	parse_cli_args(Rest, C#config{ verify = true });
 parse_cli_args(["peer", Peer | Rest], C = #config{ peers = Ps }) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ peers = [ValidPeer|Ps] });
 		{error, _} ->
@@ -391,7 +391,7 @@ parse_cli_args(["peer", Peer | Rest], C = #config{ peers = Ps }) ->
 	end;
 parse_cli_args(["block_gossip_peer", Peer | Rest],
 		C = #config{ block_gossip_peers = Peers }) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ block_gossip_peers = [ValidPeer | Peers] });
 		{error, _} ->
@@ -399,7 +399,7 @@ parse_cli_args(["block_gossip_peer", Peer | Rest],
 			parse_cli_args(Rest, C)
 	end;
 parse_cli_args(["local_peer", Peer | Rest], C = #config{ local_peers = Peers }) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ local_peers = [ValidPeer | Peers] });
 		{error, _} ->
@@ -428,7 +428,7 @@ parse_cli_args(["log_dir", Dir | Rest], C) ->
 	parse_cli_args(Rest, C#config{ log_dir = Dir });
 parse_cli_args(["storage_module", StorageModuleString | Rest], C) ->
 	try
-		case ar_config:parse_storage_module(StorageModuleString) of
+		case big_config:parse_storage_module(StorageModuleString) of
 			{ok, StorageModule} ->
 				StorageModules = C#config.storage_modules,
 				parse_cli_args(Rest, C#config{
@@ -458,7 +458,7 @@ parse_cli_args(["diff", N | Rest], C) ->
 parse_cli_args(["mining_addr", Addr | Rest], C) ->
 	case C#config.mining_addr of
 		not_set ->
-			case ar_util:safe_decode(Addr) of
+			case big_util:safe_decode(Addr) of
 				{ok, DecodedAddr} when byte_size(DecodedAddr) == 32 ->
 					parse_cli_args(Rest, C#config{ mining_addr = DecodedAddr });
 				_ ->
@@ -498,7 +498,7 @@ parse_cli_args(["disk_space_check_frequency", Frequency | Rest], C) ->
 parse_cli_args(["start_from_block_index" | Rest], C) ->
 	parse_cli_args(Rest, C#config{ start_from_latest_state = true });
 parse_cli_args(["start_from_block", H | Rest], C) ->
-	case ar_util:safe_decode(H) of
+	case big_util:safe_decode(H) of
 		{ok, Decoded} when byte_size(Decoded) == 48 ->
 			parse_cli_args(Rest, C#config{ start_from_block = Decoded });
 		_ ->
@@ -590,7 +590,7 @@ parse_cli_args(["block_throttle_by_solution_interval", Num | Rest], C) ->
 parse_cli_args(["defragment_module", DefragModuleString | Rest], C) ->
 	DefragModules = C#config.defragmentation_modules,
 	try
-		{ok, DefragModule} = ar_config:parse_storage_module(DefragModuleString),
+		{ok, DefragModule} = big_config:parse_storage_module(DefragModuleString),
 		DefragModules2 = [DefragModule | DefragModules],
 		parse_cli_args(Rest, C#config{ defragmentation_modules = DefragModules2 })
 	catch _:_ ->
@@ -599,11 +599,11 @@ parse_cli_args(["defragment_module", DefragModuleString | Rest], C) ->
 	end;
 parse_cli_args(["tls_cert_file", CertFilePath | Rest], C) ->
     AbsCertFilePath = filename:absname(CertFilePath),
-    ar_util:assert_file_exists_and_readable(AbsCertFilePath),
+    big_util:assert_file_exists_and_readable(AbsCertFilePath),
     parse_cli_args(Rest, C#config{ tls_cert_file = AbsCertFilePath });
 parse_cli_args(["tls_key_file", KeyFilePath | Rest], C) ->
     AbsKeyFilePath = filename:absname(KeyFilePath),
-    ar_util:assert_file_exists_and_readable(AbsKeyFilePath),
+    big_util:assert_file_exists_and_readable(AbsKeyFilePath),
     parse_cli_args(Rest, C#config{ tls_key_file = AbsKeyFilePath });
 parse_cli_args(["coordinated_mining" | Rest], C) ->
 	parse_cli_args(Rest, C#config{ coordinated_mining = true });
@@ -617,7 +617,7 @@ parse_cli_args(["cm_api_secret", _ | _], _) ->
 parse_cli_args(["cm_poll_interval", Num | Rest], C) ->
 	parse_cli_args(Rest, C#config{ cm_poll_interval = list_to_integer(Num) });
 parse_cli_args(["cm_peer", Peer | Rest], C = #config{ cm_peers = Ps }) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ cm_peers = [ValidPeer|Ps] });
 		{error, _} ->
@@ -625,7 +625,7 @@ parse_cli_args(["cm_peer", Peer | Rest], C = #config{ cm_peers = Ps }) ->
 			parse_cli_args(Rest, C)
 	end;
 parse_cli_args(["cm_exit_peer", Peer | Rest], C) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ cm_exit_peer = ValidPeer });
 		{error, _} ->
@@ -676,20 +676,20 @@ start(Config) ->
 		_->
 			ok
   	end,
-	case ar_config:validate_config(Config) of
+	case big_config:validate_config(Config) of
 		true ->
 			ok;
 		false ->
 			timer:sleep(2000),
 			erlang:halt()
 	end,
-	Config2 = ar_config:set_dependent_flags(Config),
-	ok = application:set_env(arweave, config, Config2),
+	Config2 = big_config:set_dependent_flags(Config),
+	ok = application:set_env(bigfile, config, Config2),
 	filelib:ensure_dir(Config2#config.log_dir ++ "/"),
 	warn_if_single_scheduler(),
 	case Config2#config.nonce_limiter_server_trusted_peers of
 		[] ->
-			VDFSpeed = ar_bench_vdf:run_benchmark(),
+			VDFSpeed = big_bench_vdf:run_benchmark(),
 			?LOG_INFO([{event, vdf_benchmark}, {vdf_s, VDFSpeed / 1000000}]);
 		_ ->
 			ok
@@ -697,7 +697,7 @@ start(Config) ->
 	start_dependencies().
 
 start(normal, _Args) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	%% Configure logging for console output.
 	LoggerFormatterConsole = #{
 		legacy_header => false,
@@ -743,39 +743,39 @@ start(normal, _Args) ->
 		template => [time," [",level,"] ",mfa,":",line," ",msg,"\n"]
 	},
 	logger:set_handler_config(disk_log, formatter, {logger_formatter, LoggerFormatterDisk}),
-	logger:set_application_level(arweave, Level),
+	logger:set_application_level(bigfile, Level),
 	%% Start the Prometheus metrics subsystem.
 	prometheus_registry:register_collector(prometheus_process_collector),
-	prometheus_registry:register_collector(ar_metrics_collector),
+	prometheus_registry:register_collector(big_metrics_collector),
 	%% Register custom metrics.
-	ar_metrics:register(),
+	big_metrics:register(),
 	%% Start other apps which we depend on.
 	set_mining_address(Config),
-	ar_chunk_storage:run_defragmentation(),
+	big_chunk_storage:run_defragmentation(),
 	%% Start Arweave.
-	ar_sup:start_link().
+	big_sup:start_link().
 
 set_mining_address(#config{ mining_addr = not_set } = C) ->
-	W = ar_wallet:get_or_create_wallet([{?RSA_SIGN_ALG, 65537}]),
-	Addr = ar_wallet:to_address(W),
-	ar:console("~nSetting the mining address to ~s.~n", [ar_util:encode(Addr)]),
+	W = big_wallet:get_or_create_wallet([{?RSA_SIGN_ALG, 65537}]),
+	Addr = big_wallet:to_address(W),
+	big:console("~nSetting the mining address to ~s.~n", [big_util:encode(Addr)]),
 	C2 = C#config{ mining_addr = Addr },
-	application:set_env(arweave, config, C2),
+	application:set_env(bigfile, config, C2),
 	set_mining_address(C2);
 set_mining_address(#config{ mine = false }) ->
 	ok;
 set_mining_address(#config{ mining_addr = Addr, cm_exit_peer = CmExitPeer,
 		is_pool_client = PoolClient }) ->
-	case ar_wallet:load_key(Addr) of
+	case big_wallet:load_key(Addr) of
 		not_found ->
 			case {CmExitPeer, PoolClient} of
 				{not_set, false} ->
-					ar:console("~nThe mining key for the address ~s was not found."
+					big:console("~nThe mining key for the address ~s was not found."
 						" Make sure you placed the file in [data_dir]/~s (the node is looking for"
 						" [data_dir]/~s/[mining_addr].json or "
-						"[data_dir]/~s/arweave_keyfile_[mining_addr].json file)."
+						"[data_dir]/~s/bigfile_keyfile_[mining_addr].json file)."
 						" Do not specify \"mining_addr\" if you want one to be generated.~n~n",
-						[ar_util:encode(Addr), ?WALLET_DIR, ?WALLET_DIR, ?WALLET_DIR]),
+						[big_util:encode(Addr), ?WALLET_DIR, ?WALLET_DIR, ?WALLET_DIR]),
 					erlang:halt();
 				_ ->
 					ok
@@ -789,10 +789,10 @@ create_wallet([DataDir]) ->
 		false ->
 			create_wallet_fail();
 		true ->
-			ok = application:set_env(arweave, config, #config{ data_dir = DataDir }),
-			W = ar_wallet:new_keyfile({?RSA_SIGN_ALG, 65537}),
-			Addr = ar_wallet:to_address(W),
-			ar:console("Created a wallet with address ~s.~n", [ar_util:encode(Addr)]),
+			ok = application:set_env(bigfile, config, #config{ data_dir = DataDir }),
+			W = big_wallet:new_keyfile({?RSA_SIGN_ALG, 65537}),
+			Addr = big_wallet:to_address(W),
+			big:console("Created a wallet with address ~s.~n", [big_util:encode(Addr)]),
 			erlang:halt()
 	end;
 create_wallet(_) ->
@@ -808,18 +808,18 @@ create_wallet_fail() ->
 benchmark_packing() ->
 	benchmark_packing([]).
 benchmark_packing(Args) ->
-	ar_bench_timer:initialize(),
-	ar_bench_packing:run_benchmark_from_cli(Args),
+	big_bench_timer:initialize(),
+	big_bench_packing:run_benchmark_from_cli(Args),
 	erlang:halt().
 
 benchmark_vdf() ->
-	ar_bench_vdf:run_benchmark(),
+	big_bench_vdf:run_benchmark(),
 	erlang:halt().
 
 benchmark_hash() ->
 	benchmark_hash([]).
 benchmark_hash(Args) ->
-	ar_bench_hash:run_benchmark_from_cli(Args),
+	big_bench_hash:run_benchmark_from_cli(Args),
 	erlang:halt().
 
 shutdown([NodeName]) ->
@@ -829,13 +829,13 @@ stop(_State) ->
 	ok.
 
 stop_dependencies() ->
-	{ok, [_Kernel, _Stdlib, _SASL, _OSMon | Deps]} = application:get_key(arweave, applications),
+	{ok, [_Kernel, _Stdlib, _SASL, _OSMon | Deps]} = application:get_key(bigfile, applications),
 	lists:foreach(fun(Dep) -> application:stop(Dep) end, Deps).
 
 start_dependencies() ->
-	{ok, Config} = application:get_env(arweave, config),
-	{ok, _} = application:ensure_all_started(arweave, permanent),
-	ar_config:log_config(Config).
+	{ok, Config} = application:get_env(bigfile, config),
+	{ok, _} = application:ensure_all_started(bigfile, permanent),
+	big_config:log_config(Config).
 
 %% One scheduler => one dirty scheduler => Calculating a RandomX hash, e.g.
 %% for validating a block, will be blocked on initializing a RandomX dataset,
@@ -852,10 +852,10 @@ warn_if_single_scheduler() ->
 shell() ->
 	Config = #config{ debug = true },
 	start_for_tests(Config),
-	ar_test_node:boot_peers().
+	big_test_node:boot_peers().
 
 stop_shell() ->
-	ar_test_node:stop_peers(),
+	big_test_node:stop_peers(),
 	init:stop().
 
 %% @doc Run all of the tests associated with the core project.
@@ -865,7 +865,7 @@ tests() ->
 tests(Mods, Config) when is_list(Mods) ->
 	try
 		start_for_tests(Config),
-		ar_test_node:boot_peers()
+		big_test_node:boot_peers()
 	catch
 		Type:Reason ->
 			io:format("Failed to start the peers due to ~p:~p~n", [Type, Reason]),
@@ -875,7 +875,7 @@ tests(Mods, Config) when is_list(Mods) ->
 		try
 			eunit:test({timeout, ?TEST_TIMEOUT, [Mods]}, [verbose, {print_depth, 100}])
 		after
-			ar_test_node:stop_peers()
+			big_test_node:stop_peers()
 		end,
 	case Result of
 		ok -> ok;
@@ -884,11 +884,11 @@ tests(Mods, Config) when is_list(Mods) ->
 
 
 start_for_tests(Config) ->
-	UniqueName = ar_test_node:get_node_namespace(),
+	UniqueName = big_test_node:get_node_namespace(),
 	TestConfig = Config#config{
 		peers = [],
 		data_dir = ".tmp/data_test_main_" ++ UniqueName,
-		port = ar_test_node:get_unused_port(),
+		port = big_test_node:get_unused_port(),
 		disable = [randomx_jit],
 		packing_rate = 20,
 		auto_join = false
@@ -913,10 +913,10 @@ docs() ->
 	Mods =
 		lists:filter(
 			fun(File) -> filename:extension(File) == ".erl" end,
-			element(2, file:list_dir("apps/arweave/src"))
+			element(2, file:list_dir("apps/bigfile/src"))
 		),
 	edoc:files(
-		["apps/arweave/src/" ++ Mod || Mod <- Mods],
+		["apps/bigfile/src/" ++ Mod || Mod <- Mods],
 		[
 			{dir, "source_code_docs"},
 			{hidden, true},
@@ -934,7 +934,7 @@ commandline_parser_test_() ->
 				{"mine", #config.mine, true},
 				{"port 22", #config.port, 22},
 				{"mining_addr "
-					++ binary_to_list(ar_util:encode(Addr)), #config.mining_addr, Addr}
+					++ binary_to_list(big_util:encode(Addr)), #config.mining_addr, Addr}
 			],
 		X = string:split(string:join([ L || {L, _, _} <- Tests ], " "), " ", all),
 		C = parse_cli_args(X, #config{}),

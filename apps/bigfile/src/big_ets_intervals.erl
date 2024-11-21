@@ -1,16 +1,16 @@
 %%% @doc The utilities for managing sets of non-overlapping intervals stored in an ETS table.
-%%% The API is similar to the one of the ar_intervals module. Keeping the intervals in ETS
+%%% The API is similar to the one of the big_intervals module. Keeping the intervals in ETS
 %%% is a convenient way to share them between processes, e.g. the mining module can quickly
-%%% check whether the given recall byte is synced. ar_intervals, in turn, is helpful
+%%% check whether the given recall byte is synced. big_intervals, in turn, is helpful
 %%% for manipulating multiple sets of intervals, e.g. the syncing process uses it to look for
 %%% the intersections between our data and peers' data.
 %%% @end
--module(ar_ets_intervals).
+-module(big_ets_intervals).
 
 -export([init_from_gb_set/2, add/3, delete/3, cut/2, is_inside/2, get_interval_with_byte/2,
 		get_next_interval_outside/3, get_next_interval/3, get_intersection_size/3]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %%%===================================================================

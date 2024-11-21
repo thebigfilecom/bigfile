@@ -6,7 +6,7 @@
 %%% are ignored for the time. After a block or a transaction is validated
 %%% a permanent record can be inserted into the registry.
 %%% @end
--module(ar_ignore_registry).
+-module(big_ignore_registry).
 
 -export([add/1, remove/1, add_temporary/2, remove_temporary/1, member/1,
 		permanent_member/1]).
@@ -24,7 +24,7 @@ remove(ID) ->
 %% @end
 add_temporary(ID, Timeout) ->
 	ets:insert(ignored_ids, {ID, temporary}),
-	timer:apply_after(Timeout, ar_ignore_registry, remove_temporary, [ID]).
+	timer:apply_after(Timeout, big_ignore_registry, remove_temporary, [ID]).
 
 %% @doc Remove the temporary record from the registry.
 remove_temporary(ID) ->

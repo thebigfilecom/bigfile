@@ -1,6 +1,6 @@
--module(ar_domain).
+-module(big_domain).
 
--export([get_labeling/3, lookup_arweave_txt_record/1, derive_tx_label/2]).
+-export([get_labeling/3, lookup_bigfile_txt_record/1, derive_tx_label/2]).
 
 %%%===================================================================
 %%% Public interface.
@@ -18,8 +18,8 @@ get_labeling(ApexDomain, CustomDomains, Hostname) ->
 			get_labeling_1(CustomDomains, Hostname)
 	end.
 
-lookup_arweave_txt_record(Domain) ->
-	case inet_res:lookup("_arweave." ++ binary_to_list(Domain), in, txt) of
+lookup_bigfile_txt_record(Domain) ->
+	case inet_res:lookup("_bigfile." ++ binary_to_list(Domain), in, txt) of
 		[] ->
 			not_found;
 		[RecordChunks|_] ->
@@ -29,7 +29,7 @@ lookup_arweave_txt_record(Domain) ->
 derive_tx_label(TXID, BH) ->
 	Data = <<TXID/binary, BH/binary>>,
 	Digest = crypto:hash(sha256, Data),
-	binary:part(ar_base32:encode(Digest), {0, 12}).
+	binary:part(big_base32:encode(Digest), {0, 12}).
 
 %%%===================================================================
 %%% Private functions.

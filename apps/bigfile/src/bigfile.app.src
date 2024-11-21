@@ -1,6 +1,6 @@
-{application, arweave, [
-	{description, "Arweave"},
-	{vsn, "2.8.2"},
+{application, bigfile, [
+	{description, "BigFile"},
+	{vsn, "1.1.1"},
 	{mod, {ar, []}},
 	{applications, [
 		kernel,

@@ -1,5 +1,5 @@
 %%% @doc Utilities for manipulating wallets.
--module(ar_wallet).
+-module(big_wallet).
 
 -export([new/0, new_ecdsa/0, new/1, sign/2, verify/3, verify_pre_fork_2_4/3, to_rsa_address/1,
 		to_address/1, to_address/2, load_key/1, load_keyfile/1, new_keyfile/0, new_keyfile/1,
@@ -7,8 +7,8 @@
 		base64_address_with_optional_checksum_to_decoded_address_safe/1, wallet_filepath/1,
 		get_or_create_wallet/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -include_lib("public_key/include/public_key.hrl").
 
@@ -53,19 +53,19 @@ new_keyfile(KeyType, WalletName) ->
 				{[Expnt, Pb], [Expnt, Pb, Prv, P1, P2, E1, E2, C]} =
 					crypto:generate_key(rsa, {?RSA_PRIV_KEY_SZ, PublicExpnt}),
 				Ky =
-					ar_serialize:jsonify(
+					big_serialize:jsonify(
 						{
 							[
 								{kty, <<"RSA">>},
 								{ext, true},
-								{e, ar_util:encode(Expnt)},
-								{n, ar_util:encode(Pb)},
-								{d, ar_util:encode(Prv)},
-								{p, ar_util:encode(P1)},
-								{q, ar_util:encode(P2)},
-								{dp, ar_util:encode(E1)},
-								{dq, ar_util:encode(E2)},
-								{qi, ar_util:encode(C)}
+								{e, big_util:encode(Expnt)},
+								{n, big_util:encode(Pb)},
+								{d, big_util:encode(Prv)},
+								{p, big_util:encode(P1)},
+								{q, big_util:encode(P2)},
+								{dp, big_util:encode(E1)},
+								{dq, big_util:encode(E2)},
+								{qi, big_util:encode(C)}
 							]
 						}
 					),
@@ -76,14 +76,14 @@ new_keyfile(KeyType, WalletName) ->
 				PubPointMid = byte_size(PubPoint) div 2,
 				<<X:PubPointMid/binary, Y:PubPointMid/binary>> = PubPoint,
 				Ky =
-					ar_serialize:jsonify(
+					big_serialize:jsonify(
 						{
 							[
 								{kty, <<"EC">>},
 								{crv, <<"secp256k1">>},
-								{x, ar_util:encode(X)},
-								{y, ar_util:encode(Y)},
-								{d, ar_util:encode(Prv)}
+								{x, big_util:encode(X)},
+								{y, big_util:encode(Y)},
+								{d, big_util:encode(Prv)}
 							]
 						}
 					),
@@ -91,14 +91,14 @@ new_keyfile(KeyType, WalletName) ->
 			{?EDDSA_SIGN_ALG, ed25519} ->
 				{{_, Prv, Pb}, _} = new(KeyType),
 				Ky =
-					ar_serialize:jsonify(
+					big_serialize:jsonify(
 						{
 							[
 								{kty, <<"OKP">>},
 								{alg, <<"EdDSA">>},
 								{crv, <<"Ed25519">>},
-								{x, ar_util:encode(Pb)},
-								{d, ar_util:encode(Prv)}
+								{x, big_util:encode(Pb)},
+								{d, big_util:encode(Prv)}
 							]
 						}
 					),
@@ -106,27 +106,27 @@ new_keyfile(KeyType, WalletName) ->
 		end,
 	Filename = wallet_filepath(WalletName, Pub, KeyType),
 	filelib:ensure_dir(Filename),
-	ar_storage:write_file_atomic(Filename, Key),
+	big_storage:write_file_atomic(Filename, Key),
 	{{KeyType, Priv, Pub}, {KeyType, Pub}}.
 
 wallet_filepath(Wallet) ->
-	{ok, Config} = application:get_env(arweave, config),
-	Filename = lists:flatten(["arweave_keyfile_", binary_to_list(Wallet), ".json"]),
+	{ok, Config} = application:get_env(bigfile, config),
+	Filename = lists:flatten(["bigfile_keyfile_", binary_to_list(Wallet), ".json"]),
 	filename:join([Config#config.data_dir, ?WALLET_DIR, Filename]).
 
 wallet_filepath2(Wallet) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Filename = lists:flatten([binary_to_list(Wallet), ".json"]),
 	filename:join([Config#config.data_dir, ?WALLET_DIR, Filename]).
 
 %% @doc Read the keyfile for the key with the given address from disk.
-%% Return not_found if arweave_keyfile_[addr].json or [addr].json is not found
+%% Return not_found if bigfile_keyfile_[addr].json or [addr].json is not found
 %% in [data_dir]/?WALLET_DIR.
 load_key(Addr) ->
-	Path = wallet_filepath(ar_util:encode(Addr)),
+	Path = wallet_filepath(big_util:encode(Addr)),
 	case filelib:is_file(Path) of
 		false ->
-			Path2 = wallet_filepath2(ar_util:encode(Addr)),
+			Path2 = wallet_filepath2(big_util:encode(Addr)),
 			case filelib:is_file(Path2) of
 				false ->
 					not_found;
@@ -140,31 +140,31 @@ load_key(Addr) ->
 %% @doc Extract the public and private key from a keyfile.
 load_keyfile(File) ->
 	{ok, Body} = file:read_file(File),
-	{Key} = ar_serialize:dejsonify(Body),
+	{Key} = big_serialize:dejsonify(Body),
 	{Pub, Priv, KeyType} =
 		case lists:keyfind(<<"kty">>, 1, Key) of
 			{<<"kty">>, <<"EC">>} ->
 				{<<"x">>, XEncoded} = lists:keyfind(<<"x">>, 1, Key),
 				{<<"y">>, YEncoded} = lists:keyfind(<<"y">>, 1, Key),
 				{<<"d">>, PrivEncoded} = lists:keyfind(<<"d">>, 1, Key),
-				OrigPub = iolist_to_binary([<<4:8>>, ar_util:decode(XEncoded),
-						ar_util:decode(YEncoded)]),
+				OrigPub = iolist_to_binary([<<4:8>>, big_util:decode(XEncoded),
+						big_util:decode(YEncoded)]),
 				Pb = compress_ecdsa_pubkey(OrigPub),
-				Prv = ar_util:decode(PrivEncoded),
+				Prv = big_util:decode(PrivEncoded),
 				KyType = {?ECDSA_SIGN_ALG, secp256k1},
 				{Pb, Prv, KyType};
 			{<<"kty">>, <<"OKP">>} ->
 				{<<"x">>, PubEncoded} = lists:keyfind(<<"x">>, 1, Key),
 				{<<"d">>, PrivEncoded} = lists:keyfind(<<"d">>, 1, Key),
-				Pb = ar_util:decode(PubEncoded),
-				Prv = ar_util:decode(PrivEncoded),
+				Pb = big_util:decode(PubEncoded),
+				Prv = big_util:decode(PrivEncoded),
 				KyType = {?EDDSA_SIGN_ALG, ed25519},
 				{Pb, Prv, KyType};
 			_ ->
 				{<<"n">>, PubEncoded} = lists:keyfind(<<"n">>, 1, Key),
 				{<<"d">>, PrivEncoded} = lists:keyfind(<<"d">>, 1, Key),
-				Pb = ar_util:decode(PubEncoded),
-				Prv = ar_util:decode(PrivEncoded),
+				Pb = big_util:decode(PubEncoded),
+				Prv = big_util:decode(PrivEncoded),
 				KyType = {?RSA_SIGN_ALG, 65537},
 				{Pb, Prv, KyType}
 		end,
@@ -286,11 +286,11 @@ base64_address_with_optional_checksum_to_decoded_address(AddrBase64) ->
 	Size = byte_size(AddrBase64),
 	case Size > 7 of
 		false ->
-			ar_util:decode(AddrBase64);
+			big_util:decode(AddrBase64);
 		true ->
 			case AddrBase64 of
 				<< MainBase64url:(Size - 7)/binary, ":", ChecksumBase64url:6/binary >> ->
-					AddrDecoded = ar_util:decode(MainBase64url),
+					AddrDecoded = big_util:decode(MainBase64url),
 					case byte_size(AddrDecoded) < 20 of
 						true -> throw({error, invalid_address});
 						false -> ok
@@ -299,13 +299,13 @@ base64_address_with_optional_checksum_to_decoded_address(AddrBase64) ->
 						true -> throw({error, invalid_address});
 						false -> ok
 					end,
-					Checksum = ar_util:decode(ChecksumBase64url),
+					Checksum = big_util:decode(ChecksumBase64url),
 					case decoded_address_to_checksum(AddrDecoded) =:= Checksum of
 						true -> AddrDecoded;
 						false -> throw({error, invalid_address_checksum})
 					end;
 				_ ->
-					ar_util:decode(AddrBase64)
+					big_util:decode(AddrBase64)
 			end
 	end.
 
@@ -321,7 +321,7 @@ base64_address_with_optional_checksum_to_decoded_address_safe(AddrBase64)->
 %% @doc Read a wallet of one of the given types from disk. Files modified later are prefered.
 %% If no file is found, create one of the type standing first in the list.
 get_or_create_wallet(Types) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	WalletDir = filename:join(Config#config.data_dir, ?WALLET_DIR),
 	Entries =
 		lists:reverse(lists:sort(filelib:fold_files(
@@ -336,7 +336,7 @@ get_or_create_wallet(Types) ->
 	get_or_create_wallet(Entries, Types).
 
 get_or_create_wallet([], [Type | _]) ->
-	ar_wallet:new_keyfile(Type);
+	big_wallet:new_keyfile(Type);
 get_or_create_wallet([{_LastModified, F} | Entries], Types) ->
 	{{Type, _, _}, _} = W = load_keyfile(F),
 	case lists:member(Type, Types) of
@@ -354,7 +354,7 @@ wallet_filepath(WalletName, PubKey, KeyType) ->
 	wallet_filepath(wallet_name(WalletName, PubKey, KeyType)).
 
 wallet_name(wallet_address, PubKey, KeyType) ->
-	ar_util:encode(to_address(PubKey, KeyType));
+	big_util:encode(to_address(PubKey, KeyType));
 wallet_name(WalletName, _, _) ->
 	WalletName.
 
@@ -378,8 +378,8 @@ decoded_address_to_checksum(AddrDecoded) ->
 
 decoded_address_to_base64_address_with_checksum(AddrDecoded) ->
 	Checksum = decoded_address_to_checksum(AddrDecoded),
-	AddrBase64 = ar_util:encode(AddrDecoded),
-	ChecksumBase64 = ar_util:encode(Checksum),
+	AddrBase64 = big_util:encode(AddrDecoded),
+	ChecksumBase64 = big_util:encode(Checksum),
 	<< AddrBase64/binary, ":", ChecksumBase64/binary >>.
 
 compress_ecdsa_pubkey(<<4:8, PubPoint/binary>>) ->
@@ -411,21 +411,21 @@ invalid_signature_test() ->
 %% @doc Check generated keyfiles can be retrieved.
 generate_keyfile_test() ->
 	{Priv, Pub} = new_keyfile(),
-	FileName = wallet_filepath(ar_util:encode(to_address(Pub))),
+	FileName = wallet_filepath(big_util:encode(to_address(Pub))),
 	{Priv, Pub} = load_keyfile(FileName).
 
 checksum_test() ->
 	{_, Pub} = new(),
 	Addr = to_address(Pub),
-	AddrBase64 = ar_util:encode(Addr),
+	AddrBase64 = big_util:encode(Addr),
 	AddrBase64Wide = decoded_address_to_base64_address_with_checksum(Addr),
 	Addr = base64_address_with_optional_checksum_to_decoded_address(AddrBase64Wide),
 	Addr = base64_address_with_optional_checksum_to_decoded_address(AddrBase64),
 	%% 64 bytes, for future.
 	CorrectLongAddress = <<"0123456789012345678901234567890123456789012345678901234567890123">>,
 	CorrectCheckSum = decoded_address_to_checksum(CorrectLongAddress),
-	CorrectLongAddressBase64 = ar_util:encode(CorrectLongAddress),
-	CorrectCheckSumBase64 = ar_util:encode(CorrectCheckSum),
+	CorrectLongAddressBase64 = big_util:encode(CorrectLongAddress),
+	CorrectCheckSumBase64 = big_util:encode(CorrectCheckSum),
 	CorrectLongAddressWithChecksumBase64 = <<CorrectLongAddressBase64/binary, ":", CorrectCheckSumBase64/binary>>,
 	case catch base64_address_with_optional_checksum_to_decoded_address(CorrectLongAddressWithChecksumBase64) of
 		{error, _} -> throw({error, correct_long_address_should_bypass});
@@ -433,23 +433,23 @@ checksum_test() ->
 	end,
 	%% 65 bytes.
 	InvalidLongAddress = <<"01234567890123456789012345678901234567890123456789012345678901234">>,
-	InvalidLongAddressBase64 = ar_util:encode(InvalidLongAddress),
+	InvalidLongAddressBase64 = big_util:encode(InvalidLongAddress),
 	case catch base64_address_with_optional_checksum_to_decoded_address(<<InvalidLongAddressBase64/binary, ":MDA">>) of
 		{'EXIT', _} -> ok
 	end,
 	%% 100 bytes.
 	InvalidLongAddress2 = <<"0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789">>,
-	InvalidLongAddress2Base64 = ar_util:encode(InvalidLongAddress2),
+	InvalidLongAddress2Base64 = big_util:encode(InvalidLongAddress2),
 	case catch base64_address_with_optional_checksum_to_decoded_address(<<InvalidLongAddress2Base64/binary, ":MDA">>) of
 		{'EXIT', _} -> ok
 	end,
 	%% 10 bytes
 	InvalidShortAddress = <<"0123456789">>,
-	InvalidShortAddressBase64 = ar_util:encode(InvalidShortAddress),
+	InvalidShortAddressBase64 = big_util:encode(InvalidShortAddress),
 	case catch base64_address_with_optional_checksum_to_decoded_address(<<InvalidShortAddressBase64/binary, ":MDA">>) of
 		{'EXIT', _} -> ok
 	end,
-	InvalidChecksum = ar_util:encode(<< 0:32 >>),
+	InvalidChecksum = big_util:encode(<< 0:32 >>),
 	case catch base64_address_with_optional_checksum_to_decoded_address(
 			<< AddrBase64/binary, ":", InvalidChecksum/binary >>) of
 		{error, invalid_address_checksum} -> ok

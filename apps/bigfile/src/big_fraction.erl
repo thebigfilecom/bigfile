@@ -1,5 +1,5 @@
 %%% @doc The module with utilities for performing computations on fractions.
--module(ar_fraction).
+-module(big_fraction).
 
 -export([pow/2, natural_exponent/2, factorial/1, minimum/2, maximum/2, multiply/2, reduce/2,
 		add/2]).

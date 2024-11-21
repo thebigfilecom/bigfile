@@ -1,16 +1,16 @@
 %%%
-%%% @doc The module defines Arweave hard forks' heights.
+%%% @doc The module defines BigFile hard forks' heights.
 %%%
 
--module(ar_fork).
+-module(big_fork).
 
 -export([height_1_6/0, height_1_7/0, height_1_8/0, height_1_9/0, height_2_0/0, height_2_2/0,
 		height_2_3/0, height_2_4/0, height_2_5/0, height_2_6/0, height_2_6_8/0,
 		height_2_7/0, height_2_7_1/0, height_2_7_2/0,
 		height_2_8/0]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
 
 -ifdef(FORKS_RESET).
 height_1_6() ->

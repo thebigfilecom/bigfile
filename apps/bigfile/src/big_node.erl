@@ -3,13 +3,13 @@
 %% with this file, You can obtain one at
 %% https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 
--module(ar_node).
+-module(big_node).
 
 -export([get_recent_block_hash_by_height/1, get_blocks/0, get_block_index/0,
 		get_current_block/0, get_current_diff/0,
 		is_in_block_index/1, get_block_index_and_height/0,
 		get_height/0, get_weave_size/0, get_balance/1, get_last_tx/1, get_ready_for_mining_txs/0,
-		get_current_usd_to_ar_rate/0, get_current_block_hash/0,
+		get_current_usd_to_big_rate/0, get_current_block_hash/0,
 		get_block_index_entry/1, get_2_0_hash_of_1_0_block/1, is_joined/0, get_block_anchors/0,
 		get_recent_txs_map/0, get_mempool_size/0,
 		get_block_shadow_from_cache/1, get_recent_partition_upper_bound_by_prev_h/1,
@@ -17,9 +17,9 @@
 		get_partition_number/1, get_max_partition_number/1,
 		get_current_weave_size/0, get_recent_max_block_size/0]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -64,7 +64,7 @@ get_block_index() ->
 %% initialized the state.
 get_current_block() ->
 	[{_, Current}] = ets:lookup(node_state, current),
-	ar_block_cache:get(block_cache, Current).
+	big_block_cache:get(block_cache, Current).
 
 %% @doc Return the current network difficulty. Assume the node has joined the network and
 %% initialized the state.
@@ -84,7 +84,7 @@ get_block_index_and_height() ->
 	CurrentHeight = proplists:get_value(height, Props),
 	RecentBI = proplists:get_value(recent_block_index, Props),
 	{CurrentHeight, merge(RecentBI,
-			ar_block_index:get_list(CurrentHeight - length(RecentBI)))}.
+			big_block_index:get_list(CurrentHeight - length(RecentBI)))}.
 
 merge([Elem | BI], BI2) ->
 	[Elem | merge(BI, BI2)];
@@ -102,12 +102,12 @@ get_ready_for_mining_txs() ->
 				Acc
 		end,
 		[],
-		ar_mempool:get_priority_set()
+		big_mempool:get_priority_set()
 	).
 
 %% @doc Return true if the given block hash is found in the block index.
 is_in_block_index(H) ->
-	ar_block_index:member(H).
+	big_block_index:member(H).
 
 %% @doc Get the current block hash.
 get_current_block_hash() ->
@@ -126,7 +126,7 @@ get_block_index_entry(Height) ->
 		[{_, false}] ->
 			not_joined;
 		[{_, true}] ->
-			ar_block_index:get_element_by_height(Height)
+			big_block_index:get_element_by_height(Height)
 	end.
 
 %% @doc Get the 2.0 hash for a 1.0 block.
@@ -138,7 +138,7 @@ get_block_index_entry(Height) ->
 %% @end
 get_2_0_hash_of_1_0_block(Height) ->
 	[{hash_list_2_0_for_1_0_blocks, HL}] = ets:lookup(node_state, hash_list_2_0_for_1_0_blocks),
-	Fork_2_0 = ar_fork:height_2_0(),
+	Fork_2_0 = big_fork:height_2_0(),
 	case Height > Fork_2_0 of
 		true ->
 			invalid_height;
@@ -173,8 +173,8 @@ is_joined() ->
 	end.
 
 %% @doc Get the currently estimated USD to AR exchange rate.
-get_current_usd_to_ar_rate() ->
-	[{_, Rate}] = ets:lookup(node_state, usd_to_ar_rate),
+get_current_usd_to_big_rate() ->
+	[{_, Rate}] = ets:lookup(node_state, usd_to_big_rate),
 	Rate.
 
 %% @doc Returns a list of block anchors corrsponding to the current state -
@@ -202,27 +202,27 @@ get_mempool_size() ->
 
 %% @doc Get the block shadow from the block cache.
 get_block_shadow_from_cache(H) ->
-	ar_block_cache:get(block_cache, H).
+	big_block_cache:get(block_cache, H).
 
 %% @doc Get the current balance of a given wallet address.
 %% The balance returned is in relation to the nodes current wallet list.
 get_balance({SigType, PubKey}) ->
-	get_balance(ar_wallet:to_address(PubKey, SigType));
+	get_balance(big_wallet:to_address(PubKey, SigType));
 get_balance(MaybeRSAPub) when byte_size(MaybeRSAPub) == 512 ->
 	%% A legacy feature where we may search the public key instead of address.
-	ar_wallets:get_balance(ar_wallet:to_rsa_address(MaybeRSAPub));
+	big_wallets:get_balance(big_wallet:to_rsa_address(MaybeRSAPub));
 get_balance(Addr) ->
-	ar_wallets:get_balance(Addr).
+	_wallets:get_balance(Addr).
 
 %% @doc Get the last tx id associated with a given wallet address.
 %% Should the wallet not have made a tx the empty binary will be returned.
 get_last_tx({SigType, PubKey}) ->
-	get_last_tx(ar_wallet:to_address(PubKey, SigType));
+	get_last_tx(big_wallet:to_address(PubKey, SigType));
 get_last_tx(MaybeRSAPub) when byte_size(MaybeRSAPub) == 512 ->
 	%% A legacy feature where we may search the public key instead of address.
-	get_last_tx(ar_wallet:to_rsa_address(MaybeRSAPub));
+	get_last_tx(big_wallet:to_rsa_address(MaybeRSAPub));
 get_last_tx(Addr) ->
-	{ok, ar_wallets:get_last_tx(Addr)}.
+	{ok, big_wallets:get_last_tx(Addr)}.
 
 get_recent_partition_upper_bound_by_prev_h(H) ->
 	get_recent_partition_upper_bound_by_prev_h(H, 0).
@@ -244,7 +244,7 @@ get_partition_upper_bound(BI) ->
 	element(2, get_nth_or_last(?SEARCH_SPACE_UPPER_BOUND_DEPTH, BI)).
 
 get_recent_partition_upper_bound_by_prev_h(H, Diff) ->
-	case ar_block_cache:get_block_and_status(block_cache, H) of
+	case big_block_cache:get_block_and_status(block_cache, H) of
 		{_B, {on_chain, _}} ->
 			[{_, BI}] = ets:lookup(node_state, recent_block_index),
 			Genesis = length(BI) =< ?SEARCH_SPACE_UPPER_BOUND_DEPTH,
@@ -257,7 +257,7 @@ get_recent_partition_upper_bound_by_prev_h(H, Diff) ->
 					get_recent_partition_upper_bound_by_prev_h(PrevH, Diff + 1)
 			end;
 		not_found ->
-			?LOG_INFO([{event, prev_block_not_found}, {h, ar_util:encode(H)}, {depth, Diff}]),
+			?LOG_INFO([{event, prev_block_not_found}, {h, big_util:encode(H)}, {depth, Diff}]),
 			not_found
 	end.
 
@@ -281,7 +281,7 @@ get_recent_partition_upper_bound_by_prev_h(H, Diff, [_ | BI], Genesis) ->
 	get_recent_partition_upper_bound_by_prev_h(H, Diff, BI, Genesis);
 get_recent_partition_upper_bound_by_prev_h(H, Diff, [], _Genesis) ->
 	?LOG_INFO([{event, prev_block_not_found_when_scanning_recent_block_index},
-			{h, ar_util:encode(H)}, {depth, Diff}]),
+			{h, big_util:encode(H)}, {depth, Diff}]),
 	not_found.
 
 get_partition_number(undefined) ->
@@ -315,7 +315,7 @@ get_recent_max_block_size() ->
 %%%===================================================================
 
 get_recent_partition_upper_bound_by_prev_h_short_cache_test() ->
-	ar_block_cache:new(block_cache, B0 = test_block(1, 1, <<>>)),
+	big_block_cache:new(block_cache, B0 = test_block(1, 1, <<>>)),
 	H0 = B0#block.indep_hash,
 	BI = lists:reverse([{H0, 20, <<>>}
 			| [{crypto:strong_rand_bytes(48), 20, <<>>} || _ <- lists:seq(1, 99)]]),
@@ -335,7 +335,7 @@ get_recent_partition_upper_bound_by_prev_h_short_cache_test() ->
 	?assertEqual({H1, 20}, get_recent_partition_upper_bound_by_prev_h(HNext)).
 
 get_recent_partition_upper_bound_by_prev_h_genesis_test() ->
-	ar_block_cache:new(block_cache, B0 = test_block(0, 1, <<>>)),
+	big_block_cache:new(block_cache, B0 = test_block(0, 1, <<>>)),
 	H0 = B0#block.indep_hash,
 	ets:insert(node_state, {recent_block_index, [{H0, 20, <<>>}]}),
 	?assertEqual({H0, 20}, get_recent_partition_upper_bound_by_prev_h(H0)).
@@ -347,8 +347,8 @@ test_block(H, Height, CDiff, PrevH) ->
 	#block{ indep_hash = H, height = Height, cumulative_diff = CDiff, previous_block = PrevH }.
 
 add_blocks([{H, _, _} | BI], Height, CDiff, PrevH) ->
-	ar_block_cache:add_validated(block_cache, test_block(H, Height, CDiff, PrevH)),
-	ar_block_cache:mark_tip(block_cache, H),
+	big_block_cache:add_validated(block_cache, test_block(H, Height, CDiff, PrevH)),
+	big_block_cache:mark_tip(block_cache, H),
 	add_blocks(BI, Height + 1, CDiff + 1, H);
 add_blocks([], _Height, _CDiff, _PrevH) ->
 	ok.

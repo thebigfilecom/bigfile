@@ -3,7 +3,7 @@
 %% with this file, You can obtain one at
 %% https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html
 
--module(ar_http_sup).
+-module(big_http_sup).
 
 -behaviour(supervisor).
 
@@ -13,7 +13,7 @@
 %% Supervisor callbacks
 -export([init/1]).
 
--include_lib("arweave/include/ar_sup.hrl").
+-include_lib("bigfile/include/big_sup.hrl").
 
 %% ===================================================================
 %% API functions
@@ -27,4 +27,4 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	{ok, {{one_for_one, 5, 10}, [?CHILD(ar_http, worker)]}}.
+	{ok, {{one_for_one, 5, 10}, [?CHILD(big_http, worker)]}}.

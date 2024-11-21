@@ -2,26 +2,26 @@
 %%% @doc Handle http requests.
 %%%===================================================================
 
--module(ar_http_iface_server).
+-module(big_http_iface_server).
 
 -export([start/0, stop/0]).
 -export([split_path/1, label_http_path/1, label_req/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -define(HTTP_IFACE_MIDDLEWARES, [
-	ar_blacklist_middleware,
-	ar_network_middleware,
+	big_blacklist_middleware,
+	big_network_middleware,
 	cowboy_router,
-	ar_http_iface_middleware,
+	big_http_iface_middleware,
 	cowboy_handler
 ]).
 
 -define(HTTP_IFACE_ROUTES, [
-	{"/metrics/[:registry]", ar_prometheus_cowboy_handler, []},
-	{"/[...]", ar_http_iface_handler, []}
+	{"/metrics/[:registry]", big_prometheus_cowboy_handler, []},
+	{"/[...]", big_http_iface_handler, []}
 ]).
 
 -define(ENDPOINTS, ["info", "block", "block_announcement", "block2", "tx", "tx2",
@@ -45,8 +45,8 @@ label_http_path(Path) ->
 	label_http_path(split_path(Path)).
 
 label_req(Req) ->
-	SplitPath = ar_http_iface_server:split_path(cowboy_req:path(Req)),
-	ar_http_iface_server:label_http_path(SplitPath).
+	SplitPath = big_http_iface_server:split_path(cowboy_req:path(Req)),
+	big_http_iface_server:label_http_path(SplitPath).
 
 %%%===================================================================
 %%% Private functions.
@@ -54,15 +54,15 @@ label_req(Req) ->
 
 %% @doc Start the server
 start() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Semaphores = Config#config.semaphores,
 	maps:map(
 		fun(Name, N) ->
-			ok = ar_semaphore:start_link(Name, N)
+			ok = big_semaphore:start_link(Name, N)
 		end,
 		Semaphores
 	),
-	ok = ar_blacklist_middleware:start(),
+	ok = big_blacklist_middleware:start(),
 	ok = start_http_iface_listener(Config),
 	ok.
 
@@ -85,9 +85,9 @@ start_http_iface_listener(Config) ->
 	},
 	case TlsCertfilePath of
 		not_set ->
-			{ok, _} = cowboy:start_clear(ar_http_iface_listener, TransportOpts, ProtocolOpts);
+			{ok, _} = cowboy:start_clear(big_http_iface_listener, TransportOpts, ProtocolOpts);
 		_ ->
-			{ok, _} = cowboy:start_tls(ar_http_iface_listener, TransportOpts ++ [
+			{ok, _} = cowboy:start_tls(big_http_iface_listener, TransportOpts ++ [
 				{certfile, TlsCertfilePath},
 				{keyfile, TlsKeyfilePath}
 			], ProtocolOpts)
@@ -95,7 +95,7 @@ start_http_iface_listener(Config) ->
 	ok.
 
 stop() ->
-	cowboy:stop_listener(ar_http_iface_listener).
+	cowboy:stop_listener(big_http_iface_listener).
 
 name_route([]) ->
 	"/";
