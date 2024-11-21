@@ -1,9 +1,9 @@
--module(ar_sync_buckets).
+-module(big_sync_buckets).
 
 -export([new/0, from_intervals/1, from_intervals/2, add/3, delete/3, cut/2, get/3, serialize/2,
 		deserialize/1, foreach/3]).
 
--include_lib("arweave/include/ar_sync_buckets.hrl").
+-include_lib("bigfile/include/big_sync_buckets.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %%%===================================================================
@@ -14,15 +14,15 @@
 new() ->
 	{?DEFAULT_SYNC_BUCKET_SIZE, #{}}.
 
-%% @doc Initialize buckets from a set of intervals (see ar_intervals).
+%% @doc Initialize buckets from a set of intervals (see big_intervals).
 %% The bucket size is ?DEFAULT_SYNC_BUCKET_SIZE.
 from_intervals(Intervals) ->
 	from_intervals(Intervals, new()).
 
-%% @doc Add the data from a set of intervals (see ar_intervals) to the given buckets.
+%% @doc Add the data from a set of intervals (see big_intervals) to the given buckets.
 from_intervals(Intervals, SyncBuckets) ->
 	{Size, Map} = SyncBuckets,
-	{Size, ar_intervals:fold(
+	{Size, big_intervals:fold(
 		fun({End, Start}, Acc) ->
 			add(Start, End, Size, Acc)
 		end,
@@ -143,7 +143,7 @@ add(Start, End, Size, Map) ->
 			maps:put(Bucket, min(1, (Share * Size + Increase) / Size), Map)).
 
 bucket_upper_bound(Offset, Size) ->
-	ar_util:ceil_int(Offset, Size).
+	big_util:ceil_int(Offset, Size).
 
 delete(Start, End, _Size, Map) when Start >= End ->
 	Map;

@@ -1,4 +1,4 @@
--module(ar_rewards).
+-module(big_rewards).
 
 -export([reward_history_length/1, expected_hashes_length/1, buffered_reward_history_length/1, 
 		set_reward_history/2, get_locked_rewards/1,
@@ -9,21 +9,21 @@
 		get_total_reward_for_address/2, get_reward_history_totals/1,
 		apply_rewards/2, apply_reward/4, log_reward_history/3]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 
 reward_history_length(Height) ->
 	min(
-		Height - ar_fork:height_2_6() + 1, %% included for compatibility with unit tests
-		case Height >= ar_fork:height_2_8() of
+		Height - big_fork:height_2_6() + 1, %% included for compatibility with unit tests
+		case Height >= big_fork:height_2_8() of
 			true ->
-				ar_testnet:reward_history_blocks(Height) + ?STORE_BLOCKS_BEHIND_CURRENT;
+				big_testnet:reward_history_blocks(Height) + ?STORE_BLOCKS_BEHIND_CURRENT;
 			false ->
-				ar_testnet:legacy_reward_history_blocks(Height) + ?STORE_BLOCKS_BEHIND_CURRENT
+				big_testnet:legacy_reward_history_blocks(Height) + ?STORE_BLOCKS_BEHIND_CURRENT
 		end
 	).
 
 expected_hashes_length(Height) ->
-	case Height >= ar_fork:height_2_8() of
+	case Height >= big_fork:height_2_8() of
 		true ->
 			%% Take one more block.reward_history_hash because after 2.8 we use
 			%% the previous reward history hash to compute the new one.
@@ -44,7 +44,7 @@ buffered_reward_history_length(Height) ->
 			reward_history_length(Height - expected_hashes_length(Height)),
 			reward_history_length(Height)
 		),
-		ar_testnet:locked_rewards_blocks(Height)
+		big_testnet:locked_rewards_blocks(Height)
 	).
 
 %% @doc Add the corresponding reward history to every block record. We keep
@@ -67,7 +67,7 @@ get_locked_rewards(B) ->
 
 %% @doc Trim RewardHistory to just the locked rewards.
 trim_locked_rewards(Height, RewardHistory) ->
-	LockRewardsLength = ar_testnet:locked_rewards_blocks(Height),
+	LockRewardsLength = big_testnet:locked_rewards_blocks(Height),
 	lists:sublist(RewardHistory, LockRewardsLength).
 
 %% @doc Trim RewardHistory to the values that will be stored in the block. This is the
@@ -89,7 +89,7 @@ get_oldest_locked_address(B) ->
 add_element(B, RewardHistory) ->
 	Height = B#block.height,
 	Reward = B#block.reward,
-	HashRate = ar_difficulty:get_hash_rate_fixed_ratio(B),
+	HashRate = big_difficulty:get_hash_rate_fixed_ratio(B),
 	Denomination = B#block.denomination,
 	RewardAddr = B#block.reward_addr,
 	trim_buffered_reward_history(Height, 
@@ -124,7 +124,7 @@ validate_reward_history_hashes(Height, RewardHistory, [H, PrevH | ExpectedHashes
 	end;
 validate_reward_history_hashes(Height, RewardHistory, [H]) ->
 	%% After 2.8 we always include one extra hash to the list so we cannot end up here.
-	true = Height < ar_fork:height_2_8(),
+	true = Height < big_fork:height_2_8(),
 	validate_reward_history_hash(Height, not_set, H, RewardHistory).
 
 validate_reward_history_hash(Height, PreviousRewardHistoryHash, H, RewardHistory) ->
@@ -135,18 +135,18 @@ validate_reward_history_hash(Height, PreviousRewardHistoryHash, H, RewardHistory
 			trim_locked_rewards(Height, RewardHistory)).
 
 reward_history_hash(Height, PreviousRewardHistoryHash, History) ->
-	case Height >= ar_fork:height_2_8() of
+	case Height >= big_fork:height_2_8() of
 		true ->
 			Element = encode_reward_history_element(hd(History)),
 			Preimage = << Element/binary, PreviousRewardHistoryHash/binary >>,
 			crypto:hash(sha256, Preimage);
 		false ->
-			reward_history_hash(History, [ar_serialize:encode_int(length(History), 8)])
+			reward_history_hash(History, [big_serialize:encode_int(length(History), 8)])
 	end.
 
 encode_reward_history_element({Addr, HashRate, Reward, Denomination}) ->
-	HashRateBin = ar_serialize:encode_int(HashRate, 8),
-	RewardBin = ar_serialize:encode_int(Reward, 8),
+	HashRateBin = big_serialize:encode_int(HashRate, 8),
+	RewardBin = big_serialize:encode_int(Reward, 8),
 	DenominationBin = << Denomination:24 >>,
 	crypto:hash(sha256, << Addr/binary, HashRateBin/binary,
 			RewardBin/binary, DenominationBin/binary >>).
@@ -154,8 +154,8 @@ encode_reward_history_element({Addr, HashRate, Reward, Denomination}) ->
 reward_history_hash([], IOList) ->
 	crypto:hash(sha256, iolist_to_binary(IOList));
 reward_history_hash([{Addr, HashRate, Reward, Denomination} | History], IOList) ->
-	HashRateBin = ar_serialize:encode_int(HashRate, 8),
-	RewardBin = ar_serialize:encode_int(Reward, 8),
+	HashRateBin = big_serialize:encode_int(HashRate, 8),
+	RewardBin = big_serialize:encode_int(Reward, 8),
 	DenominationBin = << Denomination:24 >>,
 	reward_history_hash(History, [Addr, HashRateBin, RewardBin, DenominationBin | IOList]).
 
@@ -165,7 +165,7 @@ get_total_reward_for_address(Addr, B) ->
 get_total_reward_for_address(_Addr, [], _Denomination, Total) ->
 	Total;
 get_total_reward_for_address(Addr, [{Addr, _, Reward, RewardDenomination} | LockedRewards], Denomination, Total) ->
-	Reward2 = ar_pricing:redenominate(Reward, RewardDenomination, Denomination),
+	Reward2 = big_pricing:redenominate(Reward, RewardDenomination, Denomination),
 	get_total_reward_for_address(Addr, LockedRewards, Denomination, Total + Reward2);
 get_total_reward_for_address(Addr, [_ | LockedRewards], Denomination, Total) ->
 	get_total_reward_for_address(Addr, LockedRewards, Denomination, Total).
@@ -184,7 +184,7 @@ get_totals([], _Denomination, HashRateTotal, RewardTotal) ->
 get_totals([{_Addr, HashRate, Reward, RewardDenomination} | History],
 		Denomination, HashRateTotal, RewardTotal) ->
 	HashRateTotal2 = HashRateTotal + HashRate,
-	Reward2 = ar_pricing:redenominate(Reward, RewardDenomination, Denomination),
+	Reward2 = big_pricing:redenominate(Reward, RewardDenomination, Denomination),
 	RewardTotal2 = RewardTotal + Reward2,
 	get_totals(History, Denomination, HashRateTotal2, RewardTotal2).
 
@@ -194,9 +194,9 @@ apply_rewards(PrevB, Accounts) ->
 	%% happen on testnet.
 	Height = PrevB#block.height,
 	NumRewardsToApply = max(0,
-			ar_testnet:locked_rewards_blocks(Height) -
-			ar_testnet:locked_rewards_blocks(Height + 1) + 1),
-	true = NumRewardsToApply == 1 orelse ar_testnet:is_testnet(),
+			big_testnet:locked_rewards_blocks(Height) -
+			big_testnet:locked_rewards_blocks(Height + 1) + 1),
+	true = NumRewardsToApply == 1 orelse big_testnet:is_testnet(),
 
 	%% Get the last NumRewardsToApply elements of the LockedRewards list in reverse order.
 	%% Normally this will be a list with a single element: the last element in the
@@ -210,11 +210,11 @@ apply_rewards2([], _Denomination, Accounts) ->
 	Accounts;
 apply_rewards2([{Addr, _HashRate, Reward, RewardDenomination} | RewardsToApply],
 		Denomination, Accounts) ->
-	case ar_node_utils:is_account_banned(Addr, Accounts) of
+	case big_node_utils:is_account_banned(Addr, Accounts) of
 		true ->
 			apply_rewards2(RewardsToApply, Denomination, Accounts);
 		false ->
-			Reward2 = ar_pricing:redenominate(Reward, RewardDenomination,
+			Reward2 = big_pricing:redenominate(Reward, RewardDenomination,
 					Denomination),
 			Accounts2 = apply_reward(Accounts, Addr, Reward2, Denomination),
 			apply_rewards2(RewardsToApply, Denomination, Accounts2)
@@ -226,14 +226,14 @@ apply_reward(Accounts, unclaimed, _Quantity, _Denomination) ->
 apply_reward(Accounts, RewardAddr, Amount, Denomination) ->
 	case maps:get(RewardAddr, Accounts, not_found) of
 		not_found ->
-			ar_node_utils:update_account(RewardAddr, Amount, <<>>, Denomination, true, Accounts);
+			big_node_utils:update_account(RewardAddr, Amount, <<>>, Denomination, true, Accounts);
 		{Balance, LastTX} ->
-			Balance2 = ar_pricing:redenominate(Balance, 1, Denomination),
-			ar_node_utils:update_account(RewardAddr, Balance2 + Amount, LastTX,
+			Balance2 = big_pricing:redenominate(Balance, 1, Denomination),
+			big_node_utils:update_account(RewardAddr, Balance2 + Amount, LastTX,
 				Denomination, true, Accounts);
 		{Balance, LastTX, AccountDenomination, MiningPermission} ->
-			Balance2 = ar_pricing:redenominate(Balance, AccountDenomination, Denomination),
-			ar_node_utils:update_account(RewardAddr, Balance2 + Amount, LastTX,
+			Balance2 = big_pricing:redenominate(Balance, AccountDenomination, Denomination),
+			big_node_utils:update_account(RewardAddr, Balance2 + Amount, LastTX,
 				Denomination, MiningPermission, Accounts)
 	end.
 
@@ -241,7 +241,7 @@ log_reward_history(Message, RewardHistory, N) ->
 	Length = length(RewardHistory),
 	LimitedRewardHistory = lists:sublist(RewardHistory, N),
 	LogEntries = lists:map(fun({Addr, HashRate, Reward, Denomination}) ->
-		EncodedAddr = ar_util:encode(Addr),
+		EncodedAddr = big_util:encode(Addr),
 		LogHashRate = math:log10(HashRate),
 		io_lib:format("{~s, ~p, ~p, ~p}", 
 						[EncodedAddr, LogHashRate, Reward, Denomination])

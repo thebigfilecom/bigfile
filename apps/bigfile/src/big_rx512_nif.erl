@@ -1,6 +1,6 @@
--module(ar_rx512_nif).
+-module(big_rx512_nif).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 
 -on_load(init_nif/0).
 

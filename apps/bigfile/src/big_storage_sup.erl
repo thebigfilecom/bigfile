@@ -1,4 +1,4 @@
--module(ar_storage_sup).
+-module(big_storage_sup).
 
 -behaviour(supervisor).
 
@@ -6,8 +6,8 @@
 
 -export([init/1]).
 
--include_lib("arweave/include/ar_sup.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfie/include/big_sup.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 %%%===================================================================
 %%% Public interface.
@@ -21,6 +21,6 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    ets:new(ar_storage, [set, public, named_table, {read_concurrency, true}]),
-	ets:new(ar_storage_module, [set, public, named_table]),
-	{ok, {{one_for_one, 5, 10}, [?CHILD(ar_storage, worker)]}}.
+    ets:new(big_storage, [set, public, named_table, {read_concurrency, true}]),
+	ets:new(big_storage_module, [set, public, named_table]),
+	{ok, {{one_for_one, 5, 10}, [?CHILD(big_storage, worker)]}}.

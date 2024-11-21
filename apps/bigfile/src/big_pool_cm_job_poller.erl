@@ -1,4 +1,4 @@
--module(ar_pool_cm_job_poller).
+-module(big_pool_cm_job_poller).
 
 -behaviour(gen_server).
 
@@ -6,8 +6,8 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_pool.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_pool.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -26,7 +26,7 @@ start_link() ->
 %%%===================================================================
 
 init([]) ->
-	case {ar_pool:is_client(), ar_coordination:is_exit_peer()} of
+	case {big_pool:is_client(), big_coordination:is_exit_peer()} of
 		{true, true} ->
 			gen_server:cast(self(), fetch_cm_jobs);
 		_ ->
@@ -41,18 +41,18 @@ handle_call(Request, _From, State) ->
 	{reply, ok, State}.
 
 handle_cast(fetch_cm_jobs, State) ->
-	Peer = ar_pool:pool_peer(),
-	Partitions = ar_coordination:get_cluster_partitions_list(),
+	Peer = big_pool:pool_peer(),
+	Partitions = big_coordination:get_cluster_partitions_list(),
 	PartitionJobs = #pool_cm_jobs{ partitions = Partitions },
-	case ar_http_iface_client:get_pool_cm_jobs(Peer, PartitionJobs) of
+	case big_http_iface_client:get_pool_cm_jobs(Peer, PartitionJobs) of
 		{ok, Jobs} ->
 			push_cm_jobs_to_cm_peers(Jobs),
-			ar_pool:process_cm_jobs(Jobs, Peer),
-			ar_util:cast_after(?FETCH_CM_JOBS_FREQUENCY_MS, self(), fetch_cm_jobs);
+			big_pool:process_cm_jobs(Jobs, Peer),
+			big_util:cast_after(?FETCH_CM_JOBS_FREQUENCY_MS, self(), fetch_cm_jobs);
 		{error, Error} ->
 			?LOG_WARNING([{event, failed_to_fetch_pool_cm_jobs},
 					{error, io_lib:format("~p", [Error])}]),
-			ar_util:cast_after(?FETCH_CM_JOBS_RETRY_MS, self(), fetch_cm_jobs)
+			big_util:cast_after(?FETCH_CM_JOBS_RETRY_MS, self(), fetch_cm_jobs)
 	end,
 	{noreply, State};
 
@@ -72,13 +72,13 @@ terminate(_Reason, _State) ->
 %%%===================================================================
 
 push_cm_jobs_to_cm_peers(Jobs) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Peers = Config#config.cm_peers,
-	Payload = ar_serialize:jsonify(ar_serialize:pool_cm_jobs_to_json_struct(Jobs)),
+	Payload = big_serialize:jsonify(big_serialize:pool_cm_jobs_to_json_struct(Jobs)),
 	push_cm_jobs_to_cm_peers(Payload, Peers).
 
 push_cm_jobs_to_cm_peers(_Payload, []) ->
 	ok;
 push_cm_jobs_to_cm_peers(Payload, [Peer | Peers]) ->
-	spawn(fun() -> ar_http_iface_client:post_pool_cm_jobs(Peer, Payload) end),
+	spawn(fun() -> big_http_iface_client:post_pool_cm_jobs(Peer, Payload) end),
 	push_cm_jobs_to_cm_peers(Payload, Peers).

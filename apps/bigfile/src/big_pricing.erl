@@ -1,4 +1,4 @@
--module(ar_pricing).
+-module(big_pricing).
 
 %% 2.6 exports.
 -export([get_price_per_gib_minute/2, get_tx_fee/1,
@@ -7,16 +7,16 @@
 
 %% 2.5 exports.
 -export([get_tx_fee/4, get_miner_reward_and_endowment_pool/1,
-		usd_to_ar_rate/1, usd_to_ar/3, recalculate_usd_to_ar_rate/1,
+		usd_to_big_rate/1, usd_to_ar/3, recalculate_usd_to_big_rate/1,
 		get_storage_cost/4, get_expected_min_decline_rate/6]).
 
 %% For tests.
 -export([get_v2_price_per_gib_minute/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_inflation.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_inflation.hrl").
+-include_lib("bigfile/include/big_pricing.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -41,11 +41,11 @@
 %% Also, the returned price is always at least 1 Winston.
 get_price_per_gib_minute(Height, B) ->
 	V2Price = get_v2_price_per_gib_minute(Height, B),
-	ar_pricing_transition:get_transition_price(Height, V2Price).
+	big_pricing_transition:get_transition_price(Height, V2Price).
 
 get_v2_price_per_gib_minute(Height, B) ->
-	OneDifficultyHeight = ar_fork:height_2_7() + ar_block_time_history:history_length(),
-	TwoDifficultyHeight = ar_fork:height_2_7_2() + ar_block_time_history:history_length(),
+	OneDifficultyHeight = big_fork:height_2_7() + big_block_time_history:history_length(),
+	TwoDifficultyHeight = big_fork:height_2_7_2() + big_block_time_history:history_length(),
 
 	case Height of
 		_ when Height >= TwoDifficultyHeight ->
@@ -57,9 +57,9 @@ get_v2_price_per_gib_minute(Height, B) ->
 	end.
 
 get_v2_price_per_gib_minute_two_difficulty(Height, B) ->
-	{HashRateTotal, RewardTotal, History} = ar_rewards:get_reward_history_totals(B),
+	{HashRateTotal, RewardTotal, History} = big_rewards:get_reward_history_totals(B),
 	{IntervalTotal, VDFIntervalTotal, OneChunkCount, TwoChunkCount} =
-		ar_block_time_history:sum_history(B),
+		big_block_time_history:sum_history(B),
 	%% The intent of the SolutionsPerPartitionPerVDFStep is to estimate network replica
 	%% count (how many copies of the weave are stored across the network).
 	%% The logic behind this is complex - an explanation from @vird:
@@ -106,8 +106,8 @@ get_v2_price_per_gib_minute_two_difficulty(Height, B) ->
 	%% The SolutionsPerPartitionPerVDFStep combines that average weave calculation
 	%% with the expected number of solutions per partition per VDF step to arrive a single
 	%% number that can be used in the PricePerGiBPerMinute calculation.
-	PoA1Mult = ar_difficulty:poa1_diff_multiplier(Height),
-	RecallRangeSize = ar_block:get_recall_range_size(0),
+	PoA1Mult = big_difficulty:poa1_diff_multiplier(Height),
+	RecallRangeSize = big_block:get_recall_range_size(0),
 	MaxSolutionsPerPartition =
 		(PoA1Mult + 1) * RecallRangeSize div (?DATA_CHUNK_SIZE * PoA1Mult),
 	SolutionsPerPartitionPerVDFStep =
@@ -153,9 +153,9 @@ get_v2_price_per_gib_minute_two_difficulty(Height, B) ->
 	PricePerGiBPerMinute.
 
 get_v2_price_per_gib_minute_one_difficulty(Height, B) ->
-	{HashRateTotal, RewardTotal, History} = ar_rewards:get_reward_history_totals(B),
+	{HashRateTotal, RewardTotal, History} = big_rewards:get_reward_history_totals(B),
 	{IntervalTotal, VDFIntervalTotal, OneChunkCount, TwoChunkCount} =
-		ar_block_time_history:sum_history(B),
+		big_block_time_history:sum_history(B),
 	%% The intent of the SolutionsPerPartitionPerVDFStep is to estimate network replica
 	%% count (how many copies of the weave are stored across the network).
 	%% The logic behind this is complex - an explanation from @vird:
@@ -220,7 +220,7 @@ get_v2_price_per_gib_minute_one_difficulty(Height, B) ->
 	PricePerGiBPerMinute.
 
 get_v2_price_per_gib_minute_simple(B) ->
-	{HashRateTotal, RewardTotal, _History} = ar_rewards:get_reward_history_totals(B),
+	{HashRateTotal, RewardTotal, _History} = big_rewards:get_reward_history_totals(B),
 	%% 2 recall ranges per partition per second.
 	SolutionsPerPartitionPerSecond = 2 * (?LEGACY_RECALL_RANGE_SIZE) div (?DATA_CHUNK_SIZE),
 	SolutionsPerPartitionPerMinute = SolutionsPerPartitionPerSecond * 60,
@@ -245,9 +245,9 @@ get_tx_fee(Args) ->
 	{LnDecayDividend, LnDecayDivisor} = ?LN_PRICE_DECAY_ANNUAL,
 	PerpetualPrice = {-FirstYearPrice * LnDecayDivisor * KryderPlusRateMultiplier
 			* (?N_REPLICATIONS(Height)), LnDecayDividend * (?GiB)},
-	MinerShare = ar_fraction:multiply(PerpetualPrice,
+	MinerShare = big_fraction:multiply(PerpetualPrice,
 			?MINER_MINIMUM_ENDOWMENT_CONTRIBUTION_SHARE),
-	{Dividend, Divisor} = ar_fraction:add(PerpetualPrice, MinerShare),
+	{Dividend, Divisor} = big_fraction:add(PerpetualPrice, MinerShare),
 	Dividend div Divisor.
 
 %% @doc Return the block reward, the new endowment pool, and the new debt supply.
@@ -255,7 +255,7 @@ get_miner_reward_endowment_pool_debt_supply(Args) ->
 	{EndowmentPool, DebtSupply, TXs, WeaveSize, Height, GiBMinutePrice,
 			KryderPlusRateMultiplierLatch, KryderPlusRateMultiplier, Denomination,
 			BlockInterval} = Args,
-	Inflation = redenominate(ar_inflation:calculate(Height), 1, Denomination),
+	Inflation = redenominate(big_inflation:calculate(Height), 1, Denomination),
 	ExpectedReward = (?N_REPLICATIONS(Height)) * WeaveSize * GiBMinutePrice
 			* BlockInterval div (60 * ?GiB),
 	{EndowmentPoolFeeShare, MinerFeeShare} = distribute_transaction_fees2(TXs, Denomination),
@@ -307,7 +307,7 @@ redenominate(Amount, BaseDenomination, Denomination) when Denomination > BaseDen
 may_be_redenominate(B) ->
 	#block{ height = Height, denomination = Denomination,
 			redenomination_height = RedenominationHeight } = B,
-	case ar_pricing_transition:is_v2_pricing_height(Height + 1) of
+	case big_pricing_transition:is_v2_pricing_height(Height + 1) of
 		false ->
 			{Denomination, RedenominationHeight};
 		true ->
@@ -346,11 +346,11 @@ recalculate_price_per_gib_minute(B) ->
 			price_per_gib_minute = Price,
 			scheduled_price_per_gib_minute = ScheduledPrice } = B,
 	Height = PrevHeight + 1,
-	Fork_2_7 = ar_fork:height_2_7(),
-	Fork_2_7_1 = ar_fork:height_2_7_1(),
+	Fork_2_7 = big_fork:height_2_7(),
+	Fork_2_7_1 = big_fork:height_2_7_1(),
 	case Height of
 		Fork_2_7 ->
-			{ar_pricing_transition:static_price(), ar_pricing_transition:static_price()};
+			{big_pricing_transition:static_price(), big_pricing_transition:static_price()};
 		Height when Height < Fork_2_7_1 ->
 			case is_price_adjustment_height(Height) of
 				false ->
@@ -435,7 +435,7 @@ get_miner_reward_and_endowment_pool({Pool, TXs, unclaimed, _, _, _, _}) ->
 	{0, Pool + lists:sum([TX#tx.reward || TX <- TXs])};
 get_miner_reward_and_endowment_pool(Args) ->
 	{Pool, TXs, _Addr, WeaveSize, Height, Timestamp, Rate} = Args,
-	Inflation = trunc(ar_inflation:calculate(Height)),
+	Inflation = trunc(big_inflation:calculate(Height)),
 	{PoolFeeShare, MinerFeeShare} = distribute_transaction_fees(TXs, Height),
 	BaseReward = Inflation + MinerFeeShare,
 	StorageCostPerGBPerBlock =
@@ -454,54 +454,54 @@ get_miner_reward_and_endowment_pool(Args) ->
 			{BaseReward + Take, Pool2 - Take}
 	end.
 
-%% @doc Return the effective USD to AR rate corresponding to the given block
+%% @doc Return the effective USD to BIG rate corresponding to the given block
 %% considering its previous block.
-usd_to_ar_rate(#block{ height = PrevHeight } = PrevB) ->
-	Height_2_5 = ar_fork:height_2_5(),
+usd_to_big_rate(#block{ height = PrevHeight } = PrevB) ->
+	Height_2_5 = big_fork:height_2_5(),
 	Height = PrevHeight + 1,
 	case PrevHeight < Height_2_5 of
 		true ->
-			?INITIAL_USD_TO_AR(Height)();
+			?INITIAL_USD_TO_BIG(Height)();
 		false ->
-			PrevB#block.usd_to_ar_rate
+			PrevB#block.usd_to_big_rate
 	end.
 
-%% @doc Return the amount of AR the given number of USD is worth.
+%% @doc Return the amount of BIG the given number of USD is worth.
 usd_to_ar(USD, Rate, Height) when is_number(USD) ->
 	usd_to_ar({USD, 1}, Rate, Height);
 usd_to_ar({Dividend, Divisor}, Rate, Height) ->
-	InitialInflation = trunc(ar_inflation:calculate(?INITIAL_USD_TO_AR_HEIGHT(Height)())),
-	CurrentInflation = trunc(ar_inflation:calculate(Height)),
+	InitialInflation = trunc(big_inflation:calculate(?INITIAL_USD_TO_BIG_HEIGHT(Height)())),
+	CurrentInflation = trunc(big_inflation:calculate(Height)),
 	{InitialRateDividend, InitialRateDivisor} = Rate,
 	trunc(	Dividend
-			* ?WINSTON_PER_AR
+			* ?WINSTON_PER_BIG
 			* CurrentInflation
 			* InitialRateDividend	)
 		div Divisor
 		div InitialInflation
 		div InitialRateDivisor.
 
-recalculate_usd_to_ar_rate(#block{ height = PrevHeight } = B) ->
+recalculate_usd_to_big_rate(#block{ height = PrevHeight } = B) ->
 	Height = PrevHeight + 1,
-	Fork_2_5 = ar_fork:height_2_5(),
+	Fork_2_5 = big_fork:height_2_5(),
 	true = Height >= Fork_2_5,
 	case Height > Fork_2_5 of
 		false ->
-			Rate = ?INITIAL_USD_TO_AR(Height)(),
+			Rate = ?INITIAL_USD_TO_BIG(Height)(),
 			{Rate, Rate};
 		true ->
-			Fork_2_6 = ar_fork:height_2_6(),
+			Fork_2_6 = big_fork:height_2_6(),
 			case Height == Fork_2_6 of
 				true ->
-					{B#block.usd_to_ar_rate, ?FORK_2_6_PRE_TRANSITION_USD_TO_AR_RATE};
+					{B#block.usd_to_big_rate, ?FORK_2_6_PRE_TRANSITION_USD_TO_BIG_RATE};
 				false ->
-					recalculate_usd_to_ar_rate2(B)
+					recalculate_usd_to_big_rate2(B)
 			end
 	end.
 
 %% @doc Return an estimation for the minimum required decline rate making the given
 %% Amount (in Winston) sufficient to subsidize storage for Period seconds starting from
-%% Timestamp and assuming the given USD to AR rate.
+%% Timestamp and assuming the given USD to BIG rate.
 %% When computing the exponent, the function accounts for the first 16 summands in
 %% the Taylor series. The fraction is reduced to the 1/1000000 precision.
 get_expected_min_decline_rate(Timestamp, Period, Amount, Size, Rate, Height) ->
@@ -514,9 +514,9 @@ get_expected_min_decline_rate(Timestamp, Period, Amount, Size, Rate, Height) ->
 	%% => -logRate = (Sum1 - Sum2) / Amount
 	%% => 1 / Rate = exp((Sum1 - Sum2) / Amount)
 	%% => Rate = 1 / exp((Sum1 - Sum2) / Amount)
-	{ExpDiv, ExpDivisor} = ar_fraction:natural_exponent(
+	{ExpDiv, ExpDivisor} = big_fraction:natural_exponent(
 			{(Sum1 - Sum2) * Size, Amount * (1024 * 1024 * 1024)}, 16),
-	ar_fraction:reduce({ExpDivisor, ExpDiv}, 1000000).
+	big_fraction:reduce({ExpDivisor, ExpDiv}, 1000000).
 
 %%%===================================================================
 %%% Private functions.
@@ -525,7 +525,7 @@ get_expected_min_decline_rate(Timestamp, Period, Amount, Size, Rate, Height) ->
 %% @doc Get the share of the maintenance cost the miner receives for a transation.
 get_miner_fee_share(MaintenanceCost, Height) ->
 	{Dividend, Divisor} = ?MINING_REWARD_MULTIPLIER,
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		false ->
 			erlang:trunc(MaintenanceCost * (Dividend / Divisor));
 		true ->
@@ -541,7 +541,7 @@ distribute_transaction_fees([TX | TXs], EndowmentPool, Miner, Height) ->
 	TXFee = TX#tx.reward,
 	{Dividend, Divisor} = ?MINING_REWARD_MULTIPLIER,
 	MinerFee =
-		case Height >= ar_fork:height_2_5() of
+		case Height >= big_fork:height_2_5() of
 			false ->
 				erlang:trunc((Dividend / Divisor) * TXFee / ((Dividend / Divisor) + 1));
 			true ->
@@ -560,7 +560,7 @@ get_perpetual_gb_cost_at_timestamp(Timestamp, Height) ->
 
 -spec get_perpetual_gb_cost(Init::usd(), Height::nonegint()) -> usd().
 get_perpetual_gb_cost(Init, Height) ->
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		true ->
 			{LnDecayDividend, LnDecayDivisor} = ?LN_PRICE_DECAY_ANNUAL,
 			{InitDividend, InitDivisor} = Init,
@@ -718,17 +718,17 @@ recalculate_usd_to_ar_rate2(#block{ height = PrevHeight } = B) ->
 
 recalculate_usd_to_ar_rate3(#block{ height = PrevHeight, diff = Diff } = B) ->
 	Height = PrevHeight + 1,
-	InitialDiff = ar_retarget:switch_to_linear_diff(?INITIAL_USD_TO_AR_DIFF(Height)()),
+	InitialDiff = ar_retarget:switch_to_linear_diff(?INITIAL_USD_TO_BIG_DIFF(Height)()),
 	MaxDiff = ?MAX_DIFF,
-	InitialRate = ?INITIAL_USD_TO_AR(Height)(),
+	InitialRate = ?INITIAL_USD_TO_BIG(Height)(),
 	{Dividend, Divisor} = InitialRate,
 	ScheduledRate = {Dividend * (MaxDiff - Diff), Divisor * (MaxDiff - InitialDiff)},
 	Rate = B#block.scheduled_usd_to_ar_rate,
-	MaxAdjustmentUp = ar_fraction:multiply(Rate, ?USD_TO_AR_MAX_ADJUSTMENT_UP_MULTIPLIER),
-	MaxAdjustmentDown = ar_fraction:multiply(Rate, ?USD_TO_AR_MAX_ADJUSTMENT_DOWN_MULTIPLIER),
+	MaxAdjustmentUp = ar_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_UP_MULTIPLIER),
+	MaxAdjustmentDown = ar_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_DOWN_MULTIPLIER),
 	CappedScheduledRate = ar_fraction:reduce(ar_fraction:maximum(
 			ar_fraction:minimum(ScheduledRate, MaxAdjustmentUp), MaxAdjustmentDown),
-			?USD_TO_AR_FRACTION_REDUCTION_LIMIT),
+			?USD_TO_BIG_FRACTION_REDUCTION_LIMIT),
 	?LOG_DEBUG([{event, recalculated_rate},
 			{new_rate, ar_util:safe_divide(element(1, Rate), element(2, Rate))},
 			{new_scheduled_rate, ar_util:safe_divide(element(1, CappedScheduledRate),

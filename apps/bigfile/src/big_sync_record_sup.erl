@@ -1,4 +1,4 @@
--module(ar_sync_record_sup).
+-module(big_sync_record_sup).
 
 -behaviour(supervisor).
 
@@ -6,8 +6,8 @@
 
 -export([init/1]).
 
--include_lib("arweave/include/ar_sup.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big_sup.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 %%%===================================================================
 %%% Public interface.
@@ -22,24 +22,24 @@ start_link() ->
 
 init([]) ->
 	ets:new(sync_records, [set, public, named_table, {read_concurrency, true}]),
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	ConfiguredWorkers = lists:map(
 		fun(StorageModule) ->
-			StoreID = ar_storage_module:id(StorageModule),
-			Label = ar_storage_module:label(StorageModule),
-			Name = list_to_atom("ar_sync_record_" ++ Label),
-			?CHILD_WITH_ARGS(ar_sync_record, worker, Name, [Name, StoreID])
+			StoreID = big_storage_module:id(StorageModule),
+			Label = big_storage_module:label(StorageModule),
+			Name = list_to_atom("big_sync_record_" ++ Label),
+			?CHILD_WITH_ARGS(big_sync_record, worker, Name, [Name, StoreID])
 		end,
 		Config#config.storage_modules
 	),
-	DefaultSyncRecordWorker = ?CHILD_WITH_ARGS(ar_sync_record, worker, ar_sync_record_default,
-		[ar_sync_record_default, "default"]),
+	DefaultSyncRecordWorker = ?CHILD_WITH_ARGS(big_sync_record, worker, big_sync_record_default,
+		[big_sync_record_default, "default"]),
 	RepackInPlaceWorkers = lists:map(
 		fun({StorageModule, _Packing}) ->
-			StoreID = ar_storage_module:id(StorageModule),
-			Label = ar_storage_module:label(StorageModule),
-			Name = list_to_atom("ar_sync_record_" ++ Label),
-			?CHILD_WITH_ARGS(ar_sync_record, worker, Name, [Name, StoreID])
+			StoreID = big_storage_module:id(StorageModule),
+			Label = big_storage_module:label(StorageModule),
+			Name = list_to_atom("big_sync_record_" ++ Label),
+			?CHILD_WITH_ARGS(big_sync_record, worker, Name, [Name, StoreID])
 		end,
 		Config#config.repack_in_place_storage_modules
 	),

@@ -1,15 +1,15 @@
 %%% @doc This module implements all mechanisms required to validate a proof of access
 %%% for a chunk of data received from the network.
--module(ar_poa).
+-module(big_poa).
 
 -export([get_data_path_validation_ruleset/2, get_data_path_validation_ruleset/3,
 		 validate_pre_fork_2_5/4, validate/1, validate_paths/4, validate_paths/7,
 		 get_padded_offset/2]).
 
--include_lib("arweave/include/ar_poa.hrl").
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
+-include_lib("bigfile/include/big_poa.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_pricing.hrl").
 
 %%%===================================================================
 %%% Public interface.
@@ -20,7 +20,7 @@
 %% changed in some other ways on top of that). The threshold where the specific
 %% requirements were imposed on data splits to make each chunk belong to its own
 %% 256 KiB bucket is set to ?STRICT_DATA_SPLIT_THRESHOLD. The code is then passed to
-%% ar_merkle:validate_path/5.
+%% big_merkle:validate_path/5.
 get_data_path_validation_ruleset(BlockStartOffset, MerkleRebaseSupportThreshold) ->
 	get_data_path_validation_ruleset(BlockStartOffset, MerkleRebaseSupportThreshold,
 			?STRICT_DATA_SPLIT_THRESHOLD).
@@ -29,7 +29,7 @@ get_data_path_validation_ruleset(BlockStartOffset, MerkleRebaseSupportThreshold)
 %% offset, the threshold where the offset rebases were allowed (and the validation
 %% changed in some other ways on top of that), and the threshold where the specific
 %% requirements were imposed on data splits to make each chunk belong to its own
-%% 256 KiB bucket. The code is then passed to ar_merkle:validate_path/5.
+%% 256 KiB bucket. The code is then passed to big_merkle:validate_path/5.
 get_data_path_validation_ruleset(BlockStartOffset, MerkleRebaseSupportThreshold,
 		StrictDataSplitThreshold) ->
 	case BlockStartOffset >= MerkleRebaseSupportThreshold of
@@ -105,7 +105,7 @@ validate(Args) ->
 %% AbsoluteOffset: the end offset of the chunk - indexed to the beginning of the weave
 validate_paths(TXRoot, TXPath, DataPath, AbsoluteOffset) ->
 	{BlockStartOffset, BlockEndOffset, TXRoot} =
-		ar_block_index:get_block_bounds(AbsoluteOffset),
+		big_block_index:get_block_bounds(AbsoluteOffset),
 
 	Proof = #chunk_proof{
 		absolute_offset = AbsoluteOffset,
@@ -146,7 +146,7 @@ validate_paths(Proof) ->
 	BlockRelativeOffset = AbsoluteOffset - BlockStartOffset,
 	BlockSize = BlockEndOffset - BlockStartOffset,
 
-	case ar_merkle:validate_path(TXRoot, BlockRelativeOffset, BlockSize, TXPath) of
+	case big_merkle:validate_path(TXRoot, BlockRelativeOffset, BlockSize, TXPath) of
 		false ->
 			{false, Proof#chunk_proof{ tx_path_is_valid = invalid }};
 		{DataRoot, TXStartOffset, TXEndOffset} ->
@@ -158,7 +158,7 @@ validate_paths(Proof) ->
 			},
 			TXSize = TXEndOffset - TXStartOffset,
 			TXRelativeOffset = BlockRelativeOffset - TXStartOffset,
-			case ar_merkle:validate_path(
+			case big_merkle:validate_path(
 					DataRoot, TXRelativeOffset, TXSize, DataPath, ValidateDataPathRuleset) of
 				false ->
 					{false, Proof2#chunk_proof{ data_path_is_valid = invalid }};
@@ -187,14 +187,14 @@ validate2({spora_2_6, _} = Packing, Args) ->
 			TXRoot, Chunk, _UnpackedChunk, _SubChunkIndex} = Args,
 	ChunkSize = ChunkEndOffset - ChunkStartOffset,
 	AbsoluteEndOffset = BlockStartOffset + TXStartOffset + ChunkEndOffset,
-	prometheus_counter:inc(validating_packed_spora, [ar_packing_server:packing_atom(Packing)]),
-	case ar_packing_server:unpack(Packing, AbsoluteEndOffset, TXRoot, Chunk, ChunkSize) of
+	prometheus_counter:inc(validating_packed_spora, [big_packing_server:packing_atom(Packing)]),
+	case big_packing_server:unpack(Packing, AbsoluteEndOffset, TXRoot, Chunk, ChunkSize) of
 		{error, _} ->
 			false;
 		{exception, _} ->
 			error;
 		{ok, Unpacked} ->
-			case ChunkID == ar_tx:generate_chunk_id(Unpacked) of
+			case ChunkID == big_tx:generate_chunk_id(Unpacked) of
 				false ->
 					false;
 				true ->
@@ -227,9 +227,9 @@ validate3({composite, _Addr, _PackingDifficulty} = Packing, Args) ->
 	%% We always expect the provided unpacked chunks to be padded (if necessary)
 	%% to 256 KiB.
 	UnpackedSubChunk = binary:part(UnpackedChunk, SubChunkStartOffset, SubChunkSize),
-	PackingAtom = ar_packing_server:packing_atom(Packing),
+	PackingAtom = big_packing_server:packing_atom(Packing),
 	prometheus_counter:inc(validating_packed_spora, [PackingAtom]),
-	case ar_packing_server:unpack_sub_chunk(Packing, AbsoluteEndOffset, TXRoot, Chunk,
+	case big_packing_server:unpack_sub_chunk(Packing, AbsoluteEndOffset, TXRoot, Chunk,
 			SubChunkStartOffset) of
 		{error, _} ->
 			false;
@@ -238,7 +238,7 @@ validate3({composite, _Addr, _PackingDifficulty} = Packing, Args) ->
 		{ok, UnpackedSubChunk} ->
 			ChunkSize = ChunkEndOffset - ChunkStartOffset,
 			UnpackedChunkNoPadding = binary:part(UnpackedChunk, 0, ChunkSize),
-			case ChunkID == ar_tx:generate_chunk_id(UnpackedChunkNoPadding) of
+			case ChunkID == big_tx:generate_chunk_id(UnpackedChunkNoPadding) of
 				false ->
 					false;
 				true ->
@@ -257,7 +257,7 @@ get_padded_offset(Offset, StrictDataSplitThreshold) ->
 %% @doc Validate a proof of access.
 validate_pre_fork_2_5(BlockOffset, TXRoot, BlockEndOffset, POA) ->
 	Validation =
-		ar_merkle:validate_path(
+		big_merkle:validate_path(
 			TXRoot,
 			BlockOffset,
 			BlockEndOffset,
@@ -276,7 +276,7 @@ validate_pre_fork_2_5(BlockOffset, TXRoot, BlockEndOffset, POA) ->
 
 validate_data_path(DataRoot, TXOffset, EndOffset, POA) ->
 	Validation =
-		ar_merkle:validate_path(
+		big_merkle:validate_path(
 			DataRoot,
 			TXOffset,
 			EndOffset,
@@ -289,4 +289,4 @@ validate_data_path(DataRoot, TXOffset, EndOffset, POA) ->
 	end.
 
 validate_chunk(ChunkID, POA) ->
-	ChunkID == ar_tx:generate_chunk_id(POA#poa.chunk).
+	ChunkID == big_tx:generate_chunk_id(POA#poa.chunk).

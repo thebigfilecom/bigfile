@@ -1,4 +1,4 @@
--module(ar_storage_module).
+-module(big_storage_module).
 
 -export([id/1, label/1, address_label/1, address_label/2, packing_label/1, label_by_id/1,
 		get_by_id/1, get_range/1, get_packing/1, get_size/1, get/2, get_all/1, get_all/2,
@@ -6,9 +6,9 @@
 
 -export([get_unique_sorted_intervals/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 
@@ -31,9 +31,9 @@ id({BucketSize, Bucket, Packing}) ->
 	PackingString =
 		case Packing of
 			{spora_2_6, Addr} ->
-				ar_util:encode(Addr);
+				big_util:encode(Addr);
 			{composite, Addr, PackingDiff} ->
-				<< (ar_util:encode(Addr))/binary, ".",
+				<< (big_util:encode(Addr))/binary, ".",
 						(integer_to_binary(PackingDiff))/binary >>;
 			_ ->
 				atom_to_list(Packing)
@@ -42,15 +42,15 @@ id({BucketSize, Bucket, Packing}) ->
 
 %% @doc Return the obscure unique label for the given storage module.
 label({BucketSize, Bucket, Packing} = StorageModule) ->
-	StoreID = ar_storage_module:id(StorageModule),
+	StoreID = big_storage_module:id(StorageModule),
 	case ets:lookup(?MODULE, {label, StoreID}) of
 		[] ->
 			PackingLabel =
 				case Packing of
 					{spora_2_6, Addr} ->
-						ar_storage_module:address_label(Addr);
+						big_storage_module:address_label(Addr);
 					{composite, Addr, PackingDifficulty} ->
-						ar_storage_module:address_label(Addr, PackingDifficulty);
+						big_storage_module:address_label(Addr, PackingDifficulty);
 					_ ->
 						atom_to_list(Packing)
 				end,
@@ -86,10 +86,10 @@ address_label(Addr, PackingDifficulty) ->
 	end.
 
 packing_label({spora_2_6, Addr}) ->
-	AddrLabel = ar_storage_module:address_label(Addr),
+	AddrLabel = big_storage_module:address_label(Addr),
 	list_to_atom("spora_2_6_" ++ AddrLabel);
 packing_label({composite, Addr, PackingDifficulty}) ->
-	AddrLabel = ar_storage_module:address_label(Addr, PackingDifficulty),
+	AddrLabel = big_storage_module:address_label(Addr, PackingDifficulty),
 	list_to_atom("composite_" ++ AddrLabel);
 packing_label(Packing) ->
 	Packing.
@@ -111,7 +111,7 @@ label_by_id(StoreID) ->
 %% @doc Return the storage module with the given identifier or not_found.
 %% Search across both attached modules and repacked in-place modules.
 get_by_id(ID) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	RepackInPlaceModules = [element(1, El)
 			|| El <- Config#config.repack_in_place_storage_modules],
 	get_by_id(ID, Config#config.storage_modules ++ RepackInPlaceModules).
@@ -119,7 +119,7 @@ get_by_id(ID) ->
 get_by_id(_ID, []) ->
 	not_found;
 get_by_id(ID, [Module | Modules]) ->
-	case ar_storage_module:id(Module) == ID of
+	case big_storage_module:id(Module) == ID of
 		true ->
 			Module;
 		false ->
@@ -128,11 +128,11 @@ get_by_id(ID, [Module | Modules]) ->
 
 %% @doc Return {StartOffset, EndOffset} the given module is responsible for.
 get_range(ID) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	get_range(ID, Config#config.storage_modules).
 
 get_range(ID, [Module | Modules]) ->
-	case ar_storage_module:id(Module) == ID of
+	case big_storage_module:id(Module) == ID of
 		true ->
 			{BucketSize, Bucket, _Packing} = Module,
 			{BucketSize * Bucket, (Bucket + 1) * BucketSize + ?OVERLAP};
@@ -142,11 +142,11 @@ get_range(ID, [Module | Modules]) ->
 
 %% @doc Return the packing configured for the given module.
 get_packing(ID) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	get_packing(ID, Config#config.storage_modules).
 
 get_packing(ID, [Module | Modules]) ->
-	case ar_storage_module:id(Module) == ID of
+	case big_storage_module:id(Module) == ID of
 		true ->
 			{_BucketSize, _Bucket, Packing} = Module,
 			Packing;
@@ -156,11 +156,11 @@ get_packing(ID, [Module | Modules]) ->
 
 %% @doc Return the bucket size configured for the given module.
 get_size(ID) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	get_size(ID, Config#config.storage_modules).
 
 get_size(ID, [Module | Modules]) ->
-	case ar_storage_module:id(Module) == ID of
+	case big_storage_module:id(Module) == ID of
 		true ->
 			{BucketSize, _Bucket, _Packing} = Module,
 			BucketSize;
@@ -171,28 +171,28 @@ get_size(ID, [Module | Modules]) ->
 %% @doc Return a configured storage module covering the given Offset, preferably
 %% with the given Packing. Return not_found if none is found.
 get(Offset, Packing) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	get(Offset, Packing, Config#config.storage_modules, not_found).
 
 %% @doc Return the list of all configured storage modules covering the given Offset.
 get_all(Offset) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	get_all(Offset, Config#config.storage_modules, []).
 
 %% @doc Return the list of configured storage modules whose ranges intersect
 %% the given interval.
 get_all(Start, End) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	get_all(Start, End, Config#config.storage_modules, []).
 
 %% @doc Return true if the given Offset belongs to at least one storage module.
 has_any(Offset) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	has_any(Offset, Config#config.storage_modules).
 
 %% @doc Return true if the given range is covered by the configured storage modules.
 has_range(Start, End) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case ets:lookup(?MODULE, unique_sorted_intervals) of
 		[] ->
 			Intervals = get_unique_sorted_intervals(Config#config.storage_modules),
@@ -220,7 +220,7 @@ has_range(Start, End) ->
 %% 3. returns [{7, 10, sm1}, {10, 20, sm_2}, {20, 25, sm_3}]
 %% 4. returns [{7, 10, sm1}, {10, 20, sm_4}, {20, 25, sm_3}]
 get_cover(Start, End, MaybeStoreID) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	SortedStorageModules = sort_storage_modules_by_left_bound(
 			Config#config.storage_modules, MaybeStoreID),
 	case get_cover2(Start, End, SortedStorageModules) of
@@ -283,14 +283,14 @@ has_any(Offset, [{BucketSize, Bucket, _Packing} | StorageModules]) ->
 	end.
 
 get_unique_sorted_intervals(StorageModules) ->
-	get_unique_sorted_intervals(StorageModules, ar_intervals:new()).
+	get_unique_sorted_intervals(StorageModules, big_intervals:new()).
 
 get_unique_sorted_intervals([], Intervals) ->
-	[{Start, End} || {End, Start} <- ar_intervals:to_list(Intervals)];
+	[{Start, End} || {End, Start} <- big_intervals:to_list(Intervals)];
 get_unique_sorted_intervals([{BucketSize, Bucket, _Packing} | StorageModules], Intervals) ->
 	End = (Bucket + 1) * BucketSize,
 	Start = Bucket * BucketSize,
-	get_unique_sorted_intervals(StorageModules, ar_intervals:add(Intervals, End, Start)).
+	get_unique_sorted_intervals(StorageModules, big_intervals:add(Intervals, End, Start)).
 
 has_range(PartitionStart, PartitionEnd, _Intervals)
 		when PartitionStart >= PartitionEnd ->
@@ -318,8 +318,8 @@ sort_storage_modules_by_left_bound(StorageModules, MaybeStoreID) ->
 				true ->
 					case Start1 == Start2 of
 						true ->
-							StoreID1 = ar_storage_module:id(M1),
-							StoreID2 = ar_storage_module:id(M2),
+							StoreID1 = big_storage_module:id(M1),
+							StoreID2 = big_storage_module:id(M2),
 							StoreID1 == MaybeStoreID orelse StoreID2 /= MaybeStoreID;
 						false ->
 							true
@@ -344,7 +344,7 @@ get_cover2(Start, End, [{BucketSize, Bucket, _Packing} = StorageModule | Storage
 	Start2 = BucketSize * Bucket,
 	End2 = Start2 + BucketSize,
 	End3 = min(End, End2),
-	StoreID = ar_storage_module:id(StorageModule),
+	StoreID = big_storage_module:id(StorageModule),
 	case get_cover2(End3, End, StorageModules) of
 		not_found ->
 			not_found;

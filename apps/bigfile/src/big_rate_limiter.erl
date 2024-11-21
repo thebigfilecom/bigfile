@@ -1,4 +1,4 @@
--module(ar_rate_limiter).
+-module(big_rate_limiter).
 
 -behaviour(gen_server).
 
@@ -6,9 +6,9 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl"). % Used in ?RPM_BY_PATH.
--include_lib("arweave/include/ar_blacklist_middleware.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl"). % Used in ?RPM_BY_PATH.
+-include_lib("bigfile/include/big_blacklist_middleware.hrl").
 
 -record(state, {
 	traces,
@@ -23,9 +23,9 @@ start_link() ->
 	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @doc Hang until it is safe to make another request to the given Peer with the given Path.
-%% The limits are configured in include/ar_blacklist_middleware.hrl.
+%% The limits are configured in include/big_blacklist_middleware.hrl.
 throttle(Peer, Path) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case lists:member(Peer, Config#config.local_peers) of
 		true ->
 			ok;
@@ -34,7 +34,7 @@ throttle(Peer, Path) ->
 	end.
 
 throttle2(Peer, Path) ->
-	P = ar_http_iface_server:split_path(iolist_to_binary(Path)),
+	P = big_http_iface_server:split_path(iolist_to_binary(Path)),
 	case P of
 		[<<"tx">>] ->
 			%% Do not throttle transaction gossip.
@@ -95,8 +95,8 @@ handle_cast({throttle, Peer, Path, From}, State) ->
 				true ->
 					?LOG_DEBUG([{event, approaching_peer_rpm_limit},
 							{path, Path}, {minute_limit, Limit},
-							{peer, ar_util:format_peer(Peer)}, {caller, From}]),
-					ar_util:cast_after(1000, ?MODULE, {throttle, Peer, Path, From}),
+							{peer, big_util:format_peer(Peer)}, {caller, From}]),
+					big_util:cast_after(1000, ?MODULE, {throttle, Peer, Path, From}),
 					{noreply, State};
 				false ->
 					gen_server:reply(From, ok),

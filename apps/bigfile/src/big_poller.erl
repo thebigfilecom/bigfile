@@ -9,7 +9,7 @@
 %%% - allows following the network in the absence of a public IP;
 %%% - protects the node from lagging behind when there are networking issues.
 
--module(ar_poller).
+-module(big_poller).
 
 -behaviour(gen_server).
 
@@ -17,8 +17,8 @@
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 %% The frequency of choosing the peers to poll.
 -ifdef(DEBUG).
@@ -54,14 +54,14 @@ resume() ->
 %%%===================================================================
 
 init(Workers) ->
-	ok = ar_events:subscribe(node_state),
-	case ar_node:is_joined() of
+	ok = big_events:subscribe(node_state),
+	case big_node:is_joined() of
 		true ->
 			handle_node_state_initialized();
 		false ->
 			ok
 	end,
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	{ok, #state{ 
 		workers = Workers,
 		worker_count = length(Workers),
@@ -87,17 +87,17 @@ handle_cast(collect_peers, #state{ pause = true } = State) ->
 	{noreply, State};
 handle_cast(collect_peers, State) ->
 	#state{ worker_count = N, workers = Workers } = State,
-	TrustedPeers = ar_util:pick_random(ar_peers:get_trusted_peers(), N div 3),
-	Peers = ar_peers:get_peers(lifetime),
+	TrustedPeers = big_util:pick_random(big_peers:get_trusted_peers(), N div 3),
+	Peers = big_peers:get_peers(lifetime),
 	PickedPeers = TrustedPeers ++ lists:sublist((Peers -- TrustedPeers),
 			N - length(TrustedPeers)),
 	start_polling_peers(Workers, PickedPeers),
-	ar_util:cast_after(?COLLECT_PEERS_FREQUENCY_MS, ?MODULE, collect_peers),
+	big_util:cast_after(?COLLECT_PEERS_FREQUENCY_MS, ?MODULE, collect_peers),
 	{noreply, State};
 
 handle_cast({peer_out_of_sync_timeout, Peer}, State) ->
 	#state{ in_sync_trusted_peers = Set } = State,
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case lists:member(Peer, Config#config.peers) of
 		false ->
 			{noreply, State};
@@ -107,22 +107,22 @@ handle_cast({peer_out_of_sync_timeout, Peer}, State) ->
 
 handle_cast({peer_out_of_sync, Peer}, State) ->
 	#state{ in_sync_trusted_peers = Set } = State,
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case lists:member(Peer, Config#config.peers) of
 		false ->
 			{noreply, State};
 		true ->
 			Set2 = sets:del_element(Peer, Set),
-			ar_util:cast_after(300000, ?MODULE, {peer_out_of_sync_timeout, Peer}),
+			big_util:cast_after(300000, ?MODULE, {peer_out_of_sync_timeout, Peer}),
 			case {sets:is_empty(Set), sets:is_empty(Set2)} of
 				{false, true} ->
-					ar_mining_stats:pause_performance_reports(60000),
-					ar_util:terminal_clear(),
-					TrustedPeersStr = string:join([ar_util:format_peer(Peer2)
+					big_mining_stats:pause_performance_reports(60000),
+					big_util:terminal_clear(),
+					TrustedPeersStr = string:join([big_util:format_peer(Peer2)
 							|| Peer2 <- Config#config.peers], ", "),
-					?LOG_INFO([{event, node_out_of_sync}, {peer, ar_util:format_peer(Peer)},
+					?LOG_INFO([{event, node_out_of_sync}, {peer, big_util:format_peer(Peer)},
 						{trusted_peers, TrustedPeersStr}]),
-					ar:console("WARNING: The node is out of sync with all of the specified "
+					big:console("WARNING: The node is out of sync with all of the specified "
 							"trusted peers: ~s.~n~n"
 							"Please, check whether you are in sync with the network and "
 							"make sure your CPU computes VDF fast enough or you are connected "
@@ -136,17 +136,17 @@ handle_cast({peer_out_of_sync, Peer}, State) ->
 	end;
 
 handle_cast({block, Peer, B, BlockQueryTime}, State) ->
-	case ar_ignore_registry:member(B#block.indep_hash) of
+	case big_ignore_registry:member(B#block.indep_hash) of
 		false ->
 			?LOG_INFO([{event, fetched_block_for_validation},
-					{block, ar_util:encode(B#block.indep_hash)},
-					{peer, ar_util:format_peer(Peer)}]);
+					{block, big_util:encode(B#block.indep_hash)},
+					{peer, big_util:format_peer(Peer)}]);
 		true ->
 			ok
 	end,
-	case ar_block_pre_validator:pre_validate(B, Peer, erlang:timestamp()) of
+	case big_block_pre_validator:pre_validate(B, Peer, erlang:timestamp()) of
 		ok ->
-			ar_peers:rate_fetched_data(Peer, block, BlockQueryTime, byte_size(term_to_binary(B)));
+			big_peers:rate_fetched_data(Peer, block, BlockQueryTime, byte_size(term_to_binary(B)));
 		_ ->
 			ok
 	end,

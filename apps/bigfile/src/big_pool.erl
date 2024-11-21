@@ -31,7 +31,7 @@
 %%% 2. Coordinated Mining
 %%%
 %%%   CM Miner Pool Client -> CM Exit Node Pool Client -> Pool Proxy -> Pool Server
--module(ar_pool).
+-module(big_pool).
 
 -behaviour(gen_server).
 
@@ -41,10 +41,10 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_mining.hrl").
--include_lib("arweave/include/ar_pool.hrl").
+-include_lib("arweave/include/big_config.hrl").
+-include_lib("arweave/include/big_consensus.hrl").
+-include_lib("arweave/include/big_mining.hrl").
+-include_lib("arweave/include/big_pool.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -record(state, {
@@ -94,7 +94,7 @@ process_partial_solution(Solution) ->
 post_partial_solution(Solution) ->
 	gen_server:cast(?MODULE, {post_partial_solution, Solution}).
 
-%% @doc Return the pool server as a "peer" recognized by ar_http_iface_client.
+%% @doc Return the pool server as a "peer" recognized by big_http_iface_client.
 pool_peer() ->
 	{ok, Config} = application:get_env(arweave, config),
 	{pool, Config#config.pool_server_address}.
@@ -103,7 +103,7 @@ pool_peer() ->
 process_cm_jobs(Jobs, Peer) ->
 	#pool_cm_jobs{ h1_to_h2_jobs = H1ToH2Jobs, h1_read_jobs = H1ReadJobs } = Jobs,
 	{ok, Config} = application:get_env(arweave, config),
-	Partitions = ar_mining_io:get_partitions(infinity),
+	Partitions = big_mining_io:get_partitions(infinity),
 	case Config#config.mine of
 		true ->
 			process_h1_to_h2_jobs(H1ToH2Jobs, Peer, Partitions);
@@ -117,7 +117,7 @@ process_cm_jobs(Jobs, Peer) ->
 %%%===================================================================
 
 init([]) ->
-	ok = ar_events:subscribe(solution),
+	ok = big_events:subscribe(solution),
 	{ok, #state{}}.
 
 handle_call(get_current_session_key_seed_pairs, _From, State) ->
@@ -188,7 +188,7 @@ handle_cast({cache_jobs, Jobs}, State) ->
 			jobs_by_session_key = JobsBySessionKey2 }};
 
 handle_cast({post_partial_solution, Solution}, State) ->
-	case ar_http_iface_client:post_partial_solution(pool_peer(), Solution) of
+	case big_http_iface_client:post_partial_solution(pool_peer(), Solution) of
 		{ok, _Response} ->
 			ok;
 		{error, Error} ->
@@ -311,7 +311,7 @@ collect_jobs(_Jobs, _PrevO, _N, _PartialDiff) ->
 process_partial_solution(Solution, Ref) ->
 	PoA1 = Solution#mining_solution.poa1,
 	PoA2 = Solution#mining_solution.poa2,
-	case ar_block:validate_proof_size(PoA1) andalso ar_block:validate_proof_size(PoA2) of
+	case big_block:validate_proof_size(PoA1) andalso big_block:validate_proof_size(PoA2) of
 		true ->
 			process_partial_solution_field_size(Solution, Ref);
 		false ->
@@ -386,7 +386,7 @@ process_partial_solution_poa2_size(Solution, Ref) ->
 	#mining_solution{
 		poa2 = #poa{ chunk = C, data_path = DP, tx_path = TP, unpacked_chunk = U }
 	} = Solution,
-	case ar_mining_server:is_one_chunk_solution(Solution) of
+	case big_mining_server:is_one_chunk_solution(Solution) of
 		true ->
 			case {C, DP, TP, U} of
 				{<<>>, <<>>, <<>>, <<>>} ->
@@ -401,7 +401,7 @@ process_partial_solution_poa2_size(Solution, Ref) ->
 process_partial_solution_partition_number(Solution, Ref) ->
 	PartitionNumber = Solution#mining_solution.partition_number,
 	PartitionUpperBound = Solution#mining_solution.partition_upper_bound,
-	Max = ar_node:get_max_partition_number(PartitionUpperBound),
+	Max = big_node:get_max_partition_number(PartitionUpperBound),
 	case PartitionNumber > Max of
 		false ->
 			process_partial_solution_packing_difficulty(Solution, Ref);
@@ -411,7 +411,7 @@ process_partial_solution_partition_number(Solution, Ref) ->
 
 process_partial_solution_packing_difficulty(Solution, Ref) ->
 	#mining_solution{ packing_difficulty = PackingDifficulty } = Solution,
-	case ar_block:validate_packing_difficulty(PackingDifficulty) of
+	case big_block:validate_packing_difficulty(PackingDifficulty) of
 		true ->
 			process_partial_solution_nonce(Solution, Ref);
 		false ->
@@ -419,7 +419,7 @@ process_partial_solution_packing_difficulty(Solution, Ref) ->
 	end.
 
 process_partial_solution_nonce(Solution, Ref) ->
-	Max = ar_block:get_max_nonce(Solution#mining_solution.packing_difficulty),
+	Max = big_block:get_max_nonce(Solution#mining_solution.packing_difficulty),
 	case Solution#mining_solution.nonce > Max of
 		false ->
 			process_partial_solution_quick_pow(Solution, Ref);
@@ -437,9 +437,9 @@ process_partial_solution_quick_pow(Solution, Ref) ->
 		solution_hash = SolutionH,
 		packing_difficulty = PackingDifficulty
 	} = Solution,
-	H0 = ar_block:compute_h0(NonceLimiterOutput, PartitionNumber, Seed, MiningAddress,
+	H0 = big_block:compute_h0(NonceLimiterOutput, PartitionNumber, Seed, MiningAddress,
 			PackingDifficulty),
-	case ar_block:compute_solution_h(H0, Preimage) of
+	case big_block:compute_solution_h(H0, Preimage) of
 		SolutionH ->
 			process_partial_solution_pow(Solution, Ref, H0);
 		_ ->
@@ -455,10 +455,10 @@ process_partial_solution_pow(Solution, Ref, H0) ->
 		preimage = Preimage,
 		poa2 = #poa{ chunk = Chunk2 }
 	} = Solution,
-	{H1, Preimage1} = ar_block:compute_h1(H0, Nonce, Chunk1),
+	{H1, Preimage1} = big_block:compute_h1(H0, Nonce, Chunk1),
 
 	case {H1 == SolutionH andalso Preimage1 == Preimage,
-			ar_mining_server:is_one_chunk_solution(Solution)} of
+			big_mining_server:is_one_chunk_solution(Solution)} of
 		{true, false} ->
 			#partial_solution_response{ status = <<"rejected_bad_poa">> };
 		{true, true} ->
@@ -466,7 +466,7 @@ process_partial_solution_pow(Solution, Ref, H0) ->
 		{false, true} ->
 			#partial_solution_response{ status = <<"rejected_bad_poa">> };
 		{false, false} ->
-			{H2, Preimage2} = ar_block:compute_h2(H1, Chunk2, H0),
+			{H2, Preimage2} = big_block:compute_h2(H1, Chunk2, H0),
 			case H2 == SolutionH andalso Preimage2 == Preimage of
 				false ->
 					#partial_solution_response{ status = <<"rejected_wrong_hash">> };
@@ -500,16 +500,16 @@ process_partial_solution_poa(Solution, Ref, H0, H1) ->
 		poa2 = PoA2,
 		packing_difficulty = PackingDifficulty
 	} = Solution,
-	{RecallRange1Start, RecallRange2Start} = ar_block:get_recall_range(H0,
+	{RecallRange1Start, RecallRange2Start} = big_block:get_recall_range(H0,
 			PartitionNumber, PartitionUpperBound),
-	ComputedRecallByte1 = ar_block:get_recall_byte(RecallRange1Start, Nonce,
+	ComputedRecallByte1 = big_block:get_recall_byte(RecallRange1Start, Nonce,
 			PackingDifficulty),
-	{BlockStart1, BlockEnd1, TXRoot1} = ar_block_index:get_block_bounds(ComputedRecallByte1),
+	{BlockStart1, BlockEnd1, TXRoot1} = big_block_index:get_block_bounds(ComputedRecallByte1),
 	BlockSize1 = BlockEnd1 - BlockStart1,
-	Packing = ar_block:get_packing(PackingDifficulty, MiningAddress),
-	SubChunkIndex = ar_block:get_sub_chunk_index(PackingDifficulty, Nonce),
+	Packing = big_block:get_packing(PackingDifficulty, MiningAddress),
+	SubChunkIndex = big_block:get_sub_chunk_index(PackingDifficulty, Nonce),
 	case RecallByte1 == ComputedRecallByte1 andalso
-			ar_poa:validate({BlockStart1, RecallByte1, TXRoot1, BlockSize1, PoA1,
+			big_poa:validate({BlockStart1, RecallByte1, TXRoot1, BlockSize1, PoA1,
 					Packing, SubChunkIndex, not_set}) of
 		error ->
 			?LOG_ERROR([{event, pool_failed_to_validate_proof_of_access}]),
@@ -521,13 +521,13 @@ process_partial_solution_poa(Solution, Ref, H0, H1) ->
 			PoA2Cache = undefined,
 			process_partial_solution_difficulty(Solution, Ref, PoACache, PoA2Cache);
 		{true, ChunkID} ->
-			ComputedRecallByte2 = ar_block:get_recall_byte(RecallRange2Start, Nonce,
+			ComputedRecallByte2 = big_block:get_recall_byte(RecallRange2Start, Nonce,
 					PackingDifficulty),
-			{BlockStart2, BlockEnd2, TXRoot2} = ar_block_index:get_block_bounds(
+			{BlockStart2, BlockEnd2, TXRoot2} = big_block_index:get_block_bounds(
 					ComputedRecallByte2),
 			BlockSize2 = BlockEnd2 - BlockStart2,
 			case RecallByte2 == ComputedRecallByte2 andalso
-					ar_poa:validate({BlockStart2, RecallByte2, TXRoot2, BlockSize2,
+					big_poa:validate({BlockStart2, RecallByte2, TXRoot2, BlockSize2,
 									PoA2, Packing, SubChunkIndex, not_set}) of
 				error ->
 					?LOG_ERROR([{event, pool_failed_to_validate_proof_of_access}]),
@@ -547,7 +547,7 @@ process_partial_solution_difficulty(Solution, Ref, PoACache, PoA2Cache) ->
 	#mining_solution{ solution_hash = SolutionH, recall_byte2 = RecallByte2,
 			packing_difficulty = PackingDifficulty } = Solution,
 	IsPoA1 = (RecallByte2 == undefined),
-	case ar_node_utils:passes_diff_check(SolutionH, IsPoA1, ar_node:get_current_diff(),
+	case big_node_utils:passes_diff_check(SolutionH, IsPoA1, big_node:get_current_diff(),
 			PackingDifficulty) of
 		false ->
 			#partial_solution_response{ status = <<"accepted">> };
@@ -566,9 +566,9 @@ process_partial_solution_vdf(Solution, Ref, PoACache, PoA2Cache) ->
 		partition_upper_bound = PartitionUpperBound
 	} = Solution,
 	SessionKey = {NextSeed, StartIntervalNumber, NextVDFDifficulty},
-	MayBeLastStepCheckpoints = ar_nonce_limiter:get_step_checkpoints(StepNumber, SessionKey),
-	MayBeSeed = ar_nonce_limiter:get_seed(SessionKey),
-	MayBeUpperBound = ar_nonce_limiter:get_active_partition_upper_bound(StepNumber, SessionKey),
+	MayBeLastStepCheckpoints = big_nonce_limiter:get_step_checkpoints(StepNumber, SessionKey),
+	MayBeSeed = big_nonce_limiter:get_seed(SessionKey),
+	MayBeUpperBound = big_nonce_limiter:get_active_partition_upper_bound(StepNumber, SessionKey),
 	case {MayBeLastStepCheckpoints, MayBeSeed, MayBeUpperBound} of
 		{not_found, _, _} ->
 			#partial_solution_response{ status = <<"rejected_vdf_not_found">> };
@@ -580,10 +580,10 @@ process_partial_solution_vdf(Solution, Ref, PoACache, PoA2Cache) ->
 			Solution2 =
 				Solution#mining_solution{
 					last_step_checkpoints = LastStepCheckpoints,
-					%% ar_node_worker will fetch the required steps based on the prev block.
+					%% big_node_worker will fetch the required steps based on the prev block.
 					steps = not_found
 				},
-			ar_events:send(miner, {found_solution, {pool, Ref},
+			big_events:send(miner, {found_solution, {pool, Ref},
 					Solution2, PoACache, PoA2Cache}),
 			noreply;
 		_ ->
@@ -597,7 +597,7 @@ process_h1_to_h2_jobs([], _Peer, _Partitions) ->
 process_h1_to_h2_jobs([Candidate | Jobs], Peer, Partitions) ->
 	case we_have_partition_for_the_second_recall_byte(Candidate, Partitions) of
 		true ->
-			ar_coordination:compute_h2_for_peer(Peer, Candidate);
+			big_coordination:compute_h2_for_peer(Peer, Candidate);
 		false ->
 			ok
 	end,
@@ -608,8 +608,8 @@ process_h1_read_jobs([], _Partitions) ->
 process_h1_read_jobs([Candidate | Jobs], Partitions) ->
 	case we_have_partition_for_the_first_recall_byte(Candidate, Partitions) of
 		true ->
-			ar_mining_server:prepare_and_post_solution(Candidate),
-			ar_mining_stats:h2_received_from_peer(pool);
+			big_mining_server:prepare_and_post_solution(Candidate),
+			big_mining_stats:h2_received_from_peer(pool);
 		false ->
 			ok
 	end,
@@ -697,15 +697,15 @@ get_jobs_test() ->
 							{ns2, in2, nvd2} => [{o2, gsn2, u2, s2, d2}] })).
 
 process_partial_solution_test_() ->
-	ar_test_node:test_with_mocked_functions([
-		{ar_block, compute_h0,
+	big_test_node:test_with_mocked_functions([
+		{big_block, compute_h0,
 			fun(O, P, S, M, PD) ->
 					crypto:hash(sha256, << O/binary, P:256, S/binary, M/binary, PD:8 >>) end},
-		{ar_block_index, get_block_bounds,
+		{big_block_index, get_block_bounds,
 			fun(_Byte) ->
 				{10, 110, << 1:256 >>}
 			end},
-		{ar_poa, validate,
+		{big_poa, validate,
 			fun(Args) ->
 				PoA = #poa{ tx_path = << 0:(2176 * 8) >>, data_path = << 0:(349504 * 8) >> },
 				PoA2 = PoA#poa{ chunk = << 0:(262144 * 8) >> },
@@ -720,31 +720,31 @@ process_partial_solution_test_() ->
 						false
 				end
 			end},
-		{ar_node, get_current_diff, fun() -> {?MAX_DIFF, ?MAX_DIFF} end}],
+		{big_node, get_current_diff, fun() -> {?MAX_DIFF, ?MAX_DIFF} end}],
 		fun test_process_partial_solution/0
 	).
 
 test_process_partial_solution() ->
 	Zero = << 0:256 >>,
 	Zero48 = << 0:(8*48) >>,
-	H0 = ar_block:compute_h0(Zero, 0, Zero48, Zero, 0),
-	SolutionHQuick = ar_block:compute_solution_h(H0, Zero),
+	H0 = big_block:compute_h0(Zero, 0, Zero48, Zero, 0),
+	SolutionHQuick = big_block:compute_solution_h(H0, Zero),
 	C = << 0:(262144 * 8) >>,
-	{H1, Preimage1} = ar_block:compute_h1(H0, 1, C),
-	SolutionH = ar_block:compute_solution_h(H0, Preimage1),
-	{RecallRange1Start, RecallRange2Start} = ar_block:get_recall_range(H0, 0, 1),
+	{H1, Preimage1} = big_block:compute_h1(H0, 1, C),
+	SolutionH = big_block:compute_solution_h(H0, Preimage1),
+	{RecallRange1Start, RecallRange2Start} = big_block:get_recall_range(H0, 0, 1),
 	RecallByte1 = RecallRange1Start + 1 * ?DATA_CHUNK_SIZE,
-	{H2, Preimage2} = ar_block:compute_h2(H1, C, H0),
+	{H2, Preimage2} = big_block:compute_h2(H1, C, H0),
 	RecallByte2 = RecallRange2Start + 1 * ?DATA_CHUNK_SIZE,
 	PoA = #poa{ chunk = C },
 	CompositeSubChunk = << 0:(8192 * 8) >>,
 	CPoA = #poa{ chunk = CompositeSubChunk },
-	CH0 = ar_block:compute_h0(Zero, 0, Zero48, Zero, 1),
-	{CH1, CPreimage1} = ar_block:compute_h1(CH0, 30, CompositeSubChunk),
-	CSolutionH = ar_block:compute_solution_h(CH0, CPreimage1),
-	{CRecallRange1Start, CRecallRange2Start} = ar_block:get_recall_range(CH0, 0, 1),
+	CH0 = big_block:compute_h0(Zero, 0, Zero48, Zero, 1),
+	{CH1, CPreimage1} = big_block:compute_h1(CH0, 30, CompositeSubChunk),
+	CSolutionH = big_block:compute_solution_h(CH0, CPreimage1),
+	{CRecallRange1Start, CRecallRange2Start} = big_block:get_recall_range(CH0, 0, 1),
 	CRecallByte1 = CRecallRange1Start,
-	{CH2, CPreimage2} = ar_block:compute_h2(CH1, CompositeSubChunk, CH0),
+	{CH2, CPreimage2} = big_block:compute_h2(CH1, CompositeSubChunk, CH0),
 	CRecallByte2 = CRecallRange2Start,
 	TestCases = [
 		{"Bad proof size 0",
@@ -929,15 +929,15 @@ test_process_partial_solution() ->
 	).
 
 process_solution_test_() ->
-	ar_test_node:test_with_mocked_functions([
-		{ar_block, compute_h0,
+	big_test_node:test_with_mocked_functions([
+		{big_block, compute_h0,
 			fun(O, P, S, M, PD) ->
 				crypto:hash(sha256, << O/binary, P:256, S/binary, M/binary, PD:8 >>) end},
-		{ar_block_index, get_block_bounds,
+		{big_block_index, get_block_bounds,
 			fun(_Byte) ->
 				{10, 110, << 1:256 >>}
 			end},
-		{ar_poa, validate,
+		{big_poa, validate,
 			fun(Args) ->
 				PoA = #poa{ tx_path = << 0:(2176 * 8) >>, data_path = << 0:(349504 * 8) >> },
 				PoA2 = PoA#poa{ chunk = << 0:(262144 * 8) >> },
@@ -952,8 +952,8 @@ process_solution_test_() ->
 						false
 				end
 			end},
-		{ar_node, get_current_diff, fun() -> {0, 0} end},
-		{ar_nonce_limiter, get_step_checkpoints,
+		{big_node, get_current_diff, fun() -> {0, 0} end},
+		{big_nonce_limiter, get_step_checkpoints,
 			fun(S, {N, SIN, D}) ->
 				case {S, N, SIN, D} of
 					{0, << 10:(48*8) >>, 0, 0} ->
@@ -966,7 +966,7 @@ process_solution_test_() ->
 						[<< 0:256 >>]
 				end
 			end},
-		{ar_nonce_limiter, get_seed,
+		{big_nonce_limiter, get_seed,
 			fun({N, SIN, D}) ->
 				case {N, SIN, D} of
 					{<< 11:(48*8) >>, 0, 0} ->
@@ -979,7 +979,7 @@ process_solution_test_() ->
 						<< 0:(48*8) >>
 				end
 			end},
-		{ar_nonce_limiter, get_active_partition_upper_bound,
+		{big_nonce_limiter, get_active_partition_upper_bound,
 			fun(S, {N, SIN, D}) ->
 				case {S, N, SIN, D} of
 					{0, << 12:(48*8) >>, 0, 0} ->
@@ -992,7 +992,7 @@ process_solution_test_() ->
 						1
 				end
 			end},
-		{ar_events, send, fun(_Type, _Payload) -> ok end}],
+		{big_events, send, fun(_Type, _Payload) -> ok end}],
 		fun test_process_solution/0
 	).
 
@@ -1000,18 +1000,18 @@ test_process_solution() ->
 	Zero = << 0:256 >>,
 	Zero48 = << 0:(48*8) >>,
 	C = << 0:(262144 * 8) >>,
-	H0 = ar_block:compute_h0(Zero, 0, Zero48, Zero, 0),
-	{_H1, Preimage1} = ar_block:compute_h1(H0, 1, C),
-	SolutionH = ar_block:compute_solution_h(H0, Preimage1),
-	{RecallRange1Start, _RecallRange2Start} = ar_block:get_recall_range(H0, 0, 1),
+	H0 = big_block:compute_h0(Zero, 0, Zero48, Zero, 0),
+	{_H1, Preimage1} = big_block:compute_h1(H0, 1, C),
+	SolutionH = big_block:compute_solution_h(H0, Preimage1),
+	{RecallRange1Start, _RecallRange2Start} = big_block:get_recall_range(H0, 0, 1),
 	RecallByte1 = RecallRange1Start + 1 * ?DATA_CHUNK_SIZE,
 	PoA = #poa{ chunk = C },
 	CompositeSubChunk = << 0:(8192 * 8) >>,
 	CPoA = #poa{ chunk = CompositeSubChunk },
-	CH0 = ar_block:compute_h0(Zero, 0, Zero48, Zero, 2),
-	{_CH1, CPreimage1} = ar_block:compute_h1(CH0, 31, CompositeSubChunk),
-	CSolutionH = ar_block:compute_solution_h(CH0, CPreimage1),
-	{CRecallRange1Start, _CRecallRange2Start} = ar_block:get_recall_range(CH0, 0, 1),
+	CH0 = big_block:compute_h0(Zero, 0, Zero48, Zero, 2),
+	{_CH1, CPreimage1} = big_block:compute_h1(CH0, 31, CompositeSubChunk),
+	CSolutionH = big_block:compute_solution_h(CH0, CPreimage1),
+	{CRecallRange1Start, _CRecallRange2Start} = big_block:get_recall_range(CH0, 0, 1),
 	CRecallByte1 = CRecallRange1Start,
 	TestCases = [
 		{"VDF not found",

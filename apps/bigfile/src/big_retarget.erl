@@ -2,14 +2,14 @@
 %%% blocks, that is those in which change the current mining difficulty
 %%% on the weave to maintain a constant block time.
 %%% @end
--module(ar_retarget).
+-module(big_retarget).
 
 -export([is_retarget_height/1, is_retarget_block/1, maybe_retarget/5,
 		calculate_difficulty/5, validate_difficulty/2,
 		switch_to_linear_diff/1, switch_to_linear_diff_pre_fork_2_5/1, switch_to_log_diff/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -64,23 +64,23 @@ is_retarget_block(Block) ->
 	?IS_RETARGET_BLOCK(Block).
 
 maybe_retarget(Height, {CurPoA1Diff, CurDiff}, TS, LastRetargetTS, PrevTS) ->
-	case ar_retarget:is_retarget_height(Height) of
+	case big_retarget:is_retarget_height(Height) of
 		true ->
 			NewDiff = calculate_difficulty(CurDiff, TS, LastRetargetTS, Height, PrevTS),
-			{ar_difficulty:poa1_diff(NewDiff, Height), NewDiff};
+			{big_difficulty:poa1_diff(NewDiff, Height), NewDiff};
 		false ->
 			{CurPoA1Diff, CurDiff}
 	end.
 
 calculate_difficulty(OldDiff, TS, Last, Height, PrevTS) ->
-	Fork_1_7 = ar_fork:height_1_7(),
-	Fork_1_8 = ar_fork:height_1_8(),
-	Fork_1_9 = ar_fork:height_1_9(),
-	Fork_2_4 = ar_fork:height_2_4(),
-	Fork_2_5 = ar_fork:height_2_5(),
-	Fork_2_6 = ar_fork:height_2_6(),
-	Fork_2_7_2 = ar_fork:height_2_7_2(),
-	Fork_Testnet = ar_testnet:height_testnet_fork(),
+	Fork_1_7 = big_fork:height_1_7(),
+	Fork_1_8 = big_fork:height_1_8(),
+	Fork_1_9 = big_fork:height_1_9(),
+	Fork_2_4 = big_fork:height_2_4(),
+	Fork_2_5 = big_fork:height_2_5(),
+	Fork_2_6 = big_fork:height_2_6(),
+	Fork_2_7_2 = big_fork:height_2_7_2(),
+	Fork_Testnet = big_testnet:height_testnet_fork(),
 	case Height of
 		_ when Height == Fork_Testnet ->
 			calculate_difficulty_with_drop(OldDiff, TS, Last, Height, PrevTS, 100, 2);
@@ -105,14 +105,14 @@ calculate_difficulty(OldDiff, TS, Last, Height, PrevTS) ->
 		_ when Height == Fork_1_8 ->
 			switch_to_linear_diff_pre_fork_2_5(OldDiff);
 		_ when Height == Fork_1_7 ->
-			ar_difficulty:switch_to_randomx_fork_diff(OldDiff);
+			big_difficulty:switch_to_randomx_fork_diff(OldDiff);
 		_ ->
 			calculate_difficulty_before_1_8(OldDiff, TS, Last, Height)
 	end.
 
 %% @doc Assert the new block has an appropriate difficulty.
 validate_difficulty(NewB, OldB) ->
-	case ar_retarget:is_retarget_block(NewB) of
+	case big_retarget:is_retarget_block(NewB) of
 		true ->
 			(NewB#block.diff ==
 				calculate_difficulty(
@@ -126,7 +126,7 @@ validate_difficulty(NewB, OldB) ->
 %% @doc The number a hash must be greater than, to give the same odds of success
 %% as the old-style Diff (number of leading zeros in the bitstring).
 switch_to_linear_diff(LogDiff) ->
-	?MAX_DIFF - ar_fraction:pow(2, 256 - LogDiff).
+	?MAX_DIFF - big_fraction:pow(2, 256 - LogDiff).
 
 switch_to_linear_diff_pre_fork_2_5(Diff) ->
 	erlang:trunc(math:pow(2, 256)) - erlang:trunc(math:pow(2, 256 - Diff)).
@@ -143,10 +143,10 @@ calculate_difficulty(OldDiff, TS, Last, Height) ->
 	%% We only do retarget if the time it took to mine ?RETARGET_BLOCKS is bigger than
 	%% or equal to RetargetToleranceUpperBound or smaller than or equal to
 	%% RetargetToleranceLowerBound.
-	TargetTime = ?RETARGET_BLOCKS * ar_testnet:target_block_time(Height),
-	TargetTimeUpperBound = TargetTime + ar_testnet:target_block_time(Height),
-	TargetTimeLowerBound = TargetTime - ar_testnet:target_block_time(Height),
-	ActualTime = max(TS - Last, ar_block:get_max_timestamp_deviation()),
+	TargetTime = ?RETARGET_BLOCKS * big_testnet:target_block_time(Height),
+	TargetTimeUpperBound = TargetTime + big_testnet:target_block_time(Height),
+	TargetTimeLowerBound = TargetTime - big_testnet:target_block_time(Height),
+	ActualTime = max(TS - Last, big_block:get_max_timestamp_deviation()),
 
 	case ActualTime < TargetTimeUpperBound andalso ActualTime > TargetTimeLowerBound of
 		true ->
@@ -155,7 +155,7 @@ calculate_difficulty(OldDiff, TS, Last, Height) ->
 			%% Scale difficulty by TargetTime / ActualTime
 			%% If ActualTime is less than TargetTime it means we need to *increase* the difficulty,
 			%% and vice versa.
-			ar_difficulty:scale_diff(OldDiff, {TargetTime, ActualTime}, Height)
+			big_difficulty:scale_diff(OldDiff, {TargetTime, ActualTime}, Height)
 	end.
 
 calculate_difficulty_at_2_5(OldDiff, TS, Last, Height, PrevTS) ->
@@ -163,20 +163,20 @@ calculate_difficulty_at_2_5(OldDiff, TS, Last, Height, PrevTS) ->
 			?DIFF_DROP_2_5).
 
 calculate_difficulty_with_drop(OldDiff, TS, Last, Height, PrevTS, InitialCoeff, Coeff) ->
-	TargetTime = ?RETARGET_BLOCKS * ar_testnet:target_block_time(Height),
-	ActualTime = max(TS - Last, ar_block:get_max_timestamp_deviation()),
+	TargetTime = ?RETARGET_BLOCKS * big_testnet:target_block_time(Height),
+	ActualTime = max(TS - Last, big_block:get_max_timestamp_deviation()),
 	Step = 10 * 60,
 	%% Drop the difficulty InitialCoeff times right away, then drop extra Coeff times
 	%% for every 10 minutes passed.
 	ActualTime2 = ActualTime * InitialCoeff
-			* ar_fraction:pow(Coeff, max(TS - PrevTS, 0) div Step),
+			* big_fraction:pow(Coeff, max(TS - PrevTS, 0) div Step),
 	%% Scale difficulty by TargetTime / ActualTime2
 	%% If ActualTime2 is less than TargetTime it means we need to *increase* the difficulty,
 	%% and vice versa.
-	ar_difficulty:scale_diff(OldDiff, {TargetTime, ActualTime2}, Height).
+	big_difficulty:scale_diff(OldDiff, {TargetTime, ActualTime2}, Height).
 
 calculate_difficulty_after_2_4_before_2_5(OldDiff, TS, Last, Height) ->
-	TargetTime = ?RETARGET_BLOCKS * ar_testnet:target_block_time(Height),
+	TargetTime = ?RETARGET_BLOCKS * big_testnet:target_block_time(Height),
 	ActualTime = TS - Last,
 	TimeDelta = ActualTime / TargetTime,
 	case abs(1 - TimeDelta) < ?RETARGET_TOLERANCE of
@@ -184,9 +184,9 @@ calculate_difficulty_after_2_4_before_2_5(OldDiff, TS, Last, Height) ->
 			OldDiff;
 		false ->
 			MaxDiff = ?MAX_DIFF,
-			MinDiff = ar_difficulty:min_difficulty(Height),
+			MinDiff = big_difficulty:min_difficulty(Height),
 			DiffInverse = erlang:trunc((MaxDiff - OldDiff) * TimeDelta),
-			ar_util:between(
+			big_util:between(
 				MaxDiff - DiffInverse,
 				MinDiff,
 				MaxDiff
@@ -194,7 +194,7 @@ calculate_difficulty_after_2_4_before_2_5(OldDiff, TS, Last, Height) ->
 	end.
 
 calculate_difficulty_at_2_4(OldDiff, TS, Last, Height) ->
-	TargetTime = ?RETARGET_BLOCKS * ar_testnet:target_block_time(Height),
+	TargetTime = ?RETARGET_BLOCKS * big_testnet:target_block_time(Height),
 	ActualTime = TS - Last,
 	%% Make the difficulty drop 10 times faster than usual. The difficulty
 	%% after SPoRA is estimated to be around 10-100 times lower. In the worst
@@ -203,16 +203,16 @@ calculate_difficulty_at_2_4(OldDiff, TS, Last, Height) ->
 	%% reduction in difficulty, it would only take 100 minutes to adjust.
 	TimeDelta = 10 * ActualTime / TargetTime,
 	MaxDiff = ?MAX_DIFF,
-	MinDiff = ar_difficulty:min_difficulty(Height),
+	MinDiff = big_difficulty:min_difficulty(Height),
 	DiffInverse = erlang:trunc((MaxDiff - OldDiff) * TimeDelta),
-	ar_util:between(
+	big_util:between(
 		MaxDiff - DiffInverse,
 		MinDiff,
 		MaxDiff
 	).
 
 calculate_difficulty_at_and_after_1_9_before_2_4(OldDiff, TS, Last, Height) ->
-	TargetTime = ?RETARGET_BLOCKS * ar_testnet:target_block_time(Height),
+	TargetTime = ?RETARGET_BLOCKS * big_testnet:target_block_time(Height),
 	ActualTime = TS - Last,
 	TimeDelta = ActualTime / TargetTime,
 	case abs(1 - TimeDelta) < ?RETARGET_TOLERANCE of
@@ -220,14 +220,14 @@ calculate_difficulty_at_and_after_1_9_before_2_4(OldDiff, TS, Last, Height) ->
 			OldDiff;
 		false ->
 			MaxDiff = ?MAX_DIFF,
-			MinDiff = ar_difficulty:min_difficulty(Height),
-			EffectiveTimeDelta = ar_util:between(
+			MinDiff = big_difficulty:min_difficulty(Height),
+			EffectiveTimeDelta = big_util:between(
 				ActualTime / TargetTime,
 				1 / ?DIFF_ADJUSTMENT_UP_LIMIT,
 				?DIFF_ADJUSTMENT_DOWN_LIMIT
 			),
 			DiffInverse = erlang:trunc((MaxDiff - OldDiff) * EffectiveTimeDelta),
-			ar_util:between(
+			big_util:between(
 				MaxDiff - DiffInverse,
 				MinDiff,
 				MaxDiff
@@ -235,7 +235,7 @@ calculate_difficulty_at_and_after_1_9_before_2_4(OldDiff, TS, Last, Height) ->
 	end.
 
 calculate_difficulty_after_1_8_before_1_9(OldDiff, TS, Last, Height) ->
-	TargetTime = ?RETARGET_BLOCKS * ar_testnet:target_block_time(Height),
+	TargetTime = ?RETARGET_BLOCKS * big_testnet:target_block_time(Height),
 	ActualTime = TS - Last,
 	TimeDelta = ActualTime / TargetTime,
 	case abs(1 - TimeDelta) < ?RETARGET_TOLERANCE of
@@ -243,8 +243,8 @@ calculate_difficulty_after_1_8_before_1_9(OldDiff, TS, Last, Height) ->
 			OldDiff;
 		false ->
 			MaxDiff = ?MAX_DIFF,
-			MinDiff = ar_difficulty:min_difficulty(Height),
-			ar_util:between(
+			MinDiff = big_difficulty:min_difficulty(Height),
+			big_util:between(
 				MaxDiff - (MaxDiff - OldDiff) * ActualTime div TargetTime,
 				max(MinDiff, OldDiff div 2),
 				min(MaxDiff, OldDiff * 4)
@@ -252,7 +252,7 @@ calculate_difficulty_after_1_8_before_1_9(OldDiff, TS, Last, Height) ->
 	end.
 
 calculate_difficulty_before_1_8(OldDiff, TS, Last, Height) ->
-	TargetTime = ?RETARGET_BLOCKS * ar_testnet:target_block_time(Height),
+	TargetTime = ?RETARGET_BLOCKS * big_testnet:target_block_time(Height),
 	ActualTime = TS - Last,
 	TimeError = abs(ActualTime - TargetTime),
 	Diff = erlang:max(
@@ -261,7 +261,7 @@ calculate_difficulty_before_1_8(OldDiff, TS, Last, Height) ->
 			TargetTime > ActualTime                        -> OldDiff + 1;
 			true                                           -> OldDiff - 1
 		end,
-		ar_difficulty:min_difficulty(Height)
+		big_difficulty:min_difficulty(Height)
 	),
 	Diff.
 
@@ -272,19 +272,19 @@ calculate_difficulty_before_1_8(OldDiff, TS, Last, Height) ->
 %% Ensure that after a series of very fast mines, the diff increases.
 simple_retarget_test_() ->
 	{timeout, 300, fun() ->
-		[B0] = ar_weave:init([]),
-		ar_test_node:start(B0),
+		[B0] = big_weave:init([]),
+		big_test_node:start(B0),
 		lists:foreach(
 			fun(Height) ->
-				ar_test_node:mine(),
-				ar_test_node:wait_until_height(Height)
+				big_test_node:mine(),
+				big_test_node:wait_until_height(Height)
 			end,
 			lists:seq(1, ?RETARGET_BLOCKS + 1)
 		),
-		true = ar_util:do_until(
+		true = big_util:do_until(
 			fun() ->
-				[BH | _] = ar_node:get_blocks(),
-				B = ar_storage:read_block(BH),
+				[BH | _] = big_node:get_blocks(),
+				B = big_storage:read_block(BH),
 				B#block.diff > B0#block.diff
 			end,
 			1000,
@@ -293,7 +293,7 @@ simple_retarget_test_() ->
 	end}.
 
 calculate_difficulty_linear_test_() ->
-	ar_test_node:test_with_mocked_functions([{ar_fork, height_2_5, fun() -> 0 end}],
+	big_test_node:test_with_mocked_functions([{big_fork, height_2_5, fun() -> 0 end}],
 		fun test_calculate_difficulty_linear/0, 120).
 
 test_calculate_difficulty_linear() ->

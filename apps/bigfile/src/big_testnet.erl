@@ -1,11 +1,11 @@
--module(ar_testnet).
+-module(big_testnet).
 
 -export([is_testnet/0, height_testnet_fork/0, top_up_test_wallet/2,
 		locked_rewards_blocks/1, reward_history_blocks/1, target_block_time/1,
 		legacy_reward_history_blocks/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_pricing.hrl").
 
 -ifndef(TESTNET_REWARD_HISTORY_BLOCKS).
 -define(TESTNET_REWARD_HISTORY_BLOCKS, ?REWARD_HISTORY_BLOCKS).
@@ -45,7 +45,7 @@ height_testnet_fork() ->
 top_up_test_wallet(Accounts, Height) ->
 	case Height == height_testnet_fork() of
 		true ->
-			Addr = ar_util:decode(<<?TEST_WALLET_ADDRESS>>),
+			Addr = big_util:decode(<<?TEST_WALLET_ADDRESS>>),
 			maps:put(Addr, {?AR(?TOP_UP_TEST_WALLET_AR), <<>>, 1, true}, Accounts);
 		false ->
 			Accounts

@@ -1,6 +1,6 @@
--module(ar_rx4096_nif).
+-module(big_rx4096_nif).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 
 -on_load(init_nif/0).
 

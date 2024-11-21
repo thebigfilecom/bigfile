@@ -1,4 +1,4 @@
--module(ar_storage).
+-module(big_storage).
 
 -behaviour(gen_server).
 
@@ -17,9 +17,9 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_wallets.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_wallets.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("kernel/include/file.hrl").
 
@@ -38,7 +38,7 @@ read_block_index() ->
 		not_found ->
 			not_found;
 		{Height,{_H, _, _, _PrevH}} ->
-			{ok, Map} = ar_kv:get_range(block_index_db, << 0:256 >>, << Height:256 >>),
+			{ok, Map} = big_kv:get_range(block_index_db, << 0:256 >>, << Height:256 >>),
 			read_block_index_from_map(Map, 0, Height, <<>>, [])
 	end.
 
@@ -48,16 +48,16 @@ read_block_index_from_map(Map, Height, End, PrevH, BI) ->
 	V = maps:get(<< Height:256 >>, Map, not_found),
 	case V of
 		not_found ->
-			ar:console("The stored block index is invalid. Height ~B not found.~n", [Height]),
+			big:console("The stored block index is invalid. Height ~B not found.~n", [Height]),
 			not_found;
 		_ ->
 			case binary_to_term(V) of
 				{H, WeaveSize, TXRoot, PrevH} ->
 					read_block_index_from_map(Map, Height + 1, End, H, [{H, WeaveSize, TXRoot} | BI]);
 				{_, _, _, PrevH2} ->
-					ar:console("The stored block index is invalid. Height: ~B, "
+					big:console("The stored block index is invalid. Height: ~B, "
 							"stored previous hash: ~s, expected previous hash: ~s.~n",
-							[Height, ar_util:encode(PrevH2), ar_util:encode(PrevH)]),
+							[Height, big_util:encode(PrevH2), big_util:encode(PrevH)]),
 					not_found
 			end
 	end.
@@ -70,7 +70,7 @@ read_reward_history([{H, _WeaveSize, _TXRoot} | BI]) ->
 		not_found ->
 			not_found;
 		History ->
-			case ar_kv:get(reward_history_db, H) of
+			case big_kv:get(reward_history_db, H) of
 				not_found ->
 					not_found;
 				{ok, Bin} ->
@@ -83,7 +83,7 @@ read_reward_history([{H, _WeaveSize, _TXRoot} | BI]) ->
 read_block_time_history(_Height, []) ->
 	[];
 read_block_time_history(Height, [{H, _WeaveSize, _TXRoot} | BI]) ->
-	case Height < ar_fork:height_2_7() of
+	case Height < big_fork:height_2_7() of
 	true ->
 			[];
 		false ->
@@ -91,7 +91,7 @@ read_block_time_history(Height, [{H, _WeaveSize, _TXRoot} | BI]) ->
 				not_found ->
 					not_found;
 				History ->
-					case ar_kv:get(block_time_history_db, H) of
+					case big_kv:get(block_time_history_db, H) of
 						not_found ->
 							not_found;
 						{ok, Bin} ->
@@ -108,14 +108,14 @@ store_block_index(BI) ->
 	%% Use a key that is bigger than any << Height:256 >> (<<"a">> > << Height:256 >>)
 	%% to retrieve the largest stored Height.
 	NewHeight = length(BI) - 1,
-	case ar_kv:get_prev(block_index_db, <<"a">>) of
+	case big_kv:get_prev(block_index_db, <<"a">>) of
 		none ->
 			update_block_index(NewHeight, 0, lists:reverse(BI));
 		{ok, << StoredHeight:256 >>, _V} ->
 			%% RootHeight should a historical height shared by both the stored BI and the
 			%% new BI
 			RootHeight = max(0, min(StoredHeight, NewHeight) - ?STORE_BLOCKS_BEHIND_CURRENT),
-			{ok, V} = ar_kv:get(block_index_db, << RootHeight:256 >>),
+			{ok, V} = big_kv:get(block_index_db, << RootHeight:256 >>),
 			{H, WeaveSize, TXRoot} = lists:nth(NewHeight - RootHeight + 1, BI),
 			case binary_to_term(V) of
 				{H, WeaveSize, TXRoot, _PrevH} ->
@@ -125,8 +125,8 @@ store_block_index(BI) ->
 					?LOG_ERROR([{event, failed_to_store_block_index},
 							{reason, no_intersection},
 							{height, RootHeight},
-							{stored_hash, ar_util:encode(H2)},
-							{expected_hash, ar_util:encode(H)}]),
+							{stored_hash, big_util:encode(H2)},
+							{expected_hash, big_util:encode(H)}]),
 					{error, block_index_no_recent_intersection}
 			end;
 		Error ->
@@ -167,7 +167,7 @@ update_block_index(NewTipHeight, OrphanCount, BI) ->
 
 update_block_index2(IndexHeight, OrphanCount, BI) ->
 	%% 1. Delete all the orphaned blocks from the block index
-	case ar_kv:delete_range(block_index_db,
+	case big_kv:delete_range(block_index_db,
 			<< IndexHeight:256 >>, << (IndexHeight + OrphanCount):256 >>) of
 		ok ->
 			case IndexHeight of
@@ -177,7 +177,7 @@ update_block_index2(IndexHeight, OrphanCount, BI) ->
 					%% 2. Add all the entries in BI to the block index
 					%% BI will include the new tip block at the current height, as well as any new
 					%% history blocks if the tip is on a new branch.
-					case ar_kv:get(block_index_db, << (IndexHeight - 1):256 >>) of
+					case big_kv:get(block_index_db, << (IndexHeight - 1):256 >>) of
 						not_found ->
 							?LOG_ERROR([{event, failed_to_update_block_index},
 									{reason, prev_element_not_found},
@@ -201,7 +201,7 @@ update_block_index3(_Height, _PrevH, []) ->
 	ok;
 update_block_index3(Height, PrevH, [{H, WeaveSize, TXRoot} | BI]) ->
 	Bin = term_to_binary({H, WeaveSize, TXRoot, PrevH}),
-	case ar_kv:put(block_index_db, << Height:256 >>, Bin) of
+	case big_kv:put(block_index_db, << Height:256 >>, Bin) of
 		ok ->
 			update_block_index3(Height + 1, H, BI);
 		Error ->
@@ -215,40 +215,40 @@ store_reward_history_part([]) ->
 	ok;
 store_reward_history_part(Blocks) ->
 	store_reward_history_part2([{B#block.indep_hash, {B#block.reward_addr,
-			ar_difficulty:get_hash_rate_fixed_ratio(B), B#block.reward,
+			big_difficulty:get_hash_rate_fixed_ratio(B), B#block.reward,
 			B#block.denomination}} || B <- Blocks]).
 
 store_reward_history_part2([]) ->
 	ok;
 store_reward_history_part2([{H, El} | History]) ->
 	Bin = term_to_binary(El),
-	case ar_kv:put(reward_history_db, H, Bin) of
+	case big_kv:put(reward_history_db, H, Bin) of
 		ok ->
 			store_reward_history_part2(History);
 		Error ->
 			?LOG_ERROR([{event, failed_to_update_reward_history},
 					{reason, io_lib:format("~p", [Error])},
-					{block, ar_util:encode(H)}]),
+					{block, big_util:encode(H)}]),
 			{error, not_found}
 	end.
 
 store_block_time_history_part([], _PrevB) ->
 	ok;
 store_block_time_history_part(Blocks, PrevB) ->
-	History = ar_block_time_history:get_history_from_blocks(Blocks, PrevB),
+	History = big_block_time_history:get_history_from_blocks(Blocks, PrevB),
 	store_block_time_history_part2(History).
 
 store_block_time_history_part2([]) ->
 	ok;
 store_block_time_history_part2([{H, El} | History]) ->
 	Bin = term_to_binary(El),
-	case ar_kv:put(block_time_history_db, H, Bin) of
+	case big_kv:put(block_time_history_db, H, Bin) of
 		ok ->
 			store_block_time_history_part2(History);
 		Error ->
 			?LOG_ERROR([{event, failed_to_update_block_time_history},
 					{reason, io_lib:format("~p", [Error])},
-					{block, ar_util:encode(H)}]),
+					{block, big_util:encode(H)}]),
 			{error, not_found}
 	end.
 
@@ -286,7 +286,7 @@ write_full_block(BShadow, TXs) ->
 is_blacklisted(#tx{ format = 2 }) ->
 	false;
 is_blacklisted(#tx{ id = TXID }) ->
-	ar_tx_blacklist:is_tx_blacklisted(TXID).
+	big_tx_blacklist:is_tx_blacklisted(TXID).
 
 update_confirmation_index(B) ->
 	put_tx_confirmation_data(B).
@@ -295,7 +295,7 @@ put_tx_confirmation_data(B) ->
 	Data = term_to_binary({B#block.height, B#block.indep_hash}),
 	lists:foldl(
 		fun	(TX, ok) ->
-				ar_kv:put(tx_confirmation_db, TX#tx.id, Data);
+				big_kv:put(tx_confirmation_db, TX#tx.id, Data);
 			(_TX, Acc) ->
 				Acc
 		end,
@@ -306,7 +306,7 @@ put_tx_confirmation_data(B) ->
 %% @doc Return {BlockHeight, BlockHash} belonging to the block where
 %% the given transaction was included.
 get_tx_confirmation_data(TXID) ->
-	case ar_kv:get(tx_confirmation_db, TXID) of
+	case big_kv:get(tx_confirmation_db, TXID) of
 		{ok, Binary} ->
 			{ok, binary_to_term(Binary)};
 		not_found ->
@@ -338,13 +338,13 @@ read_block(Blocks) when is_list(Blocks) ->
 read_block({H, _, _}) ->
 	read_block(H);
 read_block(BH) ->
-	case ar_disk_cache:lookup_block_filename(BH) of
+	case big_disk_cache:lookup_block_filename(BH) of
 		{ok, {Filename, Encoding}} ->
 			%% The cache keeps a rotated number of recent headers when the
 			%% node is out of disk space.
 			read_block_from_file(Filename, Encoding);
 		_ ->
-			case ar_kv:get(block_db, BH) of
+			case big_kv:get(block_db, BH) of
 				not_found ->
 					case lookup_block_filename(BH) of
 						unavailable ->
@@ -356,7 +356,7 @@ read_block(BH) ->
 					parse_block_kv_binary(V);
 				{error, Reason} ->
 					?LOG_WARNING([{event, error_reading_block_from_kv_storage},
-							{block, ar_util:encode(BH)},
+							{block, big_util:encode(BH)},
 							{error, io_lib:format("~p", [Reason])}])
 			end
 	end.
@@ -413,9 +413,9 @@ read_account2(Addr, RootHash) ->
 	%% Unfortunately, we do not have an easy access to the information about how many
 	%% accounts there were in the given tree so we perform the binary search starting
 	%% from the number in the latest block.
-	Size = ar_wallets:get_size(),
+	Size = big_wallets:get_size(),
 	MaxFileCount = Size div ?WALLET_LIST_CHUNK_SIZE + 1,
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	read_account(Addr, RootHash, 0, MaxFileCount, Config#config.data_dir, false).
 
 read_account(_Addr, _RootHash, Left, Right, _DataDir, _RightFileFound) when Left == Right ->
@@ -427,7 +427,7 @@ read_account(Addr, RootHash, Left, Right, DataDir, RightFileFound) ->
 		false ->
 			read_account(Addr, RootHash, Left, Pos, DataDir, false);
 		true ->
-			{ok, L} = ar_storage:read_term(Filepath),
+			{ok, L} = big_storage:read_term(Filepath),
 			read_account2(Addr, RootHash, Pos, Left, Right, DataDir, L, RightFileFound)
 	end.
 
@@ -435,7 +435,7 @@ wallet_list_chunk_relative_filepath(Position, RootHash) ->
 	binary_to_list(iolist_to_binary([
 		?WALLET_LIST_DIR,
 		"/",
-		ar_util:encode(RootHash),
+		big_util:encode(RootHash),
 		"-",
 		integer_to_binary(Position),
 		"-",
@@ -479,9 +479,9 @@ read_account2(Addr, RootHash, Pos, Left, _Right, DataDir, L, _RightFileFound) ->
 	end.
 
 lookup_block_filename(H) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Name = filename:join([Config#config.data_dir, ?BLOCK_DIR,
-			binary_to_list(ar_util:encode(H))]),
+			binary_to_list(big_util:encode(H))]),
 	NameJSON = iolist_to_binary([Name, ".json"]),
 	case is_file(NameJSON) of
 		true ->
@@ -499,14 +499,14 @@ lookup_block_filename(H) ->
 %% @doc Delete the blacklisted tx with the given hash from disk. Return {ok, BytesRemoved} if
 %% the removal is successful or the file does not exist. The reported number of removed
 %% bytes does not include the migrated v1 data. The removal of migrated v1 data is requested
-%% from ar_data_sync asynchronously. The v2 headers are not removed.
+%% from big_data_sync asynchronously. The v2 headers are not removed.
 delete_blacklisted_tx(Hash) ->
-	case ar_kv:get(tx_db, Hash) of
+	case big_kv:get(tx_db, Hash) of
 		{ok, V} ->
 			TX = parse_tx_kv_binary(V),
 			case TX#tx.format == 1 andalso TX#tx.data_size > 0 of
 				true ->
-					case ar_kv:delete(tx_db, Hash) of
+					case big_kv:delete(tx_db, Hash) of
 						ok ->
 							{ok, byte_size(V)};
 						Error ->
@@ -542,7 +542,7 @@ delete_blacklisted_tx(Hash) ->
 	end.
 
 parse_tx_kv_binary(Bin) ->
-	case catch ar_serialize:binary_to_tx(Bin) of
+	case catch big_serialize:binary_to_tx(Bin) of
 		{ok, TX} ->
 			TX;
 		_ ->
@@ -551,7 +551,7 @@ parse_tx_kv_binary(Bin) ->
 
 %% Convert the stored tx record to its latest state in the code
 %% (assign the default values to all missing fields). Since the version introducing
-%% the fork 2.6, the transactions are serialized via ar_serialize:tx_to_binary/1, which
+%% the fork 2.6, the transactions are serialized via big_serialize:tx_to_binary/1, which
 %% is maintained compatible with all past versions, so this code is only used
 %% on the nodes synced before the corresponding release.
 migrate_tx_record(#tx{} = TX) ->
@@ -565,7 +565,7 @@ migrate_tx_record({tx, Format, ID, LastTX, Owner, Tags, Target, Quantity, Data,
 			reward = Reward, data_tree = DataTree }.
 
 parse_block_kv_binary(Bin) ->
-	case catch ar_serialize:binary_to_block(Bin) of
+	case catch big_serialize:binary_to_block(Bin) of
 		{ok, B} ->
 			B;
 		_ ->
@@ -574,7 +574,7 @@ parse_block_kv_binary(Bin) ->
 
 %% Convert the stored block record to its latest state in the code
 %% (assign the default values to all missing fields). Since the version introducing
-%% the fork 2.6, the blocks are serialized via ar_serialize:block_to_binary/1, which
+%% the fork 2.6, the blocks are serialized via big_serialize:block_to_binary/1, which
 %% is maintained compatible with all past block versions, so this code is only used
 %% on the nodes synced before the corresponding release.
 migrate_block_record(#block{} = B) ->
@@ -597,8 +597,8 @@ migrate_block_record({block, Nonce, PrevH, TS, Last, Diff, Height, Hash, H,
 			hash_list = HL, hash_list_merkle = HLMerkle, wallet_list = WL,
 			reward_addr = RewardAddr, tags = Tags, reward_pool = RewardPool,
 			weave_size = WeaveSize, block_size = BlockSize, cumulative_diff = CDiff,
-			size_tagged_txs = SizeTaggedTXs, poa = PoA_2, usd_to_ar_rate = Rate,
-			scheduled_usd_to_ar_rate = ScheduledRate,
+			size_tagged_txs = SizeTaggedTXs, poa = PoA_2, usd_to_big_rate = Rate,
+			scheduled_usd_to_big_rate = ScheduledRate,
 			packing_2_5_threshold = Packing_2_5_Threshold,
 			strict_data_split_threshold = StrictDataSplitThreshold }.
 
@@ -621,7 +621,7 @@ write_tx(#tx{ format = Format, id = TXID } = TX) ->
 					case {DataSize == TX#tx.data_size, Format} of
 						{false, 2} ->
 							?LOG_ERROR([{event, failed_to_store_tx_data},
-									{reason, size_mismatch}, {tx, ar_util:encode(TX#tx.id)}]),
+									{reason, size_mismatch}, {tx, big_util:encode(TX#tx.id)}]),
 							ok;
 						{true, 1} ->
 							case write_tx_data(no_expected_data_root, TX#tx.data, TXID) of
@@ -629,13 +629,13 @@ write_tx(#tx{ format = Format, id = TXID } = TX) ->
 									ok;
 								{error, Reason} ->
 									?LOG_WARNING([{event, failed_to_store_tx_data},
-											{reason, Reason}, {tx, ar_util:encode(TX#tx.id)}]),
+											{reason, Reason}, {tx, big_util:encode(TX#tx.id)}]),
 									%% We have stored the data in the tx_db table
 									%% so we return ok here.
 									ok
 							end;
 						{true, 2} ->
-							case ar_tx_blacklist:is_tx_blacklisted(TX#tx.id) of
+							case big_tx_blacklist:is_tx_blacklisted(TX#tx.id) of
 								true ->
 									ok;
 								false ->
@@ -648,7 +648,7 @@ write_tx(#tx{ format = Format, id = TXID } = TX) ->
 											%% the attached data.
 											?LOG_WARNING([{event, failed_to_store_tx_data},
 													{reason, Reason},
-													{tx, ar_util:encode(TX#tx.id)}]),
+													{tx, big_util:encode(TX#tx.id)}]),
 											ok
 									end
 							end
@@ -668,13 +668,13 @@ write_tx_header(TX) ->
 			_ ->
 				TX#tx{ data = <<>> }
 		end,
-	ar_kv:put(tx_db, TX#tx.id, ar_serialize:tx_to_binary(TX2)).
+	big_kv:put(tx_db, TX#tx.id, big_serialize:tx_to_binary(TX2)).
 
 write_tx_data(ExpectedDataRoot, Data, TXID) ->
-	Chunks = ar_tx:chunk_binary(?DATA_CHUNK_SIZE, Data),
-	SizeTaggedChunks = ar_tx:chunks_to_size_tagged_chunks(Chunks),
-	SizeTaggedChunkIDs = ar_tx:sized_chunks_to_sized_chunk_ids(SizeTaggedChunks),
-	case {ExpectedDataRoot, ar_merkle:generate_tree(SizeTaggedChunkIDs)} of
+	Chunks = big_tx:chunk_binary(?DATA_CHUNK_SIZE, Data),
+	SizeTaggedChunks = big_tx:chunks_to_size_tagged_chunks(Chunks),
+	SizeTaggedChunkIDs = big_tx:sized_chunks_to_sized_chunk_ids(SizeTaggedChunks),
+	case {ExpectedDataRoot, big_merkle:generate_tree(SizeTaggedChunkIDs)} of
 		{no_expected_data_root, {DataRoot, DataTree}} ->
 			write_tx_data(DataRoot, DataTree, Data, SizeTaggedChunks, TXID);
 		{_, {ExpectedDataRoot, DataTree}} ->
@@ -687,7 +687,7 @@ write_tx_data(DataRoot, DataTree, Data, SizeTaggedChunks, TXID) ->
 	Errors = lists:foldl(
 		fun
 			({<<>>, _}, Acc) ->
-				%% Empty chunks are produced by ar_tx:chunk_binary/2, when
+				%% Empty chunks are produced by big_tx:chunk_binary/2, when
 				%% the data is evenly split by the given chunk size. They are
 				%% the last chunks of the corresponding transactions and have
 				%% the same end offsets as their preceding chunks. They are never
@@ -696,16 +696,16 @@ write_tx_data(DataRoot, DataTree, Data, SizeTaggedChunks, TXID) ->
 				%% chunking implementation. There is no value in storing them.
 				Acc;
 			({Chunk, Offset}, Acc) ->
-				DataPath = ar_merkle:generate_path(DataRoot, Offset - 1, DataTree),
+				DataPath = big_merkle:generate_path(DataRoot, Offset - 1, DataTree),
 				TXSize = byte_size(Data),
-				case ar_data_sync:add_chunk(DataRoot, DataPath, Chunk, Offset - 1, TXSize) of
+				case big_data_sync:add_chunk(DataRoot, DataPath, Chunk, Offset - 1, TXSize) of
 					ok ->
 						Acc;
 					temporary ->
 						Acc;
 					{error, Reason} ->
 						?LOG_WARNING([{event, failed_to_write_tx_chunk},
-								{tx, ar_util:encode(TXID)},
+								{tx, big_util:encode(TXID)},
 								{reason, io_lib:format("~p", [Reason])}]),
 						[Reason | Acc]
 				end
@@ -736,7 +736,7 @@ read_tx(ID) ->
 	end.
 
 read_tx2(ID) ->
-	case ar_kv:get(tx_db, ID) of
+	case big_kv:get(tx_db, ID) of
 		not_found ->
 			read_tx_from_file(ID);
 		{ok, Binary} ->
@@ -749,7 +749,7 @@ read_tx2(ID) ->
 							TX#tx{ data = Data };
 						Error ->
 							?LOG_WARNING([{event, error_reading_tx_from_kv_storage},
-									{tx, ar_util:encode(ID)},
+									{tx, big_util:encode(ID)},
 									{error, io_lib:format("~p", [Error])}]),
 							unavailable
 					end;
@@ -759,7 +759,7 @@ read_tx2(ID) ->
 	end.
 
 read_tx_from_disk_cache(ID) ->
-	case ar_disk_cache:lookup_tx_filename(ID) of
+	case big_disk_cache:lookup_tx_filename(ID) of
 		unavailable ->
 			unavailable;
 		{ok, Filename} ->
@@ -799,7 +799,7 @@ read_tx_file(Filename) ->
 					{filename, Filename}]),
 			{error, tx_file_empty};
 		{ok, Binary} ->
-			case catch ar_serialize:json_struct_to_tx(Binary) of
+			case catch big_serialize:json_struct_to_tx(Binary) of
 				TX when is_record(TX, tx) ->
 					{ok, TX};
 				_ ->
@@ -829,7 +829,7 @@ read_file_raw(Filename) ->
 read_migrated_v1_tx_file(Filename) ->
 	case read_file_raw(Filename) of
 		{ok, Binary} ->
-			case catch ar_serialize:json_struct_to_v1_tx(Binary) of
+			case catch big_serialize:json_struct_to_v1_tx(Binary) of
 				#tx{ id = ID } = TX ->
 					case read_tx_data_from_kv_storage(ID) of
 						{ok, Data} ->
@@ -843,7 +843,7 @@ read_migrated_v1_tx_file(Filename) ->
 	end.
 
 read_tx_data_from_kv_storage(ID) ->
-	case ar_data_sync:get_tx_data(ID) of
+	case big_data_sync:get_tx_data(ID) of
 		{ok, Data} ->
 			{ok, Data};
 		{error, not_found} ->
@@ -857,29 +857,29 @@ read_tx_data_from_kv_storage(ID) ->
 read_tx_data(TX) ->
 	case read_file_raw(tx_data_filepath(TX)) of
 		{ok, Data} ->
-			{ok, ar_util:decode(Data)};
+			{ok, big_util:decode(Data)};
 		Error ->
 			Error
 	end.
 
 write_wallet_list(Height, Tree) ->
-	{RootHash, _UpdatedTree, UpdateMap} = ar_block:hash_wallet_list(Tree),
+	{RootHash, _UpdatedTree, UpdateMap} = big_block:hash_wallet_list(Tree),
 	store_account_tree_update(Height, RootHash, UpdateMap),
 	erlang:garbage_collect(),
 	RootHash.
 
 %% @doc Read a given wallet list (by hash) from the disk.
 read_wallet_list(<<>>) ->
-	{ok, ar_patricia_tree:new()};
+	{ok, big_patricia_tree:new()};
 read_wallet_list(WalletListHash) when is_binary(WalletListHash) ->
 	Key = WalletListHash,
-	read_wallet_list(get_account_tree_value(Key, <<>>), ar_patricia_tree:new(), [],
+	read_wallet_list(get_account_tree_value(Key, <<>>), big_patricia_tree:new(), [],
 			WalletListHash, WalletListHash).
 
 read_wallet_list({ok, << K:48/binary, _/binary >>, Bin}, Tree, Keys, RootHash, K) ->
 	case binary_to_term(Bin) of
 		{Key, Value} ->
-			Tree2 = ar_patricia_tree:insert(Key, Value, Tree),
+			Tree2 = big_patricia_tree:insert(Key, Value, Tree),
 			case Keys of
 				[] ->
 					{ok, Tree2};
@@ -916,7 +916,7 @@ read_wallet_list_from_chunk_files(WalletListHash) when is_binary(WalletListHash)
 			Error
 	end;
 read_wallet_list_from_chunk_files(WL) when is_list(WL) ->
-	{ok, ar_patricia_tree:from_proplist([{get_wallet_key(T), get_wallet_value(T)}
+	{ok, big_patricia_tree:from_proplist([{get_wallet_key(T), get_wallet_value(T)}
 			|| T <- WL])}.
 
 get_wallet_key(T) ->
@@ -928,17 +928,17 @@ get_wallet_value({_, Balance, LastTX, Denomination, MiningPermission}) ->
 	{Balance, LastTX, Denomination, MiningPermission}.
 
 read_wallet_list_chunk(RootHash) ->
-	read_wallet_list_chunk(RootHash, 0, ar_patricia_tree:new()).
+	read_wallet_list_chunk(RootHash, 0, big_patricia_tree:new()).
 
 read_wallet_list_chunk(RootHash, Position, Tree) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Filename =
 		binary_to_list(iolist_to_binary([
 			Config#config.data_dir,
 			"/",
 			?WALLET_LIST_DIR,
 			"/",
-			ar_util:encode(RootHash),
+			big_util:encode(RootHash),
 			"-",
 			integer_to_binary(Position),
 			"-",
@@ -955,7 +955,7 @@ read_wallet_list_chunk(RootHash, Position, Tree) ->
 				end,
 			Tree2 =
 				lists:foldl(
-					fun({K, V}, Acc) -> ar_patricia_tree:insert(K, V, Acc) end,
+					fun({K, V}, Acc) -> big_patricia_tree:insert(K, V, Acc) end,
 					Tree,
 					Wallets
 				),
@@ -976,9 +976,9 @@ read_wallet_list_chunk(RootHash, Position, Tree) ->
 	end.
 
 parse_wallet_list_json(JSON) ->
-	case ar_serialize:json_decode(JSON) of
+	case big_serialize:json_decode(JSON) of
 		{ok, JiffyStruct} ->
-			{ok, ar_serialize:json_struct_to_wallet_list(JiffyStruct)};
+			{ok, big_serialize:json_struct_to_wallet_list(JiffyStruct)};
 		{error, Reason} ->
 			{error, {invalid_json, Reason}}
 	end.
@@ -1029,19 +1029,19 @@ read_block_from_file(Filename, Encoding) ->
 
 init([]) ->
 	process_flag(trap_exit, true),
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	ensure_directories(Config#config.data_dir),
 	%% Copy genesis transactions (snapshotted in the repo) into data_dir/txs
-	ar_weave:add_mainnet_v1_genesis_txs(),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "ar_storage_tx_confirmation_db"),
+	big_weave:add_mainnet_v1_genesis_txs(),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_storage_tx_confirmation_db"),
 			tx_confirmation_db),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "ar_storage_tx_db"), tx_db),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "ar_storage_block_db"), block_db),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "reward_history_db"), reward_history_db),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "block_time_history_db"),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_storage_tx_db"), tx_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_storage_block_db"), block_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "reward_history_db"), reward_history_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "block_time_history_db"),
 			block_time_history_db),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "block_index_db"), block_index_db),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "account_tree_db"), account_tree_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "block_index_db"), block_index_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "account_tree_db"), account_tree_db),
 	ets:insert(?MODULE, [{same_disk_storage_modules_total_size,
 			get_same_disk_storage_modules_total_size()}]),
 	{ok, #state{}}.
@@ -1073,7 +1073,7 @@ terminate(_Reason, _State) ->
 block_index_tip() ->
 	%% Use a key that is bigger than any << Height:256 >> (<<"a">> > << Height:256 >>)
 	%% to retrieve the largest stored Height.
-	case ar_kv:get_prev(block_index_db, <<"a">>) of
+	case big_kv:get_prev(block_index_db, <<"a">>) of
 		none ->
 			not_found;
 		{ok, << Height:256 >>, V} ->
@@ -1081,17 +1081,17 @@ block_index_tip() ->
 	end.
 
 write_block(B) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case lists:member(disk_logging, Config#config.enable) of
 		true ->
 			?LOG_INFO([{event, writing_block_to_disk},
-					{block, ar_util:encode(B#block.indep_hash)}]);
+					{block, big_util:encode(B#block.indep_hash)}]);
 		_ ->
 			do_nothing
 	end,
 	TXIDs = lists:map(fun(TXID) when is_binary(TXID) -> TXID;
 			(#tx{ id = TXID }) -> TXID end, B#block.txs),
-	ar_kv:put(block_db, B#block.indep_hash, ar_serialize:block_to_binary(B#block{
+	big_kv:put(block_db, B#block.indep_hash, big_serialize:block_to_binary(B#block{
 			txs = TXIDs })).
 
 write_full_block2(BShadow, _) ->
@@ -1103,9 +1103,9 @@ write_full_block2(BShadow, _) ->
 	end.
 
 parse_block_json(JSON) ->
-	case catch ar_serialize:json_decode(JSON) of
+	case catch big_serialize:json_decode(JSON) of
 		{ok, JiffyStruct} ->
-			case catch ar_serialize:json_struct_to_block(JiffyStruct) of
+			case catch big_serialize:json_struct_to_block(JiffyStruct) of
 				B when is_record(B, block) ->
 					B;
 				Error ->
@@ -1120,7 +1120,7 @@ parse_block_json(JSON) ->
 	end.
 
 parse_block_binary(Bin) ->
-	case catch ar_serialize:binary_to_block(Bin) of
+	case catch big_serialize:binary_to_block(Bin) of
 		{ok, B} ->
 			B;
 		Error ->
@@ -1130,7 +1130,7 @@ parse_block_binary(Bin) ->
 	end.
 
 filepath(PathComponents) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	to_string(filename:join([Config#config.data_dir | PathComponents])).
 
 to_string(Bin) when is_binary(Bin) ->
@@ -1150,7 +1150,7 @@ ensure_directories(DataDir) ->
 	filelib:ensure_dir(filename:join([DataDir, ?TX_DIR, "migrated_v1"]) ++ "/").
 
 get_same_disk_storage_modules_total_size() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	DataDir = Config#config.data_dir,
 	{ok, Info} = file:read_file_info(DataDir),
 	Device = Info#file_info.major_device,
@@ -1161,7 +1161,7 @@ get_same_disk_storage_modules_total_size(TotalSize, [], _DataDir, _Device) ->
 	TotalSize;
 get_same_disk_storage_modules_total_size(TotalSize,
 		[{Size, _Bucket, _Packing} = Module | StorageModules], DataDir, Device) ->
-	Path = filename:join([DataDir, "storage_modules", ar_storage_module:id(Module)]),
+	Path = filename:join([DataDir, "storage_modules", big_storage_module:id(Module)]),
 	filelib:ensure_dir(Path ++ "/"),
 	{ok, Info} = file:read_file_info(Path),
 	TotalSize2 =
@@ -1184,13 +1184,13 @@ tx_data_filepath(ID) ->
 tx_filename(TX) when is_record(TX, tx) ->
 	tx_filename(TX#tx.id);
 tx_filename(TXID) when is_binary(TXID) ->
-	iolist_to_binary([ar_util:encode(TXID), ".json"]).
+	iolist_to_binary([big_util:encode(TXID), ".json"]).
 
 tx_data_filename(TXID) ->
-	iolist_to_binary([ar_util:encode(TXID), "_data.json"]).
+	iolist_to_binary([big_util:encode(TXID), "_data.json"]).
 
 wallet_list_filepath(Hash) when is_binary(Hash) ->
-	filepath([?WALLET_LIST_DIR, iolist_to_binary([ar_util:encode(Hash), ".json"])]).
+	filepath([?WALLET_LIST_DIR, iolist_to_binary([big_util:encode(Hash), ".json"])]).
 
 write_file_atomic(Filename, Data) ->
 	SwapFilename = Filename ++ ".swp",
@@ -1212,7 +1212,7 @@ write_file_atomic(Filename, Data) ->
 	end.
 
 write_term(Name, Term) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	DataDir = Config#config.data_dir,
 	write_term(DataDir, Name, Term, override).
 
@@ -1238,7 +1238,7 @@ write_term(Dir, Name, Term, Override) ->
 	end.
 
 read_term(Name) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	DataDir = Config#config.data_dir,
 	read_term(DataDir, Name).
 
@@ -1256,40 +1256,40 @@ read_term(Dir, Name) ->
 	end.
 
 delete_term(Name) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	DataDir = Config#config.data_dir,
 	file:delete(filename:join(DataDir, atom_to_list(Name))).
 
 store_account_tree_update(Height, RootHash, Map) ->
 	?LOG_INFO([{event, storing_account_tree_update}, {updated_key_count, map_size(Map)},
-			{height, Height}, {root_hash, ar_util:encode(RootHash)}]),
+			{height, Height}, {root_hash, big_util:encode(RootHash)}]),
 	maps:map(
 		fun({H, Prefix} = Key, Value) ->
 			Prefix2 = case Prefix of root -> <<>>; _ -> Prefix end,
 			DBKey = << H/binary, Prefix2/binary >>,
-			case ar_kv:get(account_tree_db, DBKey) of
+			case big_kv:get(account_tree_db, DBKey) of
 				not_found ->
-					case ar_kv:put(account_tree_db, DBKey, term_to_binary(Value)) of
+					case big_kv:put(account_tree_db, DBKey, term_to_binary(Value)) of
 						ok ->
 							ok;
 						{error, Reason} ->
 							?LOG_ERROR([{event, failed_to_store_account_tree_key},
-									{key_hash, ar_util:encode(element(1, Key))},
+									{key_hash, big_util:encode(element(1, Key))},
 									{key_prefix, case element(2, Key) of root -> root;
-											Prefix -> ar_util:encode(Prefix) end},
+											Prefix -> big_util:encode(Prefix) end},
 									{height, Height},
-									{root_hash, ar_util:encode(RootHash)},
+									{root_hash, big_util:encode(RootHash)},
 									{reason, io_lib:format("~p", [Reason])}])
 					end;
 				{ok, _} ->
 					ok;
 				{error, Reason} ->
 					?LOG_ERROR([{event, failed_to_read_account_tree_key},
-							{key_hash, ar_util:encode(element(1, Key))},
+							{key_hash, big_util:encode(element(1, Key))},
 							{key_prefix, case element(2, Key) of root -> root;
-									Prefix -> ar_util:encode(Prefix) end},
+									Prefix -> big_util:encode(Prefix) end},
 							{height, Height},
-							{root_hash, ar_util:encode(RootHash)},
+							{root_hash, big_util:encode(RootHash)},
 							{reason, io_lib:format("~p", [Reason])}])
 			end
 		end,
@@ -1300,13 +1300,13 @@ store_account_tree_update(Height, RootHash, Map) ->
 %% @doc Ignore the prefix when querying a key since the prefix might depend on the order of
 %% insertions and is only used to optimize certain lookups.
 get_account_tree_value(Key, Prefix) ->
-	ar_kv:get_prev(account_tree_db, << Key/binary, Prefix/binary >>).
+	big_kv:get_prev(account_tree_db, << Key/binary, Prefix/binary >>).
 	% does not work:
-	%ar_kv:get_next(account_tree_db, << Key/binary, Prefix/binary >>).
+	%big_kv:get_next(account_tree_db, << Key/binary, Prefix/binary >>).
 	% works:
 	%<< N:(48 * 8) >> = Key,
 	%Key2 = << (N + 1):(48 * 8) >>,
-	%ar_kv:get_prev(account_tree_db, Key2).
+	%big_kv:get_prev(account_tree_db, Key2).
 
 %%%===================================================================
 %%% Tests
@@ -1317,8 +1317,8 @@ store_and_retrieve_block_test_() ->
 	{timeout, 60, fun test_store_and_retrieve_block/0}.
 
 test_store_and_retrieve_block() ->
-	[B0] = ar_weave:init([]),
-	ar_test_node:start(B0),
+	[B0] = big_weave:init([]),
+	big_test_node:start(B0),
 	TXIDs = [TX#tx.id || TX <- B0#block.txs],
 	FetchedB0 = read_block(B0#block.indep_hash),
 	FetchedB01 = FetchedB0#block{ txs = [tx_id(TX) || TX <- FetchedB0#block.txs] },
@@ -1329,12 +1329,12 @@ test_store_and_retrieve_block() ->
 			block_time_history = [], account_tree = undefined }, FetchedB01),
 	?assertEqual(B0#block{ size_tagged_txs = unset, txs = TXIDs, reward_history = [],
 			block_time_history = [], account_tree = undefined }, FetchedB03),
-	ar_test_node:mine(),
-	ar_test_node:wait_until_height(1),
-	ar_test_node:mine(),
-	BI1 = ar_test_node:wait_until_height(2),
-	[{_, BlockCount}] = ets:lookup(ar_header_sync, synced_blocks),
-	ar_util:do_until(
+	big_test_node:mine(),
+	big_test_node:wait_until_height(1),
+	big_test_node:mine(),
+	BI1 = big_test_node:wait_until_height(2),
+	[{_, BlockCount}] = ets:lookup(big_header_sync, synced_blocks),
+	big_util:do_until(
 		fun() ->
 			3 == BlockCount
 		end,
@@ -1357,30 +1357,30 @@ store_and_retrieve_wallet_list_test_() ->
 	].
 
 test_store_and_retrieve_wallet_list() ->
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	[TX] = B0#block.txs,
-	Addr = ar_wallet:to_address(TX#tx.owner, {?RSA_SIGN_ALG, 65537}),
+	Addr = big_wallet:to_address(TX#tx.owner, {?RSA_SIGN_ALG, 65537}),
 	write_block(B0),
 	TXID = TX#tx.id,
-	ExpectedWL = ar_patricia_tree:from_proplist([{Addr, {0, TXID}}]),
+	ExpectedWL = big_patricia_tree:from_proplist([{Addr, {0, TXID}}]),
 	WalletListHash = write_wallet_list(0, ExpectedWL),
 	{ok, ActualWL} = read_wallet_list(WalletListHash),
 	assert_wallet_trees_equal(ExpectedWL, ActualWL),
 	Addr2 = binary:part(Addr, 0, 16),
 	TXID2 = crypto:strong_rand_bytes(32),
-	ExpectedWL2 = ar_patricia_tree:from_proplist([{Addr, {0, TXID}}, {Addr2, {0, TXID2}}]),
+	ExpectedWL2 = big_patricia_tree:from_proplist([{Addr, {0, TXID}}, {Addr2, {0, TXID2}}]),
 	WalletListHash2 = write_wallet_list(0, ExpectedWL2),
 	{ok, ActualWL2} = read_wallet_list(WalletListHash2),
 	?assertEqual({0, TXID}, read_account(Addr, WalletListHash2)),
 	?assertEqual({0, TXID2}, read_account(Addr2, WalletListHash2)),
 	assert_wallet_trees_equal(ExpectedWL2, ActualWL2),
-	{WalletListHash, ActualWL3, _UpdateMap} = ar_block:hash_wallet_list(ActualWL),
+	{WalletListHash, ActualWL3, _UpdateMap} = big_block:hash_wallet_list(ActualWL),
 	Addr3 = << (binary:part(Addr, 0, 3))/binary, (crypto:strong_rand_bytes(29))/binary >>,
 	TXID3 = crypto:strong_rand_bytes(32),
 	TXID4 = crypto:strong_rand_bytes(32),
-	ActualWL4 = ar_patricia_tree:insert(Addr3, {100, TXID3},
-			ar_patricia_tree:insert(Addr2, {0, TXID4}, ActualWL3)),
-	{WalletListHash3, ActualWL5, UpdateMap2} = ar_block:hash_wallet_list(ActualWL4),
+	ActualWL4 = big_patricia_tree:insert(Addr3, {100, TXID3},
+			big_patricia_tree:insert(Addr2, {0, TXID4}, ActualWL3)),
+	{WalletListHash3, ActualWL5, UpdateMap2} = big_block:hash_wallet_list(ActualWL4),
 	store_account_tree_update(1, WalletListHash3, UpdateMap2),
 	?assertEqual({100, TXID3}, read_account(Addr3, WalletListHash3)),
 	?assertEqual({0, TXID4}, read_account(Addr2, WalletListHash3)),
@@ -1436,15 +1436,15 @@ test_store_and_retrieve_wallet_list_permutations() ->
 store_and_retrieve_wallet_list(Keys) ->
 	MinBinary = <<>>,
 	MaxBinary = << <<1:1>> || _ <- lists:seq(1, 512) >>,
-	ar_kv:delete_range(account_tree_db, MinBinary, MaxBinary),
-	store_and_retrieve_wallet_list(Keys, ar_patricia_tree:new(), maps:new(), false).
+	big_kv:delete_range(account_tree_db, MinBinary, MaxBinary),
+	store_and_retrieve_wallet_list(Keys, big_patricia_tree:new(), maps:new(), false).
 
 store_and_retrieve_wallet_list([], Tree, InsertedKeys, IsUpdate) ->
 	store_and_retrieve_wallet_list2(Tree, InsertedKeys, IsUpdate);
 store_and_retrieve_wallet_list([Key | Keys], Tree, InsertedKeys, IsUpdate) ->
 	TXID = crypto:strong_rand_bytes(32),
 	Balance = rand:uniform(1000000000),
-	Tree2 = ar_patricia_tree:insert(Key, {Balance, TXID}, Tree),
+	Tree2 = big_patricia_tree:insert(Key, {Balance, TXID}, Tree),
 	InsertedKeys2 = maps:put(Key, {Balance, TXID}, InsertedKeys),
 	case rand:uniform(2) of
 		1 ->
@@ -1460,7 +1460,7 @@ store_and_retrieve_wallet_list2(Tree, InsertedKeys, IsUpdate) ->
 			false ->
 				{write_wallet_list(0, Tree), Tree};
 			_ ->
-				{R, T, Map} = ar_block:hash_wallet_list(Tree),
+				{R, T, Map} = big_block:hash_wallet_list(Tree),
 				store_account_tree_update(0, R, Map),
 				{R, T}
 		end,
@@ -1481,8 +1481,8 @@ permutations(L)  -> [[H|T] || H <- L, T <- permutations(L--[H])].
 
 assert_wallet_trees_equal(Expected, Actual) ->
 	?assertEqual(
-		ar_patricia_tree:foldr(fun(K, V, Acc) -> [{K, V} | Acc] end, [], Expected),
-		ar_patricia_tree:foldr(fun(K, V, Acc) -> [{K, V} | Acc] end, [], Actual)
+		big_patricia_tree:foldr(fun(K, V, Acc) -> [{K, V} | Acc] end, [], Expected),
+		big_patricia_tree:foldr(fun(K, V, Acc) -> [{K, V} | Acc] end, [], Actual)
 	).
 
 read_wallet_list_chunks_test() ->
@@ -1495,7 +1495,7 @@ read_wallet_list_chunks_test() ->
 	],
 	lists:foreach(
 		fun(TestCase) ->
-			Tree = ar_patricia_tree:from_proplist(TestCase),
+			Tree = big_patricia_tree:from_proplist(TestCase),
 			RootHash = write_wallet_list(0, Tree),
 			{ok, ReadTree} = read_wallet_list(RootHash),
 			assert_wallet_trees_equal(Tree, ReadTree)
@@ -1512,7 +1512,7 @@ update_block_index_test_() ->
 	].
 
 test_update_block_index() ->
-	ar_kv:delete_range(block_index_db, <<0:256>>, <<"a">>),
+	big_kv:delete_range(block_index_db, <<0:256>>, <<"a">>),
 
 	?assertEqual(
 		{error, not_found},

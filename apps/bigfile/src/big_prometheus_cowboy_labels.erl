@@ -1,4 +1,4 @@
--module(ar_prometheus_cowboy_labels).
+-module(big_prometheus_cowboy_labels).
 
 -export([label_value/2]).
 
@@ -9,7 +9,7 @@
 label_value(http_method, #{req:=Req}) ->
 	normalize_method(cowboy_req:method(Req));
 label_value(route, #{req:=Req}) ->
-	ar_http_iface_server:label_http_path(cowboy_req:path(Req));
+	big_http_iface_server:label_http_path(cowboy_req:path(Req));
 label_value(_, _) ->
 	undefined.
 

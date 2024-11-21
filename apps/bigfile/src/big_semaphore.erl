@@ -1,4 +1,4 @@
--module(ar_semaphore).
+-module(big_semaphore).
 -behaviour(gen_server).
 
 -export([start_link/2, acquire/2, stop/1]).
