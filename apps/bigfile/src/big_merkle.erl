@@ -1,14 +1,14 @@
 %%% @doc Generates annotated merkle trees, paths inside those trees, as well
 %%% as verification of those proofs.
--module(ar_merkle).
+-module(big_merkle).
 
 -export([generate_tree/1, generate_path/3, validate_path/4, validate_path/5,
 		extract_note/1, extract_root/1]).
 
 -export([get/2, hash/1, note_to_binary/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %%% @doc Generates annotated merkle trees, paths inside those trees, as well
@@ -48,7 +48,7 @@ validate_path(ID, Dest, RightBound, Path) ->
 %% @doc Validate the given merkle path using the given set of rules.
 validate_path(ID, Dest, RightBound, _Path, _Ruleset) when RightBound =< 0 ->
 	?LOG_ERROR([{event, validate_path_called_with_non_positive_right_bound},
-			{root, ar_util:encode(ID)}, {dest, Dest}, {right_bound, RightBound}]),
+			{root, big_util:encode(ID)}, {dest, Dest}, {right_bound, RightBound}]),
 	throw(invalid_right_bound);
 validate_path(ID, Dest, RightBound, Path, Ruleset) when Dest >= RightBound ->
 	validate_path(ID, RightBound - 1, RightBound, Path, Ruleset);
@@ -282,7 +282,7 @@ generate_leaf({Data, Note}) ->
 
 %% Note: This implementation leaves some duplicates in the tree structure.
 %% The produced trees could be a little smaller if these duplicates were 
-%% not present, but removing them with ar_util:unique takes far too long.
+%% not present, but removing them with big_util:unique takes far too long.
 generate_all_rows([RootN], Tree) ->
 	RootID = RootN#node.id,
 	{RootID, Tree};
@@ -380,16 +380,16 @@ generate_and_validate_balanced_tree_path_test_() ->
 
 test_generate_and_validate_balanced_tree_path() ->
 	Tags = make_tags_cumulative([{<< N:256 >>, 1} || N <- lists:seq(0, ?TEST_SIZE - 1)]),
-	{MR, Tree} = ar_merkle:generate_tree(Tags),
+	{MR, Tree} = big_merkle:generate_tree(Tags),
 	?assertEqual(length(Tree), (?TEST_SIZE * 2) - 1),
 	lists:foreach(
 		fun(_TestCase) ->
 			RandomTarget = rand:uniform(?TEST_SIZE) - 1,
-			Path = ar_merkle:generate_path(MR, RandomTarget, Tree),
+			Path = big_merkle:generate_path(MR, RandomTarget, Tree),
 			{Leaf, StartOffset, EndOffset} =
-				ar_merkle:validate_path(MR, RandomTarget, ?TEST_SIZE, Path),
+				big_merkle:validate_path(MR, RandomTarget, ?TEST_SIZE, Path),
 			{Leaf, StartOffset, EndOffset} =
-				ar_merkle:validate_path(MR, RandomTarget, ?TEST_SIZE, Path,
+				big_merkle:validate_path(MR, RandomTarget, ?TEST_SIZE, Path,
 						strict_borders_ruleset),
 			?assertEqual(RandomTarget, binary:decode_unsigned(Leaf)),
 			?assert(RandomTarget < EndOffset),
@@ -418,7 +418,7 @@ test_tree_with_rebase_shallow() ->
 		{Leaf1, ?DATA_CHUNK_SIZE},
 		{Leaf2, 2 * ?DATA_CHUNK_SIZE}
 	],
-	{Root0, Tree0} = ar_merkle:generate_tree(Tags0),
+	{Root0, Tree0} = big_merkle:generate_tree(Tags0),
 	assert_tree([
 			{branch, undefined, ?DATA_CHUNK_SIZE, false},
 			{leaf, Leaf2, 2*?DATA_CHUNK_SIZE, false},
@@ -426,7 +426,7 @@ test_tree_with_rebase_shallow() ->
 		], Tree0),
 
 	Tags1 = [{Leaf1, ?DATA_CHUNK_SIZE}, [{Leaf2, ?DATA_CHUNK_SIZE}]],
-	{Root1, Tree1} = ar_merkle:generate_tree(Tags1),
+	{Root1, Tree1} = big_merkle:generate_tree(Tags1),
 	assert_tree([
 			{branch, undefined, ?DATA_CHUNK_SIZE, false},
 			{leaf, Leaf1, ?DATA_CHUNK_SIZE, false},
@@ -434,35 +434,35 @@ test_tree_with_rebase_shallow() ->
 		], Tree1),
 	?assertNotEqual(Root1, Root0),
 
-	Path0_1 = ar_merkle:generate_path(Root0, 0, Tree0),
-	Path1_1 = ar_merkle:generate_path(Root1, 0, Tree1),
+	Path0_1 = big_merkle:generate_path(Root0, 0, Tree0),
+	Path1_1 = big_merkle:generate_path(Root1, 0, Tree1),
 	?assertNotEqual(Path0_1, Path1_1),
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root0, 0, 2 * ?DATA_CHUNK_SIZE,
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root0, 0, 2 * ?DATA_CHUNK_SIZE,
 			Path0_1, offset_rebase_support_ruleset),	
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root1, 0, 2 * ?DATA_CHUNK_SIZE,
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root1, 0, 2 * ?DATA_CHUNK_SIZE,
 			Path1_1, offset_rebase_support_ruleset),
-	?assertEqual(false, ar_merkle:validate_path(Root1, 0, 2 * ?DATA_CHUNK_SIZE,
+	?assertEqual(false, big_merkle:validate_path(Root1, 0, 2 * ?DATA_CHUNK_SIZE,
 			Path0_1, offset_rebase_support_ruleset)),
-	?assertEqual(false, ar_merkle:validate_path(Root0, 0, 2 * ?DATA_CHUNK_SIZE,
+	?assertEqual(false, big_merkle:validate_path(Root0, 0, 2 * ?DATA_CHUNK_SIZE,
 			Path1_1, offset_rebase_support_ruleset)),
 
-	Path0_2 = ar_merkle:generate_path(Root0, ?DATA_CHUNK_SIZE, Tree0),
-	Path1_2 = ar_merkle:generate_path(Root1, ?DATA_CHUNK_SIZE, Tree1),
+	Path0_2 = big_merkle:generate_path(Root0, ?DATA_CHUNK_SIZE, Tree0),
+	Path1_2 = big_merkle:generate_path(Root1, ?DATA_CHUNK_SIZE, Tree1),
 	?assertNotEqual(Path1_2, Path0_2),
-	{Leaf2, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	{Leaf2, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root0, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE, Path0_2, offset_rebase_support_ruleset),
-	{Leaf2, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	{Leaf2, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root1, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE, Path1_2, offset_rebase_support_ruleset),
-	{Leaf2, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	{Leaf2, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root1, 2 * ?DATA_CHUNK_SIZE - 1, 2 * ?DATA_CHUNK_SIZE, Path1_2, 
 			offset_rebase_support_ruleset),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 			Root1, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE, Path0_2, offset_rebase_support_ruleset)),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 			Root0, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE, Path1_2, offset_rebase_support_ruleset)),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 			Root1, ?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE, Path1_1, offset_rebase_support_ruleset)),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 			Root1, 0, 2 * ?DATA_CHUNK_SIZE, Path1_2, offset_rebase_support_ruleset)),
 
 	%%     ________Root2_________
@@ -476,27 +476,27 @@ test_tree_with_rebase_shallow() ->
 			{Leaf2, ?DATA_CHUNK_SIZE}
 		]
 	],
-	{Root2, Tree2} = ar_merkle:generate_tree(Tags2),
+	{Root2, Tree2} = big_merkle:generate_tree(Tags2),
 	assert_tree([
 			{branch, undefined, ?DATA_CHUNK_SIZE, false},
 			{leaf, Leaf1, ?DATA_CHUNK_SIZE, true},
 			{leaf, Leaf2, ?DATA_CHUNK_SIZE, true}
 		], Tree2),
 
-	Path2_1 = ar_merkle:generate_path(Root2, 0, Tree2),
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root2, 0,
+	Path2_1 = big_merkle:generate_path(Root2, 0, Tree2),
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root2, 0,
 			2 * ?DATA_CHUNK_SIZE, Path2_1, offset_rebase_support_ruleset),
 
-	Path2_2 = ar_merkle:generate_path(Root2, ?DATA_CHUNK_SIZE, Tree2),
-	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root2,
+	Path2_2 = big_merkle:generate_path(Root2, ?DATA_CHUNK_SIZE, Tree2),
+	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root2,
 			?DATA_CHUNK_SIZE, 2 * ?DATA_CHUNK_SIZE, Path2_2, offset_rebase_support_ruleset),
 	
-	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root2,
+	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root2,
 			2*?DATA_CHUNK_SIZE - 1, 2*?DATA_CHUNK_SIZE, Path2_2, offset_rebase_support_ruleset),
 
-	?assertEqual(false, ar_merkle:validate_path(Root2, ?DATA_CHUNK_SIZE,
+	?assertEqual(false, big_merkle:validate_path(Root2, ?DATA_CHUNK_SIZE,
 			2*?DATA_CHUNK_SIZE, Path2_1, offset_rebase_support_ruleset)),
-	?assertEqual(false, ar_merkle:validate_path(Root2, 0,
+	?assertEqual(false, big_merkle:validate_path(Root2, 0,
 			2*?DATA_CHUNK_SIZE, Path2_2, offset_rebase_support_ruleset)).
 
 test_tree_with_rebase_nested() ->
@@ -527,7 +527,7 @@ test_tree_with_rebase_nested() ->
 		{Leaf5, 5*?DATA_CHUNK_SIZE},
 		{Leaf6, 6*?DATA_CHUNK_SIZE}
 	],
-	{Root3, Tree3} = ar_merkle:generate_tree(Tags3),
+	{Root3, Tree3} = big_merkle:generate_tree(Tags3),
 	assert_tree([
 			{branch, undefined, 5*?DATA_CHUNK_SIZE, false},  %% Root
 			{branch, undefined, 2*?DATA_CHUNK_SIZE, false},  %% SubTree1
@@ -545,40 +545,40 @@ test_tree_with_rebase_nested() ->
 		], Tree3),
 
 	BadRoot = crypto:strong_rand_bytes(32),
-	Path3_1 = ar_merkle:generate_path(Root3, 0, Tree3),
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path3_1 = big_merkle:generate_path(Root3, 0, Tree3),
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 		Root3, 0, 6*?DATA_CHUNK_SIZE, Path3_1, offset_rebase_support_ruleset),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		BadRoot, 0, 6*?DATA_CHUNK_SIZE, Path3_1, offset_rebase_support_ruleset)),
 	
-	Path3_2 = ar_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE, Tree3),
-	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path3_2 = big_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE, Tree3),
+	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 		Root3, ?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_2, offset_rebase_support_ruleset),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		BadRoot, ?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_2, offset_rebase_support_ruleset)),
 	
-	Path3_3 = ar_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE * 2, Tree3),
-	{Leaf3, 2*?DATA_CHUNK_SIZE, 3*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path3_3 = big_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE * 2, Tree3),
+	{Leaf3, 2*?DATA_CHUNK_SIZE, 3*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 		Root3, 2*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_3, offset_rebase_support_ruleset),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		BadRoot, 2*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_3, offset_rebase_support_ruleset)),
 	
-	Path3_4 = ar_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE * 3, Tree3),
-	{Leaf4, 3*?DATA_CHUNK_SIZE, 4*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path3_4 = big_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE * 3, Tree3),
+	{Leaf4, 3*?DATA_CHUNK_SIZE, 4*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 		Root3, 3*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_4, offset_rebase_support_ruleset),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		BadRoot, 3*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_4, offset_rebase_support_ruleset)),
 	
-	Path3_5 = ar_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE * 4, Tree3),
-	{Leaf5, 4*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path3_5 = big_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE * 4, Tree3),
+	{Leaf5, 4*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 		Root3, 4*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_5, offset_rebase_support_ruleset),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		BadRoot, 4*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_5, offset_rebase_support_ruleset)),
 
-	Path3_6 = ar_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE * 5, Tree3),
-	{Leaf6, 5*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path3_6 = big_merkle:generate_path(Root3, ?DATA_CHUNK_SIZE * 5, Tree3),
+	{Leaf6, 5*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 		Root3, 5*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_6, offset_rebase_support_ruleset),
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		BadRoot, 5*?DATA_CHUNK_SIZE, 6*?DATA_CHUNK_SIZE, Path3_6, offset_rebase_support_ruleset)),
 
 	%%           ________Root4_________
@@ -600,7 +600,7 @@ test_tree_with_rebase_nested() ->
 					{Leaf6, 2*?DATA_CHUNK_SIZE}
 				]
 			],
-	{Root4, Tree4} = ar_merkle:generate_tree(Tags4),
+	{Root4, Tree4} = big_merkle:generate_tree(Tags4),
 	assert_tree([
 			{branch, undefined, 2*?DATA_CHUNK_SIZE, false},  %% Root
 			{branch, undefined, ?DATA_CHUNK_SIZE, false},    %% SubTree1
@@ -615,35 +615,35 @@ test_tree_with_rebase_nested() ->
 			{leaf, Leaf5, ?DATA_CHUNK_SIZE, false}
 		], Tree4),
 
-	Path4_1 = ar_merkle:generate_path(Root4, 0, Tree4),
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root4, 0, 6 * ?DATA_CHUNK_SIZE,
+	Path4_1 = big_merkle:generate_path(Root4, 0, Tree4),
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root4, 0, 6 * ?DATA_CHUNK_SIZE,
 			Path4_1, offset_rebase_support_ruleset),
 
-	Path4_2 = ar_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE, Tree4),
-	{Leaf2, ?DATA_CHUNK_SIZE, Right4_2} = ar_merkle:validate_path(Root4, ?DATA_CHUNK_SIZE,
+	Path4_2 = big_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE, Tree4),
+	{Leaf2, ?DATA_CHUNK_SIZE, Right4_2} = big_merkle:validate_path(Root4, ?DATA_CHUNK_SIZE,
 			6 * ?DATA_CHUNK_SIZE, Path4_2, offset_rebase_support_ruleset),
 	?assertEqual(2 * ?DATA_CHUNK_SIZE, Right4_2),
 
-	Path4_3 = ar_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE * 2, Tree4),
-	{Leaf3, Left4_3, Right4_3} = ar_merkle:validate_path(Root4, 2 * ?DATA_CHUNK_SIZE,
+	Path4_3 = big_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE * 2, Tree4),
+	{Leaf3, Left4_3, Right4_3} = big_merkle:validate_path(Root4, 2 * ?DATA_CHUNK_SIZE,
 			6 * ?DATA_CHUNK_SIZE, Path4_3, offset_rebase_support_ruleset),
 	?assertEqual(2 * ?DATA_CHUNK_SIZE, Left4_3),
 	?assertEqual(3 * ?DATA_CHUNK_SIZE, Right4_3),
 
-	Path4_4 = ar_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE * 3, Tree4),
-	{Leaf4, Left4_4, Right4_4} = ar_merkle:validate_path(Root4, 3 * ?DATA_CHUNK_SIZE,
+	Path4_4 = big_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE * 3, Tree4),
+	{Leaf4, Left4_4, Right4_4} = big_merkle:validate_path(Root4, 3 * ?DATA_CHUNK_SIZE,
 			6 * ?DATA_CHUNK_SIZE, Path4_4, offset_rebase_support_ruleset),
 	?assertEqual(3 * ?DATA_CHUNK_SIZE, Left4_4),
 	?assertEqual(4 * ?DATA_CHUNK_SIZE, Right4_4),
 
-	Path4_5 = ar_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE * 4, Tree4),
-	{Leaf5, Left4_5, Right4_5} = ar_merkle:validate_path(Root4, 4 * ?DATA_CHUNK_SIZE,
+	Path4_5 = big_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE * 4, Tree4),
+	{Leaf5, Left4_5, Right4_5} = big_merkle:validate_path(Root4, 4 * ?DATA_CHUNK_SIZE,
 			6 * ?DATA_CHUNK_SIZE, Path4_5, offset_rebase_support_ruleset),
 	?assertEqual(4 * ?DATA_CHUNK_SIZE, Left4_5),
 	?assertEqual(5 * ?DATA_CHUNK_SIZE, Right4_5),
 
-	Path4_6 = ar_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE * 5, Tree4),
-	{Leaf6, Left4_6, Right4_6} = ar_merkle:validate_path(Root4, 5 * ?DATA_CHUNK_SIZE,
+	Path4_6 = big_merkle:generate_path(Root4, ?DATA_CHUNK_SIZE * 5, Tree4),
+	{Leaf6, Left4_6, Right4_6} = big_merkle:validate_path(Root4, 5 * ?DATA_CHUNK_SIZE,
 			6 * ?DATA_CHUNK_SIZE, Path4_6, offset_rebase_support_ruleset),
 	?assertEqual(5 * ?DATA_CHUNK_SIZE, Left4_6),
 	?assertEqual(6 * ?DATA_CHUNK_SIZE, Right4_6),
@@ -666,7 +666,7 @@ test_tree_with_rebase_nested() ->
 				],
 				{Leaf5, 5*?DATA_CHUNK_SIZE}
 			],
-	{Root5, Tree5} = ar_merkle:generate_tree(Tags5),
+	{Root5, Tree5} = big_merkle:generate_tree(Tags5),
 	assert_tree([
 			{branch, undefined, 4*?DATA_CHUNK_SIZE, false}, %% Root
 			{branch, undefined, ?DATA_CHUNK_SIZE, false},   %% SubTree1
@@ -681,24 +681,24 @@ test_tree_with_rebase_nested() ->
 			{leaf, Leaf2, ?DATA_CHUNK_SIZE, false}
 		], Tree5),
 
-	Path5_1 = ar_merkle:generate_path(Root5, 0, Tree5),
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root5, 0, 5*?DATA_CHUNK_SIZE,
+	Path5_1 = big_merkle:generate_path(Root5, 0, Tree5),
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root5, 0, 5*?DATA_CHUNK_SIZE,
 			Path5_1, offset_rebase_support_ruleset),
 
-	Path5_2 = ar_merkle:generate_path(Root5, ?DATA_CHUNK_SIZE, Tree5),
-	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path5_2 = big_merkle:generate_path(Root5, ?DATA_CHUNK_SIZE, Tree5),
+	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root5, ?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, Path5_2, offset_rebase_support_ruleset),
 
-	Path5_3 = ar_merkle:generate_path(Root5, 2*?DATA_CHUNK_SIZE, Tree5),
-	{Leaf3, 2*?DATA_CHUNK_SIZE, 3*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path5_3 = big_merkle:generate_path(Root5, 2*?DATA_CHUNK_SIZE, Tree5),
+	{Leaf3, 2*?DATA_CHUNK_SIZE, 3*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root5, 2*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, Path5_3, offset_rebase_support_ruleset),
 
-	Path5_4 = ar_merkle:generate_path(Root5, 3*?DATA_CHUNK_SIZE, Tree5),
-	{Leaf4, 3*?DATA_CHUNK_SIZE, 4*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path5_4 = big_merkle:generate_path(Root5, 3*?DATA_CHUNK_SIZE, Tree5),
+	{Leaf4, 3*?DATA_CHUNK_SIZE, 4*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root5, 3*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, Path5_4, offset_rebase_support_ruleset),
 
-	Path5_5 = ar_merkle:generate_path(Root5, 4*?DATA_CHUNK_SIZE, Tree5),
-	{Leaf5, 4*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path5_5 = big_merkle:generate_path(Root5, 4*?DATA_CHUNK_SIZE, Tree5),
+	{Leaf5, 4*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root5, 4*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, Path5_5, offset_rebase_support_ruleset),
 
 	%%             ______________Root__________________
@@ -721,7 +721,7 @@ test_tree_with_rebase_nested() ->
 				],
 				{Leaf5, 5*?DATA_CHUNK_SIZE}
 			],
-	{Root6, Tree6} = ar_merkle:generate_tree(Tags6),
+	{Root6, Tree6} = big_merkle:generate_tree(Tags6),
 	assert_tree([
 			{branch, undefined, 4*?DATA_CHUNK_SIZE, false}, %% Root
 			{branch, undefined, ?DATA_CHUNK_SIZE, false},   %% SubTree1
@@ -735,24 +735,24 @@ test_tree_with_rebase_nested() ->
 			{leaf, Leaf3, ?DATA_CHUNK_SIZE, false}
 		], Tree6),
 
-	Path6_1 = ar_merkle:generate_path(Root6, 0, Tree6),
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root6, 0, 5*?DATA_CHUNK_SIZE,
+	Path6_1 = big_merkle:generate_path(Root6, 0, Tree6),
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root6, 0, 5*?DATA_CHUNK_SIZE,
 			Path6_1, offset_rebase_support_ruleset),
 
-	Path6_2 = ar_merkle:generate_path(Root6, ?DATA_CHUNK_SIZE, Tree6),
-	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path6_2 = big_merkle:generate_path(Root6, ?DATA_CHUNK_SIZE, Tree6),
+	{Leaf2, ?DATA_CHUNK_SIZE, 2*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root6, ?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, Path6_2, offset_rebase_support_ruleset),
 
-	Path6_3 = ar_merkle:generate_path(Root6, 2*?DATA_CHUNK_SIZE, Tree6),
-	{Leaf3, 2*?DATA_CHUNK_SIZE, 3*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path6_3 = big_merkle:generate_path(Root6, 2*?DATA_CHUNK_SIZE, Tree6),
+	{Leaf3, 2*?DATA_CHUNK_SIZE, 3*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root6, 2*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, Path6_3, offset_rebase_support_ruleset),
 
-	Path6_4 = ar_merkle:generate_path(Root6, 3*?DATA_CHUNK_SIZE, Tree6),
-	{Leaf4, 3*?DATA_CHUNK_SIZE, 4*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path6_4 = big_merkle:generate_path(Root6, 3*?DATA_CHUNK_SIZE, Tree6),
+	{Leaf4, 3*?DATA_CHUNK_SIZE, 4*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root6, 3*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, Path6_4, offset_rebase_support_ruleset),
 
-	Path6_5 = ar_merkle:generate_path(Root6, 4*?DATA_CHUNK_SIZE, Tree6),
-	{Leaf5, 4*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	Path6_5 = big_merkle:generate_path(Root6, 4*?DATA_CHUNK_SIZE, Tree6),
+	{Leaf5, 4*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root6, 4*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, Path6_5, offset_rebase_support_ruleset).
 
 test_tree_with_rebase_bad_paths() ->
@@ -781,29 +781,29 @@ test_tree_with_rebase_bad_paths() ->
 				],
 				{Leaf5, 5*?DATA_CHUNK_SIZE}
 			],
-	{Root, Tree} = ar_merkle:generate_tree(Tags),
-	GoodPath = ar_merkle:generate_path(Root, 3*?DATA_CHUNK_SIZE, Tree),
-	{Leaf4, 3*?DATA_CHUNK_SIZE, 4*?DATA_CHUNK_SIZE} = ar_merkle:validate_path(
+	{Root, Tree} = big_merkle:generate_tree(Tags),
+	GoodPath = big_merkle:generate_path(Root, 3*?DATA_CHUNK_SIZE, Tree),
+	{Leaf4, 3*?DATA_CHUNK_SIZE, 4*?DATA_CHUNK_SIZE} = big_merkle:validate_path(
 			Root, 3*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, GoodPath, offset_rebase_support_ruleset),
 
 	BadPath1 = change_path(GoodPath, 0), %% Change L
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		Root, 3*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, BadPath1, offset_rebase_support_ruleset)),
 
 	BadPath2 = change_path(GoodPath, 2*?HASH_SIZE + 1), %% Change note
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		Root, 3*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, BadPath2, offset_rebase_support_ruleset)),
 
 	BadPath3 = change_path(GoodPath, 2*?HASH_SIZE + ?NOTE_SIZE + 1), %% Change offset rebase zeros
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		Root, 3*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, BadPath3, offset_rebase_support_ruleset)),
 
 	BadPath4 = change_path(GoodPath, byte_size(GoodPath) - ?NOTE_SIZE - 1), %% Change leaf data hash
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		Root, 3*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, BadPath4, offset_rebase_support_ruleset)),
 
 	BadPath5 = change_path(GoodPath, byte_size(GoodPath) - 1), %% Change leaf note
-	?assertEqual(false, ar_merkle:validate_path(
+	?assertEqual(false, big_merkle:validate_path(
 		Root, 3*?DATA_CHUNK_SIZE, 5*?DATA_CHUNK_SIZE, BadPath5, offset_rebase_support_ruleset)).
 
 test_tree_with_rebase_partial_chunk() ->
@@ -820,19 +820,19 @@ test_tree_with_rebase_partial_chunk() ->
 					{Leaf2, 100}
 				]
 			],
-	{Root5, Tree5} = ar_merkle:generate_tree(Tags5),
+	{Root5, Tree5} = big_merkle:generate_tree(Tags5),
 	assert_tree([
 			{branch, undefined, ?DATA_CHUNK_SIZE, false},  %% Root
 			{leaf, Leaf1, ?DATA_CHUNK_SIZE, false},
 			{leaf, Leaf2, 100, true}
 		], Tree5),
 
-	Path5_1 = ar_merkle:generate_path(Root5, 0, Tree5),
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root5, 0,
+	Path5_1 = big_merkle:generate_path(Root5, 0, Tree5),
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root5, 0,
 			?DATA_CHUNK_SIZE + 100, Path5_1, offset_rebase_support_ruleset),
 
-	Path5_2 = ar_merkle:generate_path(Root5, ?DATA_CHUNK_SIZE, Tree5),
-	{Leaf2, ?DATA_CHUNK_SIZE, ?DATA_CHUNK_SIZE+100} = ar_merkle:validate_path(Root5,
+	Path5_2 = big_merkle:generate_path(Root5, ?DATA_CHUNK_SIZE, Tree5),
+	{Leaf2, ?DATA_CHUNK_SIZE, ?DATA_CHUNK_SIZE+100} = big_merkle:validate_path(Root5,
 			?DATA_CHUNK_SIZE, ?DATA_CHUNK_SIZE+100, Path5_2, offset_rebase_support_ruleset),
 
 	%%              Root6__________________
@@ -847,7 +847,7 @@ test_tree_with_rebase_partial_chunk() ->
 				],
 				{Leaf3, 655355}
 			],
-	{Root6, Tree6} = ar_merkle:generate_tree(Tags6),
+	{Root6, Tree6} = big_merkle:generate_tree(Tags6),
 	assert_tree([
 			{branch, undefined, 393213, false},  %% Root
 			{leaf, Leaf3, 655355, false},
@@ -856,17 +856,17 @@ test_tree_with_rebase_partial_chunk() ->
 			{leaf, Leaf1, 131070, false}
 		], Tree6),
 
-	Path6_1 = ar_merkle:generate_path(Root6, 0, Tree6),
-	{Leaf1, 0, 131070} = ar_merkle:validate_path(Root6, 0,
+	Path6_1 = big_merkle:generate_path(Root6, 0, Tree6),
+	{Leaf1, 0, 131070} = big_merkle:validate_path(Root6, 0,
 			1000000, % an arbitrary bound > 655355
 			Path6_1, offset_rebase_support_ruleset),
 
-	Path6_2 = ar_merkle:generate_path(Root6, 131070, Tree6),
-	{Leaf2, 131070, 393213} = ar_merkle:validate_path(Root6, 131070 + 5,
+	Path6_2 = big_merkle:generate_path(Root6, 131070, Tree6),
+	{Leaf2, 131070, 393213} = big_merkle:validate_path(Root6, 131070 + 5,
 			655355, Path6_2, offset_rebase_support_ruleset),
 
-	Path6_3 = ar_merkle:generate_path(Root6, 393213 + 1, Tree6),
-	{Leaf3, 393213, 655355} = ar_merkle:validate_path(Root6, 393213 + 2, 655355, Path6_3,
+	Path6_3 = big_merkle:generate_path(Root6, 393213 + 1, Tree6),
+	{Leaf3, 393213, 655355} = big_merkle:validate_path(Root6, 393213 + 2, 655355, Path6_3,
 			offset_rebase_support_ruleset),
 
     %%                Root6  (with offset reset)
@@ -881,7 +881,7 @@ test_tree_with_rebase_partial_chunk() ->
 					{Leaf3, 655355}
 				]
 			],
-	{Root8, Tree8} = ar_merkle:generate_tree(Tags8),
+	{Root8, Tree8} = big_merkle:generate_tree(Tags8),
 	assert_tree([
 			{branch, undefined, 393213, true},  %% Root
 			{branch, undefined, 131070, false},  %% SubTree1
@@ -892,17 +892,17 @@ test_tree_with_rebase_partial_chunk() ->
 		], Tree8),
 
 	%% Path to first chunk in data set (even if it's a small chunk) will validate
-	Path8_1 = ar_merkle:generate_path(Root8, 0, Tree8),
-	{Leaf1, 0, 131070} = ar_merkle:validate_path(Root8, 0,
+	Path8_1 = big_merkle:generate_path(Root8, 0, Tree8),
+	{Leaf1, 0, 131070} = big_merkle:validate_path(Root8, 0,
 			1000000, % an arbitrary bound > 655355
 			Path8_1, offset_rebase_support_ruleset),
 
-	Path8_2 = ar_merkle:generate_path(Root8, 131070, Tree8),
+	Path8_2 = big_merkle:generate_path(Root8, 131070, Tree8),
 	?assertEqual(false,
-		ar_merkle:validate_path(Root8, 131070+5, 655355, Path8_2, offset_rebase_support_ruleset)),
+		big_merkle:validate_path(Root8, 131070+5, 655355, Path8_2, offset_rebase_support_ruleset)),
 
-	Path8_3 = ar_merkle:generate_path(Root8, 393213 + 1, Tree8),
-	{Leaf3, 393213, 655355} = ar_merkle:validate_path(Root8, 393213 + 2, 655355, Path8_3,
+	Path8_3 = big_merkle:generate_path(Root8, 393213 + 1, Tree8),
+	{Leaf3, 393213, 655355} = big_merkle:validate_path(Root8, 393213 + 2, 655355, Path8_3,
 			offset_rebase_support_ruleset),
 
     %%                           Root9
@@ -921,7 +921,7 @@ test_tree_with_rebase_partial_chunk() ->
 					{Leaf3, 1}
 				]
 			],
-	{Root9, Tree9} = ar_merkle:generate_tree(Tags9),
+	{Root9, Tree9} = big_merkle:generate_tree(Tags9),
 	assert_tree([
 			{branch, undefined, 2, false},  %% Root
 			{branch, undefined, 1, false},  %% SubTree1
@@ -932,18 +932,18 @@ test_tree_with_rebase_partial_chunk() ->
 		], Tree9),
 
 	%% Path to first chunk in data set (even if it's a small chunk) will validate
-	Path9_1 = ar_merkle:generate_path(Root9, 0, Tree9),
-	{Leaf1, 0, 1} = ar_merkle:validate_path(Root9, 0,
+	Path9_1 = big_merkle:generate_path(Root9, 0, Tree9),
+	{Leaf1, 0, 1} = big_merkle:validate_path(Root9, 0,
 			1,
 			Path9_1, offset_rebase_support_ruleset),
 
-	Path9_2 = ar_merkle:generate_path(Root9, 1, Tree9),
+	Path9_2 = big_merkle:generate_path(Root9, 1, Tree9),
 	?assertEqual(false,
-		ar_merkle:validate_path(Root9, 1, 2, Path9_2, offset_rebase_support_ruleset)),
+		big_merkle:validate_path(Root9, 1, 2, Path9_2, offset_rebase_support_ruleset)),
 
-	Path9_3 = ar_merkle:generate_path(Root9, 2, Tree9),
+	Path9_3 = big_merkle:generate_path(Root9, 2, Tree9),
 	?assertEqual(false,
-		ar_merkle:validate_path(Root9, 2, 3, Path9_3, offset_rebase_support_ruleset)),
+		big_merkle:validate_path(Root9, 2, 3, Path9_3, offset_rebase_support_ruleset)),
 
 	%%                           Root9
 	%%                  /                     \
@@ -964,7 +964,7 @@ test_tree_with_rebase_partial_chunk() ->
 					{Leaf3, ?DATA_CHUNK_SIZE}
 				]
 			],
-	{Root10, Tree10} = ar_merkle:generate_tree(Tags10),
+	{Root10, Tree10} = big_merkle:generate_tree(Tags10),
 	assert_tree([
 			{branch, undefined, ?DATA_CHUNK_SIZE+1, false},  %% Root
 			{branch, undefined, ?DATA_CHUNK_SIZE, false},  %% SubTree1
@@ -974,19 +974,19 @@ test_tree_with_rebase_partial_chunk() ->
 			{leaf, Leaf3, ?DATA_CHUNK_SIZE, true}          %% Duplicates are safe and expected
 		], Tree10),
 
-	Path10_1 = ar_merkle:generate_path(Root10, 0, Tree10),
-	{Leaf1, 0, ?DATA_CHUNK_SIZE} = ar_merkle:validate_path(Root10, 0,
+	Path10_1 = big_merkle:generate_path(Root10, 0, Tree10),
+	{Leaf1, 0, ?DATA_CHUNK_SIZE} = big_merkle:validate_path(Root10, 0,
 			?DATA_CHUNK_SIZE,
 			Path10_1, offset_rebase_support_ruleset),
 
-	Path10_2 = ar_merkle:generate_path(Root10, ?DATA_CHUNK_SIZE, Tree10),
-	{Leaf2, ?DATA_CHUNK_SIZE, ?DATA_CHUNK_SIZE+1} = ar_merkle:validate_path(Root10,
+	Path10_2 = big_merkle:generate_path(Root10, ?DATA_CHUNK_SIZE, Tree10),
+	{Leaf2, ?DATA_CHUNK_SIZE, ?DATA_CHUNK_SIZE+1} = big_merkle:validate_path(Root10,
 			?DATA_CHUNK_SIZE, ?DATA_CHUNK_SIZE+1,
 			Path10_2, offset_rebase_support_ruleset),
 
-	Path10_3 = ar_merkle:generate_path(Root10, ?DATA_CHUNK_SIZE+1, Tree10),
+	Path10_3 = big_merkle:generate_path(Root10, ?DATA_CHUNK_SIZE+1, Tree10),
 	?assertEqual(false,
-		ar_merkle:validate_path(Root10, ?DATA_CHUNK_SIZE+1, (2*?DATA_CHUNK_SIZE)+1,
+		big_merkle:validate_path(Root10, ?DATA_CHUNK_SIZE+1, (2*?DATA_CHUNK_SIZE)+1,
 			Path10_3, offset_rebase_support_ruleset)),
 	ok.
 
@@ -1000,7 +1000,7 @@ test_tree_with_rebase_subtree_ids() ->
 				{Leaf1, ?DATA_CHUNK_SIZE},
 				{Leaf2, 2 * ?DATA_CHUNK_SIZE}
 			],
-	{SubTreeRoot, SubTree} = ar_merkle:generate_tree(SubTreeTags),
+	{SubTreeRoot, SubTree} = big_merkle:generate_tree(SubTreeTags),
 
 	TreeTags = [
 		{Leaf3, ?DATA_CHUNK_SIZE},
@@ -1010,7 +1010,7 @@ test_tree_with_rebase_subtree_ids() ->
 		]
 	],
 
-	{_TreeRoot, Tree} = ar_merkle:generate_tree(TreeTags),
+	{_TreeRoot, Tree} = big_merkle:generate_tree(TreeTags),
 
 	TreeNodes = lists:nthtail(length(Tree) - length(SubTree), Tree),
 	TreeSubTreeRoot = lists:nth(1, TreeNodes),
@@ -1025,13 +1025,13 @@ test_tree_with_rebase_subtree_ids() ->
 generate_and_validate_uneven_tree_path_test() ->
 	Tags = make_tags_cumulative([{<<N:256>>, 1}
 			|| N <- lists:seq(0, ?UNEVEN_TEST_SIZE - 1)]),
-	{MR, Tree} = ar_merkle:generate_tree(Tags),
+	{MR, Tree} = big_merkle:generate_tree(Tags),
 	%% Make sure the target is in the 'uneven' ending of the tree.
-	Path = ar_merkle:generate_path(MR, ?UNEVEN_TEST_TARGET, Tree),
+	Path = big_merkle:generate_path(MR, ?UNEVEN_TEST_TARGET, Tree),
 	{Leaf, StartOffset, EndOffset} =
-		ar_merkle:validate_path(MR, ?UNEVEN_TEST_TARGET, ?UNEVEN_TEST_SIZE, Path),
+		big_merkle:validate_path(MR, ?UNEVEN_TEST_TARGET, ?UNEVEN_TEST_SIZE, Path),
 	{Leaf, StartOffset, EndOffset} =
-		ar_merkle:validate_path(MR, ?UNEVEN_TEST_TARGET, ?UNEVEN_TEST_SIZE,
+		big_merkle:validate_path(MR, ?UNEVEN_TEST_TARGET, ?UNEVEN_TEST_SIZE,
 				Path, strict_borders_ruleset),
 	?assertEqual(?UNEVEN_TEST_TARGET, binary:decode_unsigned(Leaf)),
 	?assert(?UNEVEN_TEST_TARGET < EndOffset),
@@ -1043,14 +1043,14 @@ reject_invalid_tree_path_test_() ->
 test_reject_invalid_tree_path() ->
 	Tags = make_tags_cumulative([{<<N:256>>, 1} || N <- lists:seq(0, ?TEST_SIZE - 1)]),
 	{MR, Tree} =
-		ar_merkle:generate_tree(Tags),
+		big_merkle:generate_tree(Tags),
 	RandomTarget = rand:uniform(?TEST_SIZE) - 2,
 	?assertEqual(
 		false,
-		ar_merkle:validate_path(
+		big_merkle:validate_path(
 			MR, RandomTarget,
 			?TEST_SIZE,
-			ar_merkle:generate_path(MR, RandomTarget+1, Tree)
+			big_merkle:generate_path(MR, RandomTarget+1, Tree)
 		)
 	).
 

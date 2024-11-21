@@ -1,4 +1,4 @@
--module(ar_kv).
+-module(big_kv).
 
 -behaviour(gen_server).
 
@@ -10,8 +10,8 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -define(WITH_DB(Name, Callback), with_db(Name, ?FUNCTION_NAME, Callback)).
@@ -75,7 +75,7 @@ start_link() ->
 
 
 %% @doc Creates a named ETS table.
-%% This function is used within `ar_kv_sup` as well as `ar_test_node` modules.
+%% This function is used within `big_kv_sup` as well as `big_test_node` modules.
 create_ets() ->
 	ets:new(?MODULE, [set, public, named_table, {keypos, #db.name}]).
 
@@ -500,7 +500,7 @@ close(#db{db_handle = Db, name = Name}) ->
 	catch
 		Exc ->
 			?LOG_ERROR([
-				{event, ar_kv_failed}, {op, close}, {name, io_lib:format("~p", [Name])},
+				{event, big_kv_failed}, {op, close}, {name, io_lib:format("~p", [Name])},
 				{reason, io_lib:format("~p", [Exc])}
 			])
 	end.
@@ -636,9 +636,9 @@ test_rocksdb_iterator() ->
 		{optimize_filters_for_hits, true},
 		{max_open_files, 1000000}
 	],
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"),
 			[{"default", Opts}, {"test", Opts}], [], [default, test]),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"),
 			[{"default", Opts}, {"test", Opts}], [], [default, test]),
 	SmallerPrefix = crypto:strong_rand_bytes(29),
 	<< O1:232 >> = SmallerPrefix,
@@ -648,12 +648,12 @@ test_rocksdb_iterator() ->
 	{Suffixes1, Suffixes2} = lists:split(10, Suffixes),
 	lists:foreach(
 		fun(Suffix) ->
-			ok = ar_kv:put(
+			ok = big_kv:put(
 				test,
 				<< SmallerPrefix/binary, Suffix/binary >>,
 				crypto:strong_rand_bytes(40 * 1024 * 1024)
 			),
-			ok = ar_kv:put(
+			ok = big_kv:put(
 				test,
 				<< BiggerPrefix/binary, Suffix/binary >>,
 				crypto:strong_rand_bytes(40 * 1024 * 1024)
@@ -675,17 +675,17 @@ test_rocksdb_iterator() ->
 		{target_file_size_base, 256 * 1024 * 1024},
 		{max_bytes_for_level_base, 10 * 256 * 1024 * 1024}
 	],
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"),
 			[{"default", Opts2}, {"test", Opts2}], [], [default, test]),
 	%% Store new data enough for new SST files to be created.
 	lists:foreach(
 		fun(Suffix) ->
-			ok = ar_kv:put(
+			ok = big_kv:put(
 				test,
 				<< SmallerPrefix/binary, Suffix/binary >>,
 				crypto:strong_rand_bytes(40 * 1024 * 1024)
 			),
-			ok = ar_kv:put(
+			ok = big_kv:put(
 				test,
 				<< BiggerPrefix/binary, Suffix/binary >>,
 				crypto:strong_rand_bytes(50 * 1024 * 1024)
@@ -696,7 +696,7 @@ test_rocksdb_iterator() ->
 	assert_iteration(test, SmallerPrefix, BiggerPrefix, Suffixes),
 	%% Close the database to make sure the new data is flushed.
 	test_close(test),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"),
 			[{"default", Opts2}, {"test", Opts2}], [], [default1, test1]),
 	assert_iteration(test1, SmallerPrefix, BiggerPrefix, Suffixes),
 	test_close(test1),
@@ -711,43 +711,43 @@ delete_range_test_() ->
 
 test_delete_range() ->
 	destroy("test_db"),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"), test_db),
-	ok = ar_kv:put(test_db, << 0:256 >>, << 0:256 >>),
-	ok = ar_kv:put(test_db, << 1:256 >>, << 1:256 >>),
-	ok = ar_kv:put(test_db, << 2:256 >>, << 2:256 >>),
-	ok = ar_kv:put(test_db, << 3:256 >>, << 3:256 >>),
-	ok = ar_kv:put(test_db, << 4:256 >>, << 4:256 >>),
-	?assertEqual({ok, << 1:256 >>}, ar_kv:get(test_db, << 1:256 >>)),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "test_db"), test_db),
+	ok = big_kv:put(test_db, << 0:256 >>, << 0:256 >>),
+	ok = big_kv:put(test_db, << 1:256 >>, << 1:256 >>),
+	ok = big_kv:put(test_db, << 2:256 >>, << 2:256 >>),
+	ok = big_kv:put(test_db, << 3:256 >>, << 3:256 >>),
+	ok = big_kv:put(test_db, << 4:256 >>, << 4:256 >>),
+	?assertEqual({ok, << 1:256 >>}, big_kv:get(test_db, << 1:256 >>)),
 
 	%% Base case
-	?assertEqual(ok, ar_kv:delete_range(test_db, << 1:256 >>, << 2:256 >>)),
-	?assertEqual({ok, << 0:256 >>}, ar_kv:get(test_db, << 0:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 1:256 >>)),
-	?assertEqual({ok, << 2:256 >>}, ar_kv:get(test_db, << 2:256 >>)),
+	?assertEqual(ok, big_kv:delete_range(test_db, << 1:256 >>, << 2:256 >>)),
+	?assertEqual({ok, << 0:256 >>}, big_kv:get(test_db, << 0:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 1:256 >>)),
+	?assertEqual({ok, << 2:256 >>}, big_kv:get(test_db, << 2:256 >>)),
 
 	%% Missing start and missing end
-	?assertEqual(ok, ar_kv:delete_range(test_db, << 1:256 >>, << 5:256 >>)),
-	?assertEqual({ok, << 0:256 >>}, ar_kv:get(test_db, << 0:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 1:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 2:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 3:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 4:256 >>)),
+	?assertEqual(ok, big_kv:delete_range(test_db, << 1:256 >>, << 5:256 >>)),
+	?assertEqual({ok, << 0:256 >>}, big_kv:get(test_db, << 0:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 1:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 2:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 3:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 4:256 >>)),
 
 	%% Empty range
-	?assertEqual(ok, ar_kv:delete_range(test_db, << 1:256 >>, << 1:256 >>)),
-	?assertEqual({ok, << 0:256 >>}, ar_kv:get(test_db, << 0:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 1:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 2:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 3:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 4:256 >>)),
+	?assertEqual(ok, big_kv:delete_range(test_db, << 1:256 >>, << 1:256 >>)),
+	?assertEqual({ok, << 0:256 >>}, big_kv:get(test_db, << 0:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 1:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 2:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 3:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 4:256 >>)),
 
 	%% Reversed range
-	?assertMatch({error, _}, ar_kv:delete_range(test_db, << 1:256 >>, << 0:256 >>)),
-	?assertEqual({ok, << 0:256 >>}, ar_kv:get(test_db, << 0:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 1:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 2:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 3:256 >>)),
-	?assertEqual(not_found, ar_kv:get(test_db, << 4:256 >>)),
+	?assertMatch({error, _}, big_kv:delete_range(test_db, << 1:256 >>, << 0:256 >>)),
+	?assertEqual({ok, << 0:256 >>}, big_kv:get(test_db, << 0:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 1:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 2:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 3:256 >>)),
+	?assertEqual(not_found, big_kv:get(test_db, << 4:256 >>)),
 
 	destroy("test_db").
 
@@ -759,49 +759,49 @@ assert_iteration(Name, SmallerPrefix, BiggerPrefix, Suffixes) ->
 	NextSmallestKey = << SmallerPrefix/binary, (lists:nth(2, SortedSuffixes))/binary >>,
 	<< SmallestOffset:256 >> = SmallestKey,
 	%% Assert forwards and backwards iteration within the same prefix works.
-	?assertMatch({ok, SmallestKey, _}, ar_kv:get_next_by_prefix(Name, 232, 256, SmallestKey)),
-	?assertMatch({ok, SmallestKey, _}, ar_kv:get_prev(Name, SmallestKey)),
+	?assertMatch({ok, SmallestKey, _}, big_kv:get_next_by_prefix(Name, 232, 256, SmallestKey)),
+	?assertMatch({ok, SmallestKey, _}, big_kv:get_prev(Name, SmallestKey)),
 	?assertMatch({ok, NextSmallestKey, _},
-			ar_kv:get_next_by_prefix(Name, 232, 256, << (SmallestOffset + 1):256 >>)),
+			big_kv:get_next_by_prefix(Name, 232, 256, << (SmallestOffset + 1):256 >>)),
 	<< NextSmallestOffset:256 >> = NextSmallestKey,
 	?assertMatch({ok, SmallestKey, _},
-			ar_kv:get_prev(Name, << (NextSmallestOffset - 1):256 >>)),
+			big_kv:get_prev(Name, << (NextSmallestOffset - 1):256 >>)),
 	%% Assert forwards and backwards iteration across different prefixes works.
 	SmallerPrefixBiggestKey = << SmallerPrefix/binary, (lists:last(SortedSuffixes))/binary >>,
 	BiggerPrefixSmallestKey = << BiggerPrefix/binary, (lists:nth(1, SortedSuffixes))/binary >>,
 	<< SmallerPrefixBiggestOffset:256 >> = SmallerPrefixBiggestKey,
 	?assertMatch({ok, BiggerPrefixSmallestKey, _},
-			ar_kv:get_next_by_prefix(Name, 232, 256,
+			big_kv:get_next_by_prefix(Name, 232, 256,
 			<< (SmallerPrefixBiggestOffset + 1):256 >>)),
 	<< BiggerPrefixSmallestOffset:256 >> = BiggerPrefixSmallestKey,
 	?assertMatch({ok, SmallerPrefixBiggestKey, _},
-			ar_kv:get_prev(Name, << (BiggerPrefixSmallestOffset - 1):256 >>)),
+			big_kv:get_prev(Name, << (BiggerPrefixSmallestOffset - 1):256 >>)),
 	BiggerPrefixNextSmallestKey =
 		<< BiggerPrefix/binary, (lists:nth(2, SortedSuffixes))/binary >>,
-	{ok, Map} = ar_kv:get_range(Name, SmallerPrefixBiggestKey, BiggerPrefixNextSmallestKey),
+	{ok, Map} = big_kv:get_range(Name, SmallerPrefixBiggestKey, BiggerPrefixNextSmallestKey),
 	?assertEqual(3, map_size(Map)),
 	?assert(maps:is_key(SmallerPrefixBiggestKey, Map)),
 	?assert(maps:is_key(BiggerPrefixNextSmallestKey, Map)),
 	?assert(maps:is_key(BiggerPrefixSmallestKey, Map)),
-	ar_kv:delete_range(Name, SmallerPrefixBiggestKey, BiggerPrefixNextSmallestKey),
-	?assertEqual(not_found, ar_kv:get(Name, SmallerPrefixBiggestKey)),
-	?assertEqual(not_found, ar_kv:get(Name, BiggerPrefixSmallestKey)),
+	big_kv:delete_range(Name, SmallerPrefixBiggestKey, BiggerPrefixNextSmallestKey),
+	?assertEqual(not_found, big_kv:get(Name, SmallerPrefixBiggestKey)),
+	?assertEqual(not_found, big_kv:get(Name, BiggerPrefixSmallestKey)),
 	lists:foreach(
 		fun(Suffix) ->
-			?assertMatch({ok, _}, ar_kv:get(Name, << BiggerPrefix/binary, Suffix/binary >>))
+			?assertMatch({ok, _}, big_kv:get(Name, << BiggerPrefix/binary, Suffix/binary >>))
 		end,
 		lists:sublist(lists:reverse(SortedSuffixes), length(SortedSuffixes) - 1)
 	),
 	lists:foreach(
 		fun(Suffix) ->
 			?assertMatch({ok, _},
-					ar_kv:get(Name, << SmallerPrefix/binary, Suffix/binary >>))
+					big_kv:get(Name, << SmallerPrefix/binary, Suffix/binary >>))
 		end,
 		lists:sublist(SortedSuffixes, length(SortedSuffixes) - 1)
 	),
-	ar_kv:put(Name, SmallerPrefixBiggestKey, crypto:strong_rand_bytes(50 * 1024)),
-	ar_kv:put(Name, BiggerPrefixNextSmallestKey, crypto:strong_rand_bytes(50 * 1024)),
-	ar_kv:put(Name, BiggerPrefixSmallestKey, crypto:strong_rand_bytes(50 * 1024)).
+	big_kv:put(Name, SmallerPrefixBiggestKey, crypto:strong_rand_bytes(50 * 1024)),
+	big_kv:put(Name, BiggerPrefixNextSmallestKey, crypto:strong_rand_bytes(50 * 1024)),
+	big_kv:put(Name, BiggerPrefixSmallestKey, crypto:strong_rand_bytes(50 * 1024)).
 
 
 

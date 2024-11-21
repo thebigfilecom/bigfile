@@ -1,6 +1,6 @@
--module(ar_mempool).
+-module(big_mempool).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 
 -export([reset/0, load_from_disk/0, add_tx/2, drop_txs/1, drop_txs/3,
 		get_map/0, get_all_txids/0, take_chunk/2, get_tx/1, has_tx/1, 
@@ -17,7 +17,7 @@ reset() ->
 	]).
 
 load_from_disk() ->
-	case ar_storage:read_term(mempool) of
+	case big_storage:read_term(mempool) of
 		{ok, {SerializedTXs, _MempoolSize}} ->
 			TXs = maps:map(fun(_, {TX, St}) -> {deserialize_tx(TX), St} end, SerializedTXs),
 
@@ -26,7 +26,7 @@ load_from_disk() ->
 					fun(TXID, {TX, Status}, {MempoolSize, PrioritySet, PropagationQueue, LastTXMap, OriginTXMap}) ->
 						MetaData = {_, _, Timestamp} = init_tx_metadata(TX, Status),
 						ets:insert(node_state, {{tx, TXID}, MetaData}),
-						ets:insert(tx_prefixes, {ar_node_worker:tx_id_prefix(TXID), TXID}),
+						ets:insert(tx_prefixes, {big_node_worker:tx_id_prefix(TXID), TXID}),
 						Q = case Status of
 							ready_for_mining ->
 								PropagationQueue;
@@ -70,7 +70,7 @@ add_tx(#tx{ id = TXID } = TX, Status) ->
 		case get_tx_metadata(TXID) of
 			not_found ->
 				{_, _, Timestamp} = init_tx_metadata(TX, Status),
-				ets:insert(tx_prefixes, {ar_node_worker:tx_id_prefix(TXID), TXID}),
+				ets:insert(tx_prefixes, {big_node_worker:tx_id_prefix(TXID), TXID}),
 				{
 					{TX, Status, Timestamp},
 					increase_mempool_size(get_mempool_size(), TX),
@@ -99,7 +99,7 @@ add_tx(#tx{ id = TXID } = TX, Status) ->
 		{origin_tx_map, OriginTXMap}
 	]),
 	
-	case ar_node:is_joined() of
+	case big_node:is_joined() of
 		true ->
 			% 1. Drop unconfirmable transactions:
 			%    - those with clashing last_tx
@@ -133,7 +133,7 @@ drop_txs(DroppedTXs, RemoveTXPrefixes, DropFromDiskPool) ->
 						ets:delete(node_state, {tx, TXID}),
 						case RemoveTXPrefixes of
 							true ->
-								ets:delete_object(tx_prefixes, {ar_node_worker:tx_id_prefix(TXID), TXID});
+								ets:delete_object(tx_prefixes, {big_node_worker:tx_id_prefix(TXID), TXID});
 							false ->
 								ok
 						end,
@@ -258,10 +258,10 @@ get_origin_tx_map() ->
 del_from_propagation_queue(Priority, TXID) ->
 	ets:insert(node_state, {
 		tx_propagation_queue,
-		del_from_propagation_queue(ar_mempool:get_propagation_queue(), Priority, TXID)
+		del_from_propagation_queue(big_mempool:get_propagation_queue(), Priority, TXID)
 	}).
 del_from_propagation_queue(PropagationQueue, TX = #tx{}, Timestamp) ->
-	Priority = {ar_tx:utility(TX), Timestamp},
+	Priority = {big_tx:utility(TX), Timestamp},
 	del_from_propagation_queue(PropagationQueue, Priority, TX#tx.id);
 del_from_propagation_queue(PropagationQueue, Priority, TXID)
 	when is_bitstring(TXID) ->
@@ -284,11 +284,11 @@ init_tx_metadata(TX, Status) ->
 	{TX, Status, -os:system_time(microsecond)}.
 
 add_to_priority_set(PrioritySet, TX, Status, Timestamp) ->
-	Priority = {ar_tx:utility(TX), Timestamp},
+	Priority = {big_tx:utility(TX), Timestamp},
 	gb_sets:add_element({Priority, TX#tx.id, Status}, PrioritySet).
 
 add_to_priority_set(PrioritySet, TX, PrevStatus, Status, Timestamp) ->
-	Priority = {ar_tx:utility(TX), Timestamp},
+	Priority = {big_tx:utility(TX), Timestamp},
 	gb_sets:add_element({Priority, TX#tx.id, Status},
 		gb_sets:del_element({Priority, TX#tx.id, PrevStatus},
 			PrioritySet
@@ -296,11 +296,11 @@ add_to_priority_set(PrioritySet, TX, PrevStatus, Status, Timestamp) ->
 	).
 
 del_from_priority_set(PrioritySet, TX, Status, Timestamp) ->
-	Priority = {ar_tx:utility(TX), Timestamp},
+	Priority = {big_tx:utility(TX), Timestamp},
 	gb_sets:del_element({Priority, TX#tx.id, Status}, PrioritySet).
 
 add_to_propagation_queue(PropagationQueue, TX, Timestamp) ->
-	Priority = {ar_tx:utility(TX), Timestamp},
+	Priority = {big_tx:utility(TX), Timestamp},
 	gb_sets:add_element({Priority, TX#tx.id}, PropagationQueue).
 
 %% @doc Store a map of last_tx TXIDs to a priority set of TXs that use
@@ -332,7 +332,7 @@ del_from_last_tx_map(LastTXMap, TX) ->
 %% when resolving overspends.
 add_to_origin_tx_map(OriginTXMap, TX) ->
 	Element = unconfirmed_tx(TX),
-	Origin = ar_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
+	Origin = big_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
 	Set2 = case maps:get(Origin, OriginTXMap, not_found) of
 		not_found ->
 			gb_sets:from_list([Element]);
@@ -343,7 +343,7 @@ add_to_origin_tx_map(OriginTXMap, TX) ->
 
 del_from_origin_tx_map(OriginTXMap, TX) ->
 	Element = unconfirmed_tx(TX),
-	Origin = ar_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
+	Origin = big_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
 	case maps:get(Origin, OriginTXMap, not_found) of
 		not_found ->
 			OriginTXMap;
@@ -352,7 +352,7 @@ del_from_origin_tx_map(OriginTXMap, TX) ->
 	end.
 
 unconfirmed_tx(TX = #tx{}) ->
-	{ar_tx:utility(TX), TX#tx.id}.
+	{big_tx:utility(TX), TX#tx.id}.
 	
 
 increase_mempool_size(
@@ -371,17 +371,17 @@ tx_mempool_size(#tx{ format = 2, data = Data }) ->
 	{?TX_SIZE_BASE, byte_size(Data)}.
 
 deserialize_tx(Bin) when is_binary(Bin) ->
-	{ok, TX} = ar_serialize:binary_to_tx(Bin),
+	{ok, TX} = big_serialize:binary_to_tx(Bin),
 	TX;
 deserialize_tx(TX) ->
-	ar_storage:migrate_tx_record(TX).
+	big_storage:migrate_tx_record(TX).
 
 
 
 may_be_drop_from_disk_pool(#tx{ format = 1 }) ->
 	ok;
 may_be_drop_from_disk_pool(TX) ->
-	ar_data_sync:maybe_drop_data_root_from_disk_pool(TX#tx.data_root, TX#tx.data_size,
+	big_data_sync:maybe_drop_data_root_from_disk_pool(TX#tx.data_root, TX#tx.data_size,
 			TX#tx.id).
 
 find_low_priority_txs() ->
@@ -419,11 +419,11 @@ should_drop_low_priority_tx(_TX, {_MempoolHeaderSize, _MempoolDataSize}) ->
 find_clashing_txs(#tx{ last_tx = <<>> }) ->
 	[];
 find_clashing_txs(TX = #tx{}) ->
-	Wallets = ar_wallets:get(ar_tx:get_addresses([TX])),
+	Wallets = big_wallets:get(big_tx:get_addresses([TX])),
 	find_clashing_txs(TX, Wallets).
 
 find_clashing_txs(TX = #tx{}, Wallets) when is_map(Wallets) ->
-	case ar_tx:check_last_tx(Wallets, TX) of
+	case big_tx:check_last_tx(Wallets, TX) of
 		true ->
 			ClashingTXIDs = maps:get(TX#tx.last_tx, get_last_tx_map(), gb_sets:new()),
 			filter_clashing_txs(ClashingTXIDs);
@@ -435,7 +435,7 @@ find_clashing_txs(_TX, _Wallets) ->
 
 %% @doc Only the highest priority TX will be kept, others will be dropped.
 %% Priority is defined as:
-%% 1. ar_tx:utility
+%% 1. big_tx:utility
 %% 2. alphanumeric order of TXID (z is higher priority than a)
 %%
 %% Adding the TXID term to the priority calculation (rather than local
@@ -479,12 +479,12 @@ find_overspent_txs(<<>>) ->
 	[];
 find_overspent_txs(TX)
 		when TX#tx.reward > 0 orelse TX#tx.quantity > 0  ->
-	Origin = ar_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
+	Origin = big_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
 	SpentTXIDs = maps:get(Origin, get_origin_tx_map(), gb_sets:new()),
 	% We only care about the origin wallet since we aren't tracking
 	% unconfirmed deposits
-	Wallet = ar_wallets:get(Origin),
-	B = ar_node:get_current_block(),
+	Wallet = big_wallets:get(Origin),
+	B = big_node:get_current_block(),
 	Denomination = B#block.denomination,
 	find_overspent_txs(Origin, SpentTXIDs, Wallet, Denomination);
 find_overspent_txs(_TX) ->
@@ -497,7 +497,7 @@ find_overspent_txs(Origin, SpentTXIDs, Wallet, Denomination) ->
 		false ->
 			{{_, TXID}, SpentTXIDs2} = gb_sets:take_largest(SpentTXIDs),
 			TX = get_tx(TXID),
-			Wallet2 = ar_node_utils:apply_tx(Wallet, Denomination, TX),
+			Wallet2 = big_node_utils:apply_tx(Wallet, Denomination, TX),
 			case is_overspent(Origin, Wallet2) of
 				false ->
 					find_overspent_txs(Origin, SpentTXIDs2, Wallet2, Denomination);

@@ -1,4 +1,4 @@
--module(ar_packing_server).
+-module(big_packing_server).
 
 -behaviour(gen_server).
 
@@ -10,12 +10,12 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
-%% Only used by ar_bench_packing.erl
+%% Only used by big_bench_packing.erl
 -export([chunk_key/3]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -90,7 +90,7 @@ unpack_sub_chunk(Packing, AbsoluteEndOffset, TXRoot, Chunk, SubChunkStartOffset)
 			RandomXState = get_randomx_state_by_packing(Packing, PackingState),
 			case prometheus_histogram:observe_duration(packing_duration_milliseconds,
 					[unpack_sub_chunk, PackingAtom, external], fun() ->
-						ar_mine_randomx:randomx_decrypt_sub_chunk(Packing, RandomXState,
+						big_mine_randomx:randomx_decrypt_sub_chunk(Packing, RandomXState,
 									Key, Chunk, SubChunkStartOffset) end) of
 				{ok, UnpackedSubChunk} ->
 					{ok, UnpackedSubChunk};
@@ -185,16 +185,16 @@ get_randomx_state_by_difficulty(PackingDifficulty, PackingState) ->
 %%%===================================================================
 
 init([]) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	
-	ar:console("~nInitialising RandomX dataset for fast packing. Key: ~p. "
-			"The process may take several minutes.~n", [ar_util:encode(?RANDOMX_PACKING_KEY)]),
+	big:console("~nInitialising RandomX dataset for fast packing. Key: ~p. "
+			"The process may take several minutes.~n", [big_util:encode(?RANDOMX_PACKING_KEY)]),
 	{RandomXState512, _RandomXState4096} = PackingState = init_packing_state(),
-	ar:console("RandomX dataset initialisation complete.~n", []),
-	{H0, H1} = ar_bench_hash:run_benchmark(RandomXState512),
+	big:console("RandomX dataset initialisation complete.~n", []),
+	{H0, H1} = big_bench_hash:run_benchmark(RandomXState512),
 	H0String = io_lib:format("~.3f", [H0 / 1000]),
 	H1String = io_lib:format("~.3f", [H1 / 1000]),
-	ar:console("Hashing benchmark~nH0: ~s ms~nH1/H2: ~s ms~n", [H0String, H1String]),
+	big:console("Hashing benchmark~nH0: ~s ms~nH1/H2: ~s ms~n", [H0String, H1String]),
 	?LOG_INFO([{event, hash_benchmark}, {h0_ms, H0String}, {h1_ms, H1String}]),
 	Schedulers = erlang:system_info(dirty_cpu_schedulers_online),
 	{ActualRatePack2_6, ActualRatePackComposite} = get_packing_latency(PackingState),
@@ -205,7 +205,7 @@ init([]) ->
 		case Config#config.packing_rate of
 			undefined ->
 				ChosenRate = max(1, ceil(2 * MaxRate / 3)),
-				ChosenRate2 = ar_util:ceil_int(ChosenRate, 10),
+				ChosenRate2 = big_util:ceil_int(ChosenRate, 10),
 				log_packing_rate(ChosenRate2, MaxRate),
 				SchedulersRequired2 = ceil(ChosenRate2 / (1000 / (?PACKING_LATENCY_MS))),
 				{ChosenRate2, SchedulersRequired2};
@@ -223,7 +223,7 @@ init([]) ->
 	record_packing_benchmarks(TheoreticalMaxRate, PackingRate, Schedulers,
 		ActualRatePack2_6, ActualRatePackComposite),
 	SpawnSchedulers = min(SchedulersRequired, Schedulers),
-	ar:console("~nStarting ~B packing threads.~n", [SpawnSchedulers]),
+	big:console("~nStarting ~B packing threads.~n", [SpawnSchedulers]),
 	%% Since the total rate of spawned processes might exceed the desired rate,
 	%% artificially throttle processes uniformly.
 	ThrottleDelay = calculate_throttle_delay(SpawnSchedulers, PackingRate),
@@ -231,19 +231,19 @@ init([]) ->
 		[spawn_link(fun() -> worker(ThrottleDelay, PackingState) end)
 			|| _ <- lists:seq(1, SpawnSchedulers)]),
 	ets:insert(?MODULE, {buffer_size, 0}),
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	MaxSize =
 		case Config#config.packing_cache_size_limit of
 			undefined ->
 				Free = proplists:get_value(free_memory, memsup:get_system_memory_data(),
 						2000000000),
 				Limit2 = min(1200, erlang:ceil(Free * 0.9 / 3 / 262144)),
-				Limit3 = ar_util:ceil_int(Limit2, 100),
+				Limit3 = big_util:ceil_int(Limit2, 100),
 				Limit3;
 			Limit ->
 				Limit
 		end,
-	ar:console("~nSetting the packing chunk cache size limit to ~B chunks.~n", [MaxSize]),
+	big:console("~nSetting the packing chunk cache size limit to ~B chunks.~n", [MaxSize]),
 	ets:insert(?MODULE, {buffer_size_limit, MaxSize}),
 	timer:apply_interval(200, ?MODULE, record_buffer_size_metric, []),
 	{ok, #state{
@@ -306,8 +306,8 @@ terminate(_Reason, _State) ->
 %%%===================================================================
 init_packing_state() ->
 	Schedulers = erlang:system_info(dirty_cpu_schedulers_online),
-	RandomXState512 = ar_mine_randomx:init_fast(rx512, ?RANDOMX_PACKING_KEY, Schedulers),
-	RandomXState4096 = ar_mine_randomx:init_fast(rx4096, ?RANDOMX_PACKING_KEY, Schedulers),
+	RandomXState512 = big_mine_randomx:init_fast(rx512, ?RANDOMX_PACKING_KEY, Schedulers),
+	RandomXState4096 = big_mine_randomx:init_fast(rx4096, ?RANDOMX_PACKING_KEY, Schedulers),
 	PackingState = {RandomXState512, RandomXState4096},
 	ets:insert(?MODULE, {randomx_packing_state, PackingState}),
 	PackingState.
@@ -318,14 +318,14 @@ get_randomx_state_by_packing(_Packing, {RandomXState512, _RandomXState4096}) ->
 	RandomXState512.
 
 log_insufficient_core_count(Schedulers, PackingRate, Max) ->
-	ar:console("~nThe number of cores on your machine (~B) is not sufficient for "
+	big:console("~nThe number of cores on your machine (~B) is not sufficient for "
 		"packing ~B chunks per second. Estimated maximum rate: ~.2f chunks/s.~n",
 		[Schedulers, PackingRate, Max]),
 	?LOG_WARNING([{event, insufficient_core_count_to_sustain_desired_packing_rate},
 			{cores, Schedulers}, {packing_rate, PackingRate}]).
 
 log_packing_rate(PackingRate, Max) ->
-	ar:console("~nThe node is configured to pack around ~B chunks per second. "
+	big:console("~nThe node is configured to pack around ~B chunks per second. "
 			"To increase the packing rate, start with `packing_rate [number]`. "
 			"Estimated maximum rate: ~.2f chunks/s.~n",
 			[PackingRate, Max]).
@@ -470,7 +470,7 @@ pack(Packing, ChunkOffset, TXRoot, Chunk, PackingState, External) ->
 			RandomXState = get_randomx_state_by_packing(Packing, PackingState),
 			case prometheus_histogram:observe_duration(packing_duration_milliseconds,
 					[pack, PackingAtom, External], fun() ->
-							ar_mine_randomx:randomx_encrypt_chunk(Packing, RandomXState,
+							big_mine_randomx:randomx_encrypt_chunk(Packing, RandomXState,
 									Key, Chunk) end) of
 				{ok, Packed} ->
 					{ok, Packed, was_not_already_packed};
@@ -491,7 +491,7 @@ unpack(Packing, ChunkOffset, TXRoot, Chunk, ChunkSize, PackingState, External) -
 			RandomXState = get_randomx_state_by_packing(Packing, PackingState),
 			case prometheus_histogram:observe_duration(packing_duration_milliseconds,
 					[unpack, PackingAtom, External], fun() ->
-							ar_mine_randomx:randomx_decrypt_chunk(Packing, RandomXState,
+							big_mine_randomx:randomx_decrypt_chunk(Packing, RandomXState,
 									Key, Chunk, ChunkSize) end) of
 				{ok, Unpacked} ->
 					{ok, Unpacked, was_not_already_unpacked};
@@ -570,7 +570,7 @@ repack(RequestedPacking, StoredPacking,
 			RandomXState = get_randomx_state_by_packing(RequestedPacking, PackingState),
 			prometheus_histogram:observe_duration(packing_duration_milliseconds,
 				[repack, PrometheusLabel, External], fun() ->
-					ar_mine_randomx:randomx_reencrypt_chunk(StoredPacking, RequestedPacking,
+					big_mine_randomx:randomx_reencrypt_chunk(StoredPacking, RequestedPacking,
 							RandomXState, UnpackKey, PackKey, Chunk, ChunkSize) end);
 		Error ->
 			Error
@@ -649,9 +649,9 @@ get_packing_latency(PackingState) ->
 	%% minimum rather than average since it more closely approximates the fastest that this
 	%% machine can do the calculation.
 	Repetitions = 5,
-	{minimum_run_time(ar_mine_randomx, randomx_encrypt_chunk,
+	{minimum_run_time(big_mine_randomx, randomx_encrypt_chunk,
 			[Spora2_6Packing, Spora2_6RandomXState, Key, Chunk], Repetitions),
-		minimum_run_time(ar_mine_randomx, randomx_encrypt_chunk,
+		minimum_run_time(big_mine_randomx, randomx_encrypt_chunk,
 			[CompositePacking, CompositeRandomXState, Key, Chunk], Repetitions)}.
 
 record_packing_benchmarks(TheoreticalMaxRate, ChosenRate, Schedulers,
@@ -738,8 +738,8 @@ pack_test() ->
 	PackingState = init_packing_state(),
 	PackedList = lists:flatten(lists:map(
 		fun({Chunk, Offset, TXRoot}) ->
-			ECDSA = ar_wallet:to_address(ar_wallet:new({ecdsa, secp256k1})),
-			EDDSA = ar_wallet:to_address(ar_wallet:new({eddsa, ed25519})),
+			ECDSA = big_wallet:to_address(big_wallet:new({ecdsa, secp256k1})),
+			EDDSA = big_wallet:to_address(big_wallet:new({eddsa, ed25519})),
 			{ok, Chunk, already_packed} = pack(unpacked, Offset, TXRoot, Chunk,
 						PackingState, external),
 			{ok, Packed, was_not_already_packed} = pack(spora_2_5, Offset, TXRoot, Chunk,

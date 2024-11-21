@@ -1,6 +1,6 @@
--module(ar_metrics).
+-module(big_metrics).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 
 -export([register/0, get_status_class/1]).
 
@@ -8,15 +8,15 @@
 %%% Public interface.
 %%%===================================================================
 
-%% @doc Declare Arweave metrics.
+%% @doc Declare BigFile metrics.
 register() ->
 	%% App info
 	prometheus_gauge:new([
-		{name, arweave_release},
-		{help, "Arweave release number"}
+		{name, bigfile_release},
+		{help, "BigFile release number"}
 	]),
 	%% Release number never changes so just set it here.
-	prometheus_gauge:set(arweave_release, ?RELEASE_NUMBER),
+	prometheus_gauge:set(bigfile_release, ?RELEASE_NUMBER),
 
 	%% Networking.
 	prometheus_counter:new([
@@ -40,7 +40,7 @@ register() ->
 		{labels, [route]}
 	]),
 	prometheus_gauge:new([
-		{name, arweave_peer_count},
+		{name, bigfile_peer_count},
 		{help, "peer count"}
 	]),
 	prometheus_counter:new([
@@ -57,12 +57,12 @@ register() ->
 	%%       erlant:monotonic_time() without any arguments.
 	%%       See: https://github.com/deadtrickster/prometheus.erl/blob/6dd56bf321e99688108bb976283a80e4d82b3d30/src/prometheus_time.erl#L2-L84
 	prometheus_histogram:new([
-		{name, ar_http_request_duration_seconds},
+		{name, big_http_request_duration_seconds},
 		{buckets, [0.01, 0.1, 0.5, 1, 5, 10, 30, 60]},
         {labels, [http_method, route, status_class]},
 		{
 			help,
-			"The total duration of an ar_http:req call. This includes more than just the GUN "
+			"The total duration of an big_http:req call. This includes more than just the GUN "
 			"request itself (e.g. establishing a connection, throttling, etc...)"
 		}
 	]),
@@ -192,7 +192,7 @@ register() ->
 
 	%% Consensus.
 	prometheus_gauge:new([
-		{name, arweave_block_height},
+		{name, bigfile_block_height},
 		{help, "The block height."}
 	]),
 	prometheus_gauge:new([{name, block_time},
@@ -491,7 +491,7 @@ register() ->
 			{help, "Sampling active functions. The 'process' label is a fully qualified "
 					"function name with the format 'process~module:function/arith'. "
 					"Only set when debug=true."}]),
-	%% process_info gets unregistered and re-registered in ar_process_sampler.erl
+	%% process_info gets unregistered and re-registered in big_process_sampler.erl
 	prometheus_gauge:new([{name, process_info},
 			{labels, [process, type]},
 			{help, "Sampling info about active processes. Only set when debug=true."}]),

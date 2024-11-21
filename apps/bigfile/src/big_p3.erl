@@ -1,10 +1,10 @@
--module(ar_p3).
+-module(big_p3).
 
 -behaviour(gen_server).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_p3.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_p3.hrl").
 
 -export([start_link/0, allow_request/1, reverse_charge/1, get_balance/3, get_rates_json/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
@@ -48,9 +48,9 @@ get_rates_json() ->
 %%% Generic server callbacks.
 %%%===================================================================
 init([]) ->
-	ok = ar_events:subscribe(node_state),
-	{ok, Config} = application:get_env(arweave, config),
-	ar_p3_config:validate_config(Config).
+	ok = big_events:subscribe(node_state),
+	{ok, Config} = application:get_env(bigfile, config),
+	big_p3_config:validate_config(Config).
 
 handle_call({allow_request, Req}, _From, State) ->
 	case handle_request(Req, State) of
@@ -67,25 +67,25 @@ handle_call({allow_request, Req}, _From, State) ->
 handle_call({reverse_charge, Transaction}, _From, State) ->
 	{
 		reply,
-	 	ar_p3_db:reverse_transaction(
+	 	big_p3_db:reverse_transaction(
 			Transaction#p3_transaction.address,
 			Transaction#p3_transaction.id),
 		State
 	};
 
 handle_call({get_balance, Address, Asset}, _From, State) ->
-	{reply, ar_p3_db:get_balance(Address, Asset), State};
+	{reply, big_p3_db:get_balance(Address, Asset), State};
 
 handle_call({get_rates_json}, _From, State) ->
-	{reply, ar_p3_config:get_json(State), State}.
+	{reply, big_p3_config:get_json(State), State}.
 
 handle_cast(stop, State) ->
 	{stop, normal, State}.
 
 handle_info({event, node_state, {new_tip, B, _PrevB}}, State) ->
-	NumConfirmations = ar_p3_config:get_payments_value(
+	NumConfirmations = big_p3_config:get_payments_value(
 							State, ?ARWEAVE_AR, #p3_payment.confirmations),
-	DepositAddress = ar_p3_config:get_payments_value(
+	DepositAddress = big_p3_config:get_payments_value(
 							State, ?ARWEAVE_AR, #p3_payment.address),
 	case {NumConfirmations, DepositAddress} of
 		{undefined, _} -> ok;
@@ -113,7 +113,7 @@ terminate(Reason, State) ->
 %%--------------------------------------------------------------------
 handle_request(Req, P3Config) when
 		is_record(P3Config, p3_config) ->
-	case ar_p3_config:get_service_config(P3Config, Req) of
+	case big_p3_config:get_service_config(P3Config, Req) of
 		undefined ->
 			{ok, not_p3_service};
 		ServiceConfig ->
@@ -133,16 +133,16 @@ apply_charge(Account, Req, P3Config, ServiceConfig) when
 		is_record(Account, p3_account) ->
 	case validate_asset(Account, P3Config, ServiceConfig) of
 		{ok, {MinimumBalance, Amount}} ->
-			ar_p3_db:post_charge(Account#p3_account.address, Amount, MinimumBalance, Req);
+			big_p3_db:post_charge(Account#p3_account.address, Amount, MinimumBalance, Req);
 		Error ->
 			Error
 	end.
 
 validate_asset(Account, P3Config, ServiceConfig) ->
 	Asset = Account#p3_account.asset,
-	MinimumBalance = ar_p3_config:get_payments_value(
+	MinimumBalance = big_p3_config:get_payments_value(
 							P3Config, Asset, #p3_payment.minimum_balance),
-	Amount = ar_p3_config:get_rate(ServiceConfig, Asset),
+	Amount = big_p3_config:get_rate(ServiceConfig, Asset),
 	case {MinimumBalance, Amount} of
 		{undefined, _} ->
 			{error, invalid_config};
@@ -195,7 +195,7 @@ validate_endpoint(Req, ServiceConfig) ->
 
 validate_address(Req) ->
 	Address = cowboy_req:header(?P3_ADDRESS_HEADER, Req),
-	case ar_wallet:base64_address_with_optional_checksum_to_decoded_address_safe(Address) of
+	case big_wallet:base64_address_with_optional_checksum_to_decoded_address_safe(Address) of
 		{ok, DecodedAddress} ->
 			{ok, DecodedAddress};
 		_ ->
@@ -203,7 +203,7 @@ validate_address(Req) ->
 	end.
 
 validate_signature(DecodedAddress, Req) ->
-	case ar_util:safe_decode(cowboy_req:header(?P3_SIGNATURE_HEADER, Req)) of
+	case big_util:safe_decode(cowboy_req:header(?P3_SIGNATURE_HEADER, Req)) of
 		{ok, DecodedSignature} ->
 			validate_signature(DecodedAddress, DecodedSignature, Req);
 		Result ->
@@ -215,7 +215,7 @@ validate_signature(DecodedAddress, DecodedSignature, Req) ->
 		{ok, Account} ->
 			PubKey = Account#p3_account.public_key,
 			Message = build_message(Req),
-			case ar_wallet:verify(PubKey, Message, DecodedSignature) of
+			case big_wallet:verify(PubKey, Message, DecodedSignature) of
 				true ->
 					validate_price(Account, Req);
 				false ->
@@ -226,7 +226,7 @@ validate_signature(DecodedAddress, DecodedSignature, Req) ->
 	end.
 
 get_or_try_to_create_account(DecodedAddress) ->
-	case ar_p3_db:get_account(DecodedAddress) of
+	case big_p3_db:get_account(DecodedAddress) of
 		{ok, Account} ->
 			{ok, Account};
 		{error, not_found} ->
@@ -236,12 +236,12 @@ get_or_try_to_create_account(DecodedAddress) ->
 	end.
 
 try_to_create_account(DecodedAddress) ->
-	case ar_storage:read_tx(ar_wallets:get_last_tx(DecodedAddress)) of
+	case big_storage:read_tx(big_wallets:get_last_tx(DecodedAddress)) of
 		unavailable ->
 			{error, not_found};
 		TX ->
 			PublicKey = {TX#tx.signature_type, TX#tx.owner},
-			ar_p3_db:get_or_create_account(DecodedAddress, PublicKey, ?ARWEAVE_AR)
+			big_p3_db:get_or_create_account(DecodedAddress, PublicKey, ?ARWEAVE_AR)
 	end.
 
 validate_price(Account, Req) ->
@@ -281,7 +281,7 @@ concat(Elements) ->
 %% Scan the block chain for new deposits and apply them.
 %%--------------------------------------------------------------------
 scan_blocks_for_deposits(LastConfirmedBlockHeight, DepositAddress) ->
-	LastScannedBlockHeight = ar_p3_db:get_scan_height(),
+	LastScannedBlockHeight = big_p3_db:get_scan_height(),
 	case LastConfirmedBlockHeight > LastScannedBlockHeight of
 		true ->
 			%% Scan all blocks since the last one we scanned. Unless it's been a while
@@ -296,7 +296,7 @@ scan_blocks_for_deposits(LastConfirmedBlockHeight, DepositAddress) ->
 					%% If we can't get the block, we'll try again later.
 					ok;
 				_ ->
-					{ok, _} = ar_p3_db:set_scan_height(ScanBlockHeight),
+					{ok, _} = big_p3_db:set_scan_height(ScanBlockHeight),
 					scan_blocks_for_deposits(LastConfirmedBlockHeight, DepositAddress)
 			end;
 		false ->
@@ -314,14 +314,14 @@ scan_block_for_deposits(_, _) ->
 	ok.
 
 get_block_txs(Height) ->
-	BlockHash = ar_block_index:get_element_by_height(Height),
-	case ar_block_cache:get(block_cache, BlockHash) of
+	BlockHash = big_block_index:get_element_by_height(Height),
+	case big_block_cache:get(block_cache, BlockHash) of
 		not_found ->
-			case ar_storage:read_block(BlockHash) of
+			case big_storage:read_block(BlockHash) of
 				unavailable ->
 					unavailable;
 				B ->
-					ar_storage:read_tx(B#block.txs)
+					big_storage:read_tx(B#block.txs)
 			end;
 		B ->
 			B#block.txs
@@ -339,10 +339,10 @@ apply_deposits([TX|TXs], DepositAddress) ->
 	apply_deposits(TXs, DepositAddress).
 
 apply_deposit(TX) ->
-	Sender = ar_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
+	Sender = big_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
 	PublicKey = {TX#tx.signature_type, TX#tx.owner},
-	{ok, _} = ar_p3_db:get_or_create_account(Sender, PublicKey, ?ARWEAVE_AR),
-	{ok, _} = ar_p3_db:post_deposit(Sender, TX#tx.quantity, TX#tx.id),
-	?LOG_INFO([{event, ar_p3}, {op, deposit}, {sender, Sender},
+	{ok, _} = big_p3_db:get_or_create_account(Sender, PublicKey, ?ARWEAVE_AR),
+	{ok, _} = big_p3_db:post_deposit(Sender, TX#tx.quantity, TX#tx.id),
+	?LOG_INFO([{event, big_p3}, {op, deposit}, {sender, Sender},
 		{target, TX#tx.target}, {quantity, TX#tx.quantity}]),
 	ok.

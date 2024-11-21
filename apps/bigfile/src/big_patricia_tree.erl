@@ -1,5 +1,5 @@
 %%% @doc An implementation of a tree closely resembling a merkle patricia tree.
--module(ar_patricia_tree).
+-module(big_patricia_tree).
 
 -export([new/0, insert/3, get/2, size/1, compute_hash/2, foldr/3, is_empty/1, from_proplist/1,
 		delete/2, get_range/2, get_range/3]).
@@ -35,7 +35,7 @@ size(Tree) ->
 
 %% @doc Compute the root hash by recursively hashing the tree values.
 %% Each key value pair is hashed via the provided hash function. The hashes of the siblings
-%% are combined using ar_deep_hash:hash/1. The keys are traversed in the alphabetical order.
+%% are combined using big_deep_hash:hash/1. The keys are traversed in the alphabetical order.
 compute_hash(#{ size := 0 } = Tree, _HashFun) ->
 	{<<>>, Tree, #{}};
 compute_hash(Tree, HashFun) ->
@@ -58,7 +58,7 @@ is_empty(Tree) ->
 %% @doc Create a tree from the given list of {Key, Value} pairs.
 from_proplist(Proplist) ->
 	lists:foldl(
-		fun({Key, Value}, Acc) -> ar_patricia_tree:insert(Key, Value, Acc) end,
+		fun({Key, Value}, Acc) -> big_patricia_tree:insert(Key, Value, Acc) end,
 		new(),
 		Proplist
 	).
@@ -243,7 +243,7 @@ compute_hash(Tree, HashFun, KeyPrefix, UpdateMap) ->
 								Key = << KeyPrefix/binary, Suffix/binary >>,
 								NewHash2 = HashFun(Key, Value),
 								Hashes2 = [H || {H, _} <- Hashes],
-								NewHash3 = ar_deep_hash:hash([NewHash2 | Hashes2]),
+								NewHash3 = big_deep_hash:hash([NewHash2 | Hashes2]),
 								{NewHash3, UpdateMap2#{ {NewHash2, KeyPrefix} => {Key, Value},
 										{NewHash3, KeyPrefix} => [{NewHash2, KeyPrefix}
 												| Hashes] }};
@@ -254,7 +254,7 @@ compute_hash(Tree, HashFun, KeyPrefix, UpdateMap) ->
 												{SingleHash, KeyPrefix} => Hashes }};
 									_ ->
 										Hashes2 = [H || {H, _} <- Hashes],
-										NewHash2 = ar_deep_hash:hash(Hashes2),
+										NewHash2 = big_deep_hash:hash(Hashes2),
 										{NewHash2, UpdateMap2#{
 												{NewHash2, KeyPrefix} => Hashes }}
 								end
@@ -451,7 +451,7 @@ trie_test() ->
 	HashFun = fun(K, V) -> crypto:hash(sha256, << K/binary, (term_to_binary(V))/binary >>) end,
 	?assertEqual(<<>>, element(1, compute_hash(T1, HashFun))),
 	?assertEqual(true, is_empty(delete(<<"a">>, T1))),
-	?assertEqual(0, ar_patricia_tree:size(T1)),
+	?assertEqual(0, big_patricia_tree:size(T1)),
 	?assertEqual([], get_range(1, T1)),
 	?assertEqual([], get_range(<<>>, 1, T1)),
 	?assertEqual([], get_range(0, T1)),
@@ -469,7 +469,7 @@ trie_test() ->
 	%% aaa -> 1
 	T2 = insert(<<"aaa">>, 1, T1_3),
 	?assertEqual(false, is_empty(T2)),
-	?assertEqual(1, ar_patricia_tree:size(T2)),
+	?assertEqual(1, big_patricia_tree:size(T2)),
 	{H2, T2_2, _} = compute_hash(T2, HashFun),
 	{H2_2, _, _} = compute_hash(T2_2, HashFun),
 	?assertEqual(H2, H2_2),
@@ -480,7 +480,7 @@ trie_test() ->
 	%% aa -> a -> 1
 	%%       b -> 2
 	T3 = insert(<<"aab">>, 2, T2),
-	?assertEqual(2, ar_patricia_tree:size(T3)),
+	?assertEqual(2, big_patricia_tree:size(T3)),
 	{H3, _, _} = compute_hash(T3, HashFun),
 	?assertNotEqual(H2, H3),
 	{H3_2, _, _} = compute_hash(insert(<<"aaa">>, 1, insert(<<"aab">>, 2, new())), HashFun),
@@ -506,7 +506,7 @@ trie_test() ->
 	?assertEqual([], get_range(<<"aac">>, 2, T3)),
 	?assertEqual([], get_range(<<"b">>, 2, T3)),
 	T4 = insert(<<"aab">>, 3, T3),
-	?assertEqual(2, ar_patricia_tree:size(T4)),
+	?assertEqual(2, big_patricia_tree:size(T4)),
 	{H4, _, _} = compute_hash(T4, HashFun),
 	?assertNotEqual(H3, H4),
 	?assertEqual(1, get(<<"aaa">>, T4)),
@@ -515,7 +515,7 @@ trie_test() ->
 	%%           b -> 3
 	%%      b -> 2
 	T5 = insert(<<"ab">>, 2, T4),
-	?assertEqual(3, ar_patricia_tree:size(T5)),
+	?assertEqual(3, big_patricia_tree:size(T5)),
 	?assertEqual(1, gb_sets:size(element(2, maps:get(root, T5)))),
 	{H5, _, _} = compute_hash(T5, HashFun),
 	?assertNotEqual(H4, H5),
@@ -539,7 +539,7 @@ trie_test() ->
 	%%      b -> 2
 	%%           c -> 4
 	T6 = insert(<<"abc">>, 4, T5),
-	?assertEqual(4, ar_patricia_tree:size(T6)),
+	?assertEqual(4, big_patricia_tree:size(T6)),
 	?assertEqual(1, gb_sets:size(element(2, maps:get(root, T6)))),
 	?assertEqual(1, get(<<"aaa">>, T6)),
 	?assertEqual(3, get(<<"aab">>, T6)),
@@ -559,7 +559,7 @@ trie_test() ->
 	%%           c -> 4
 	%% bcdefj -> 4
 	T7 = insert(<<"bcdefj">>, 4, T6),
-	?assertEqual(5, ar_patricia_tree:size(T7)),
+	?assertEqual(5, big_patricia_tree:size(T7)),
 	?assertEqual(2, gb_sets:size(element(2, maps:get(root, T7)))),
 	?assertEqual(1, get(<<"aaa">>, T7)),
 	?assertEqual(3, get(<<"aab">>, T7)),
@@ -575,11 +575,11 @@ trie_test() ->
 	%% bcd -> efj -> 4
 	%%        bcd -> 5
 	T8 = insert(<<"bcdbcd">>, 5, T7),
-	?assertEqual(6, ar_patricia_tree:size(T8)),
+	?assertEqual(6, big_patricia_tree:size(T8)),
 	?assertEqual(4, get(<<"bcdefj">>, T8)),
 	?assertEqual(5, get(<<"bcdbcd">>, T8)),
 	T9 = insert(<<"bcdbcd">>, 6, T8),
-	?assertEqual(6, ar_patricia_tree:size(T9)),
+	?assertEqual(6, big_patricia_tree:size(T9)),
 	?assertEqual(4, get(<<"bcdefj">>, T9)),
 	?assertEqual(6, get(<<"bcdbcd">>, T9)),
 	%% a -> a -> a -> 1
@@ -590,7 +590,7 @@ trie_test() ->
 	%% bcd -> efj -> 4
 	%%        bcd -> 6
 	T10 = insert(<<"bab">>, 7, T9),
-	?assertEqual(7, ar_patricia_tree:size(T10)),
+	?assertEqual(7, big_patricia_tree:size(T10)),
 	?assertEqual(1, get(<<"aaa">>, T10)),
 	?assertEqual(3, get(<<"aab">>, T10)),
 	?assertEqual(4, get(<<"abc">>, T10)),
@@ -639,11 +639,11 @@ trie_test() ->
 		insert(<<"bcdefj">>, 4, insert(<<"bab">>, 7, insert(<<"bcdbcd">>, 6, new()))),
 		HashFun
 	),
-	?assertEqual(H10, ar_deep_hash:hash([H10_1, H10_2])),
+	?assertEqual(H10, big_deep_hash:hash([H10_1, H10_2])),
 	{H10_2_1, _, _} = compute_hash(insert(<<"bab">>, 7, new()), HashFun),
 	{H10_2_2, _, _} = compute_hash(insert(<<"bcdbcd">>, 6,
 			insert(<<"bcdefj">>, 4, new())), HashFun),
-	?assertEqual(H10_2, ar_deep_hash:hash([H10_2_1, H10_2_2])),
+	?assertEqual(H10_2, big_deep_hash:hash([H10_2_1, H10_2_2])),
 	?assertNotEqual(H10, element(1, compute_hash(delete(<<"ab">>, T10), HashFun))),
 	%% a -> a -> a -> 1
 	%%           b -> 3
@@ -654,7 +654,7 @@ trie_test() ->
 	%% bcd -> efj -> 4
 	%%        bcd -> 6
 	T11 = insert(<<"baa">>, 8, T10),
-	?assertEqual(8, ar_patricia_tree:size(T11)),
+	?assertEqual(8, big_patricia_tree:size(T11)),
 	?assertEqual(1, get(<<"aaa">>, T11)),
 	?assertEqual(3, get(<<"aab">>, T11)),
 	?assertEqual(4, get(<<"abc">>, T11)),
@@ -672,7 +672,7 @@ trie_test() ->
 	%%        bcd -> 6
 	%% <<>> -> empty
 	T12 = insert(<<>>, empty, T11),
-	?assertEqual(9, ar_patricia_tree:size(T12)),
+	?assertEqual(9, big_patricia_tree:size(T12)),
 	?assertEqual(1, get(<<"aaa">>, T12)),
 	?assertEqual(3, get(<<"aab">>, T12)),
 	?assertEqual(4, get(<<"abc">>, T12)),
@@ -714,7 +714,7 @@ trie_test() ->
 	%%              d -> 6
 	%% <<>> -> empty
 	T14 = insert(<<"bcdbc">>, 9, T13),
-	?assertEqual(10, ar_patricia_tree:size(T14)),
+	?assertEqual(10, big_patricia_tree:size(T14)),
 	?assertEqual(1, get(<<"aaa">>, T14)),
 	?assertEqual(3, get(<<"aab">>, T14)),
 	?assertEqual(4, get(<<"abc">>, T14)),
@@ -725,7 +725,7 @@ trie_test() ->
 	?assertEqual(9, get(<<"bcdbc">>, T14)),
 	?assertEqual(empty, get(<<>>, T14)),
 	T15 = insert(<<"bcdbc">>, 10, T14),
-	?assertEqual(10, ar_patricia_tree:size(T15)),
+	?assertEqual(10, big_patricia_tree:size(T15)),
 	?assertEqual(10, get(<<"bcdbc">>, T15)),
 	?assertEqual(6, get(<<"bcdbcd">>, T15)),
 	%% a -> a -> a -> 1
@@ -826,7 +826,7 @@ trie_test() ->
 	?assertEqual(7, get(<<"bab">>, T20)),
 	?assertEqual(10, get(<<"bcdbc">>, T20)),
 	?assertEqual(empty, get(<<>>, T20)),
-	?assertEqual(8, ar_patricia_tree:size(T20)),
+	?assertEqual(8, big_patricia_tree:size(T20)),
 	%% abc -> 1
 	%% def -> 1
 	T21 = delete(<<"def">>, insert(<<"def">>, 1, insert(<<"abc">>, 1, new()))),
@@ -896,7 +896,7 @@ random_key_values(N) ->
 	).
 
 compare_with_map(Tree, Map) ->
-	?assertEqual(map_size(Map), ar_patricia_tree:size(Tree)),
+	?assertEqual(map_size(Map), big_patricia_tree:size(Tree)),
 	maps:map(
 		fun(Key, Value) ->
 			?assertEqual(Value, get(Key, Tree))

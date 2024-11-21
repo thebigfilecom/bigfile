@@ -1,5 +1,5 @@
 %%% @doc The 2.6 mining server.
--module(ar_mining_server).
+-module(big_mining_server).
 
 -behaviour(gen_server).
 
@@ -12,10 +12,10 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_data_discovery.hrl").
--include_lib("arweave/include/ar_mining.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_data_discovery.hrl").
+-include_lib("bigfile/include/big_mining.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
 
@@ -87,7 +87,7 @@ active_sessions() ->
 
 encode_sessions(Sessions) ->
 	lists:map(fun(SessionKey) ->
-		ar_nonce_limiter:encode_session_key(SessionKey)
+		big_nonce_limiter:encode_session_key(SessionKey)
 	end, sets:to_list(Sessions)).
 
 is_one_chunk_solution(Solution) ->
@@ -108,11 +108,11 @@ log_prepare_solution_failure(Solution, FailureReason, AdditionalLogData) ->
 	#mining_solution{
 		solution_hash = SolutionH,
 		packing_difficulty = PackingDifficulty } = Solution,
-	ar:console("~nFailed to prepare block from the mining solution.. Reason: ~p~n",
+	big:console("~nFailed to prepare block from the mining solution.. Reason: ~p~n",
 			[FailureReason]),
 	?LOG_ERROR([{event, failed_to_prepare_block_from_mining_solution},
 			{reason, FailureReason},
-			{solution_hash, ar_util:safe_encode(SolutionH)},
+			{solution_hash, big_util:safe_encode(SolutionH)},
 			{packing_difficulty, PackingDifficulty} | AdditionalLogData]).
 
 %%%===================================================================
@@ -122,12 +122,12 @@ log_prepare_solution_failure(Solution, FailureReason, AdditionalLogData) ->
 init([]) ->
 	%% Trap exit to avoid corrupting any open files on quit.
 	process_flag(trap_exit, true),
-	ok = ar_events:subscribe(nonce_limiter),
-	ar_chunk_storage:open_files("default"),
+	ok = big_events:subscribe(nonce_limiter),
+	big_chunk_storage:open_files("default"),
 
-	Partitions = ar_mining_io:get_partitions(infinity),
+	Partitions = big_mining_io:get_partitions(infinity),
 
-	%% ar_config:validate_storage_modules/1 ensures that we only mine against a single
+	%% big_config:validate_storage_modules/1 ensures that we only mine against a single
 	%% packing format. So we can grab the packing difficulty from any partition.
 	{MiningAddr, PackingDifficulty} = case Partitions of
         [{_Partition, Addr, Difficulty} | _Rest] -> {Addr, Difficulty};
@@ -136,20 +136,20 @@ init([]) ->
 	Workers = lists:foldl(
 		fun({Partition, _Addr, Difficulty}, Acc) ->
 			maps:put({Partition, Difficulty},
-					ar_mining_worker:name(Partition, Difficulty), Acc)
+					big_mining_worker:name(Partition, Difficulty), Acc)
 		end,
 		#{},
 		Partitions
 	),
 
 	?LOG_INFO([{event, mining_server_init},
-			{mining_addr, ar_util:safe_encode(MiningAddr)},
+			{mining_addr, big_util:safe_encode(MiningAddr)},
 			{packing_difficulty, PackingDifficulty},
 			{partitions, length(Partitions)}]),
 
 	{ok, #state{
 		workers = Workers,
-		is_pool_client = ar_pool:is_client(),
+		is_pool_client = big_pool:is_client(),
 		packing_difficulty = PackingDifficulty
 	}}.
 
@@ -161,9 +161,9 @@ handle_call(Request, _From, State) ->
 	{reply, ok, State}.
 
 handle_cast(pause, State) ->
-	ar:console("Pausing mining.~n"),
+	big:console("Pausing mining.~n"),
 	?LOG_INFO([{event, pause_mining}]),
-	ar_mining_stats:mining_paused(),
+	big_mining_stats:mining_paused(),
 	%% Setting paused to true allows all pending tasks to complete, but prevents new output to be 
 	%% distributed. Setting diff to infinity ensures that no solutions are found.
 	State2 = set_difficulty({infinity, infinity}, State),
@@ -171,14 +171,14 @@ handle_cast(pause, State) ->
 
 handle_cast({start_mining, Args}, State) ->
 	{DiffPair, RebaseThreshold, Height} = Args,
-	ar:console("Starting mining.~n"),
+	big:console("Starting mining.~n"),
 	?LOG_INFO([{event, start_mining}, {difficulty, DiffPair},
 			{rebase_threshold, RebaseThreshold}, {height, Height}]),
-	ar_mining_stats:start_performance_reports(),
+	big_mining_stats:start_performance_reports(),
 
 	maps:foreach(
 		fun(_Partition, Worker) ->
-			ar_mining_worker:reset(Worker, DiffPair)
+			big_mining_worker:reset(Worker, DiffPair)
 		end,
 		State#state.workers
 	),
@@ -189,7 +189,7 @@ handle_cast({start_mining, Args}, State) ->
 		diff_pair = DiffPair,
 		merkle_rebase_threshold = RebaseThreshold,
 		allow_composite_packing
-			= Height - ?POST_2_8_COMPOSITE_PACKING_DELAY_BLOCKS >= ar_fork:height_2_8() }};
+			= Height - ?POST_2_8_COMPOSITE_PACKING_DELAY_BLOCKS >= big_fork:height_2_8() }};
 
 handle_cast({set_difficulty, DiffPair}, State) ->
 	State2 = set_difficulty(DiffPair, State),
@@ -200,7 +200,7 @@ handle_cast({set_merkle_rebase_threshold, Threshold}, State) ->
 
 handle_cast({set_height, Height}, State) ->
 	{noreply, State#state{ allow_composite_packing
-			= Height - ?POST_2_8_COMPOSITE_PACKING_DELAY_BLOCKS >= ar_fork:height_2_8() }};
+			= Height - ?POST_2_8_COMPOSITE_PACKING_DELAY_BLOCKS >= big_fork:height_2_8() }};
 
 handle_cast({add_pool_job, Args}, State) ->
 	{SessionKey, StepNumber, Output, PartitionUpperBound, Seed, PartialDiff} = Args,
@@ -215,7 +215,7 @@ handle_cast({compute_h2_for_peer, Candidate}, State) ->
 		not_found ->
 			ok;
 		Worker ->
-			ar_mining_worker:add_task(Worker, compute_h2_for_peer, Candidate)
+			big_mining_worker:add_task(Worker, compute_h2_for_peer, Candidate)
 	end,
 	{noreply, State};
 
@@ -236,17 +236,17 @@ handle_cast({manual_garbage_collect, Ref}, #state{ gc_process_ref = Ref } = Stat
 	%% the cache.
 	?LOG_DEBUG([{event, mining_debug_garbage_collect_start},
 		{frequency, State#state.gc_frequency_ms}]),
-	ar_mining_io:garbage_collect(),
-	ar_mining_hash:garbage_collect(),
+	big_mining_io:garbage_collect(),
+	big_mining_hash:garbage_collect(),
 	erlang:garbage_collect(self(), [{async, erlang:monotonic_time()}]),
 	maps:foreach(
 		fun(_Partition, Worker) ->
-			ar_mining_worker:garbage_collect(Worker)
+			big_mining_worker:garbage_collect(Worker)
 		end,
 		State#state.workers
 	),
-	ar_coordination:garbage_collect(),
-	ar_util:cast_after(State#state.gc_frequency_ms, ?MODULE, {manual_garbage_collect, Ref}),
+	big_coordination:garbage_collect(),
+	big_util:cast_after(State#state.gc_frequency_ms, ?MODULE, {manual_garbage_collect, Ref}),
 	{noreply, State};
 handle_cast({manual_garbage_collect, _}, State) ->
 	%% Does not originate from the running instance of the server; happens in tests.
@@ -259,7 +259,7 @@ handle_cast(Cast, State) ->
 handle_info({event, nonce_limiter, {computed_output, _Args}}, #state{ paused = true } = State) ->
 	{noreply, State};
 handle_info({event, nonce_limiter, {computed_output, Args}}, State) ->
-	case ar_pool:is_client() of
+	case big_pool:is_client() of
 		true ->
 			%% Ignore VDF events because we are receiving jobs from the pool.
 			{noreply, State};
@@ -279,7 +279,7 @@ handle_info({garbage_collect, StartTime, GCResult}, State) ->
 	case GCResult == false orelse ElapsedTime > ?GC_LOG_THRESHOLD of
 		true ->
 			?LOG_DEBUG([
-				{event, mining_debug_garbage_collect}, {process, ar_mining_server},
+				{event, mining_debug_garbage_collect}, {process, big_mining_server},
 				{pid, self()}, {gc_time, ElapsedTime}, {gc_result, GCResult}]);
 		false ->
 			ok
@@ -309,7 +309,7 @@ get_worker(Key, State) ->
 set_difficulty(DiffPair, State) ->
 	maps:foreach(
 		fun(_Partition, Worker) ->
-			ar_mining_worker:set_difficulty(Worker, DiffPair)
+			big_mining_worker:set_difficulty(Worker, DiffPair)
 		end,
 		State#state.workers
 	),
@@ -351,7 +351,7 @@ update_sessions(NewActiveSessions, CurrentActiveSessions, State) ->
 
 	maps:foreach(
 		fun(_Partition, Worker) ->
-			ar_mining_worker:set_sessions(Worker, NewActiveSessions)
+			big_mining_worker:set_sessions(Worker, NewActiveSessions)
 		end,
 		State#state.workers
 	),
@@ -365,11 +365,11 @@ add_sessions([], State) ->
 	State;
 add_sessions([SessionKey | AddedSessions], State) ->
 	{NextSeed, StartIntervalNumber, NextVDFDifficulty} = SessionKey,
-	ar:console("Starting new mining session: "
+	big:console("Starting new mining session: "
 		"next entropy nonce: ~s, interval number: ~B, next vdf difficulty: ~B.~n",
-		[ar_util:safe_encode(NextSeed), StartIntervalNumber, NextVDFDifficulty]),
+		[big_util:safe_encode(NextSeed), StartIntervalNumber, NextVDFDifficulty]),
 	?LOG_INFO([{event, new_mining_session}, 
-		{session_key, ar_nonce_limiter:encode_session_key(SessionKey)}]),
+		{session_key, big_nonce_limiter:encode_session_key(SessionKey)}]),
 	add_sessions(AddedSessions, add_seed(SessionKey, State)).
 
 remove_sessions([], State) ->
@@ -389,11 +389,11 @@ remove_seed(SessionKey, State) ->
 add_seed(SessionKey, State) ->
 	case get_seed(SessionKey, State) of
 		not_found ->
-			Session = ar_nonce_limiter:get_session(SessionKey),
+			Session = big_nonce_limiter:get_session(SessionKey),
 			case Session of
 				not_found ->
 					?LOG_ERROR([{event, mining_session_not_found},
-						{session_key, ar_nonce_limiter:encode_session_key(SessionKey)}]),
+						{session_key, big_nonce_limiter:encode_session_key(SessionKey)}]),
 					State;
 				_ ->
 					set_seed(SessionKey, Session#vdf_session.seed, State)
@@ -403,7 +403,7 @@ add_seed(SessionKey, State) ->
 	end.
 
 update_cache_limits(State) ->
-	NumActivePartitions = length(ar_mining_io:get_partitions()),
+	NumActivePartitions = length(big_mining_io:get_partitions()),
 	update_cache_limits(NumActivePartitions, State).
 
 update_cache_limits(0, State) ->
@@ -416,7 +416,7 @@ calculate_cache_limits(NumActivePartitions, PackingDifficulty) ->
 	%% This allows the cache to store enough chunks for 4 concurrent VDF steps per partition.
 	IdealStepsPerPartition = 4,
 	IdealRangesPerStep = 2,
-	RecallRangeSize = ar_block:get_recall_range_size(PackingDifficulty),
+	RecallRangeSize = big_block:get_recall_range_size(PackingDifficulty),
 
 	MinimumCacheLimitMiB = max(
 		1,
@@ -424,7 +424,7 @@ calculate_cache_limits(NumActivePartitions, PackingDifficulty) ->
 			div ?MiB
 	),
 
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	OverallCacheLimitMiB = case Config#config.mining_cache_size_mb of
 		undefined ->
 			MinimumCacheLimitMiB;
@@ -436,7 +436,7 @@ calculate_cache_limits(NumActivePartitions, PackingDifficulty) ->
 	%% their cache in terms of sub-chunks where a spora_2_6 sub-chunk is the same as a chunk,
 	%% and a composite sub-chunk is much smaller than a chunk.
 	OverallCacheLimitSubChunks = (OverallCacheLimitMiB * ?MiB) div 
-		ar_block:get_sub_chunk_size(PackingDifficulty),
+		big_block:get_sub_chunk_size(PackingDifficulty),
 
 	%% We shard the chunk cache across every active worker. Only workers that mine a partition
 	%% included in the current weave are active.
@@ -445,7 +445,7 @@ calculate_cache_limits(NumActivePartitions, PackingDifficulty) ->
 	%% Allow enough compute_h0 tasks to be queued to completely refill the chunk cache.
 	VDFQueueLimit = max(
 		1,
-		PartitionCacheLimit div (2 * ar_block:get_nonces_per_recall_range(PackingDifficulty))
+		PartitionCacheLimit div (2 * big_block:get_nonces_per_recall_range(PackingDifficulty))
 	),
 
 	GarbageCollectionFrequency = 4 * VDFQueueLimit * 1000,
@@ -461,13 +461,13 @@ maybe_update_cache_limits(Limits, State) ->
 		GarbageCollectionFrequency} = Limits,
 	maps:foreach(
 		fun(_Partition, Worker) ->
-			ar_mining_worker:set_cache_limits(
+			big_mining_worker:set_cache_limits(
 				Worker, PartitionCacheLimit, VDFQueueLimit)
 		end,
 		State#state.workers
 	),
 
-	ar:console(
+	big:console(
 		"~nSetting the mining chunk cache size limit to ~B MiB "
 		"(~B sub-chunks per partition).~n",
 			[OverallCacheLimitMiB, PartitionCacheLimit]),
@@ -477,7 +477,7 @@ maybe_update_cache_limits(Limits, State) ->
 		{vdf_queue_limit_steps, VDFQueueLimit}]),
 	case OverallCacheLimitMiB < MinimumCacheLimitMiB of
 		true ->
-			ar:console("~nChunk cache size limit (~p MiB) is below minimum limit of "
+			big:console("~nChunk cache size limit (~p MiB) is below minimum limit of "
 				"~p MiB. Mining performance may be impacted.~n"
 				"Consider changing the 'mining_cache_size_mb' option.",
 				[OverallCacheLimitMiB, MinimumCacheLimitMiB]);
@@ -490,7 +490,7 @@ maybe_update_cache_limits(Limits, State) ->
 	}.
 
 distribute_output(Candidate, State) ->
-	distribute_output(ar_mining_io:get_partitions(), Candidate, State).
+	distribute_output(big_mining_io:get_partitions(), Candidate, State).
 
 distribute_output([], _Candidate, _State) ->
 	ok;
@@ -505,7 +505,7 @@ distribute_output([{Partition, MiningAddress, PackingDifficulty} | Partitions],
 			?LOG_ERROR([{event, worker_not_found}, {partition, Partition}]),
 			ok;
 		Worker ->
-			ar_mining_worker:add_task(
+			big_mining_worker:add_task(
 				Worker, compute_h0,
 				Candidate#mining_candidate{
 					partition_number = Partition,
@@ -516,10 +516,10 @@ distribute_output([{Partition, MiningAddress, PackingDifficulty} | Partitions],
 	distribute_output(Partitions, Candidate, State).
 
 get_recall_bytes(H0, PartitionNumber, Nonce, PartitionUpperBound, PackingDifficulty) ->
-	{RecallRange1Start, RecallRange2Start} = ar_block:get_recall_range(H0,
+	{RecallRange1Start, RecallRange2Start} = big_block:get_recall_range(H0,
 			PartitionNumber, PartitionUpperBound),
-	RecallByte1 = ar_block:get_recall_byte(RecallRange1Start, Nonce, PackingDifficulty),
-	RecallByte2 = ar_block:get_recall_byte(RecallRange2Start, Nonce, PackingDifficulty),
+	RecallByte1 = big_block:get_recall_byte(RecallRange1Start, Nonce, PackingDifficulty),
+	RecallByte2 = big_block:get_recall_byte(RecallRange2Start, Nonce, PackingDifficulty),
 	{RecallByte1, RecallByte2}.
 
 prepare_and_post_solution(#mining_candidate{} = Candidate, State) ->
@@ -550,10 +550,10 @@ prepare_solution(Solution, State) ->
 		preimage = Preimage, seed = Seed, start_interval_number = StartIntervalNumber,
 		step_number = StepNumber, packing_difficulty = PackingDifficulty
 	},
-	H0 = ar_block:compute_h0(NonceLimiterOutput, PartitionNumber,
+	H0 = big_block:compute_h0(NonceLimiterOutput, PartitionNumber,
 			Seed, MiningAddress, PackingDifficulty),
 	Chunk1 = PoA1#poa.chunk,
-	{H1, Preimage1} = ar_block:compute_h1(H0, Nonce, Chunk1),
+	{H1, Preimage1} = big_block:compute_h1(H0, Nonce, Chunk1),
 	Candidate2 = Candidate#mining_candidate{
 		h0 = H0,
 		h1 = H1,
@@ -565,7 +565,7 @@ prepare_solution(Solution, State) ->
 				Preimage = Preimage1,
 				Candidate2;
 			Chunk2 ->
-				{H2, Preimage} = ar_block:compute_h2(H1, Chunk2, H0),
+				{H2, Preimage} = big_block:compute_h2(H1, Chunk2, H0),
 				Candidate2#mining_candidate{ h2 = H2, chunk2 = Chunk2 }
 		end,
 	Solution2 = Solution#mining_solution{ merkle_rebase_threshold = RebaseThreshold },
@@ -616,7 +616,7 @@ prepare_solution(last_step_checkpoints, Candidate, Solution) ->
 	#mining_candidate{
 		next_seed = NextSeed, next_vdf_difficulty = NextVDFDifficulty, 
 		start_interval_number = StartIntervalNumber, step_number = StepNumber } = Candidate,
-	LastStepCheckpoints = ar_nonce_limiter:get_step_checkpoints(
+	LastStepCheckpoints = big_nonce_limiter:get_step_checkpoints(
 			StepNumber, NextSeed, StartIntervalNumber, NextVDFDifficulty),
 	LastStepCheckpoints2 =
 		case LastStepCheckpoints of
@@ -637,14 +637,14 @@ prepare_solution(steps, Candidate, Solution) ->
 			next_vdf_difficulty = PrevNextVDFDifficulty } = TipNonceLimiterInfo,
 	case StepNumber > PrevStepNumber of
 		true ->
-			Steps = ar_nonce_limiter:get_steps(
+			Steps = big_nonce_limiter:get_steps(
 					PrevStepNumber, StepNumber, PrevNextSeed, PrevNextVDFDifficulty),
 			case Steps of
 				not_found ->
 					LogData = [
 						{start_step_number, PrevStepNumber},
 						{next_step_number, StepNumber},
-						{next_seed, ar_util:safe_encode(PrevNextSeed)},
+						{next_seed, big_util:safe_encode(PrevNextSeed)},
 						{next_vdf_difficulty, PrevNextVDFDifficulty}],
 					?LOG_INFO([{event, found_solution_but_failed_to_find_checkpoints}
 						| LogData]),
@@ -660,7 +660,7 @@ prepare_solution(steps, Candidate, Solution) ->
 			log_prepare_solution_failure(Solution, stale_step_number, [
 					{start_step_number, PrevStepNumber},
 					{next_step_number, StepNumber},
-					{next_seed, ar_util:safe_encode(PrevNextSeed)},
+					{next_seed, big_util:safe_encode(PrevNextSeed)},
 					{next_vdf_difficulty, PrevNextVDFDifficulty}]),
 			error
 	end;
@@ -700,8 +700,8 @@ prepare_solution(poa1, Candidate, Solution) ->
 		{ok, PoA1} ->
 			Solution#mining_solution{ poa1 = PoA1 };
 		{error, Error} ->
-			Modules = ar_storage_module:get_all(RecallByte1 + 1),
-			ModuleIDs = [ar_storage_module:id(Module) || Module <- Modules],
+			Modules = big_storage_module:get_all(RecallByte1 + 1),
+			ModuleIDs = [big_storage_module:id(Module) || Module <- Modules],
 			LogData = [{recall_byte, RecallByte1},
 					{modules_covering_recall_byte, ModuleIDs},
 					{fetch_proofs_error, io_lib:format("~p", [Error])},
@@ -709,14 +709,14 @@ prepare_solution(poa1, Candidate, Solution) ->
 					{partition_number, PartitionNumber}],
 			case Chunk1 of
 				not_set ->
-					Packing = ar_block:get_packing(PackingDifficulty, MiningAddress),
+					Packing = big_block:get_packing(PackingDifficulty, MiningAddress),
 					?LOG_WARNING([{event, failed_to_find_poa1_proofs_for_h2_solution},
 							{error, io_lib:format("~p", [Error])},
 							{tags, [solution_proofs]} | LogData]),
-					case ar_storage_module:get(RecallByte1 + 1, Packing) of
+					case big_storage_module:get(RecallByte1 + 1, Packing) of
 						{_BucketSize, _Bucket, Packing} = StorageModule ->
-							StoreID = ar_storage_module:id(StorageModule),
-							case ar_chunk_storage:get(RecallByte1, StoreID) of
+							StoreID = big_storage_module:id(StorageModule),
+							case big_chunk_storage:get(RecallByte1, StoreID) of
 								not_found ->
 									log_prepare_solution_failure(Solution,
 											chunk1_for_h2_solution_not_found,
@@ -756,8 +756,8 @@ prepare_solution(poa2, Candidate, Solution) ->
 		{ok, PoA2} ->
 			prepare_solution(poa1, Candidate, Solution#mining_solution{ poa2 = PoA2 });
 		{error, _Error} ->
-			Modules = ar_storage_module:get_all(RecallByte2 + 1),
-			ModuleIDs = [ar_storage_module:id(Module) || Module <- Modules],
+			Modules = big_storage_module:get_all(RecallByte2 + 1),
+			ModuleIDs = [big_storage_module:id(Module) || Module <- Modules],
 			LogData = [{recall_byte2, RecallByte2}, {modules_covering_recall_byte, ModuleIDs}],
 			%% If we are a coordinated miner and not an exit node - the exit
 			%% node will fetch the proofs.
@@ -784,7 +784,7 @@ prepare_poa(PoAType, Candidate, CurrentPoA) ->
 		poa2 -> {RecallByte2, Chunk2}
 	end,
 	
-	Packing = ar_block:get_packing(PackingDifficulty, MiningAddress),
+	Packing = big_block:get_packing(PackingDifficulty, MiningAddress),
 	case is_poa_complete(CurrentPoA, PackingDifficulty) of
 		true ->
 			{ok, CurrentPoA};
@@ -793,8 +793,8 @@ prepare_poa(PoAType, Candidate, CurrentPoA) ->
 				{ok, PoA} ->
 					{ok, PoA};
 				{error, Error} ->
-					Modules = ar_storage_module:get_all(RecallByte + 1),
-					ModuleIDs = [ar_storage_module:id(Module) || Module <- Modules],
+					Modules = big_storage_module:get_all(RecallByte + 1),
+					ModuleIDs = [big_storage_module:id(Module) || Module <- Modules],
 					?LOG_INFO([{event, failed_to_find_poa_proofs_locally},
 							{poa, PoAType},
 							{error, io_lib:format("~p", [Error])},
@@ -816,7 +816,7 @@ prepare_poa(PoAType, Candidate, CurrentPoA) ->
 									{recall_byte, RecallByte},
 									{nonce, Nonce},
 									{partition, PartitionNumber},
-									{mining_address, ar_util:safe_encode(MiningAddress)},
+									{mining_address, big_util:safe_encode(MiningAddress)},
 									{packing_difficulty, PackingDifficulty}]),
 							{error, Error};
 						PoA ->
@@ -842,8 +842,8 @@ is_poa_complete(_, _) ->
 may_be_leave_it_to_exit_peer(error, _FailureReason, _AdditionalLogData) ->
 	error;
 may_be_leave_it_to_exit_peer(Solution, FailureReason, AdditionalLogData) ->
-	case ar_coordination:is_coordinated_miner() andalso
-			not ar_coordination:is_exit_peer() of
+	case big_coordination:is_coordinated_miner() andalso
+			not big_coordination:is_exit_peer() of
 		true ->
 			Solution;
 		false ->
@@ -855,13 +855,13 @@ post_solution(error, _State) ->
 	?LOG_WARNING([{event, found_solution_but_could_not_build_a_block}]),
 	error;
 post_solution(Solution, State) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	post_solution(Config#config.cm_exit_peer, Solution, State).
 
 post_solution(not_set, Solution, #state{ is_pool_client = true }) ->
 	%% When posting a partial solution the pool client will skip many of the validation steps
 	%% that are normally performed before sharing a solution.
-	ar_pool:post_partial_solution(Solution);
+	big_pool:post_partial_solution(Solution);
 post_solution(not_set, Solution, State) ->
 	#state{ diff_pair = DiffPair } = State,
 	#mining_solution{
@@ -874,46 +874,46 @@ post_solution(not_set, Solution, State) ->
 			?LOG_WARNING([{event, failed_to_validate_solution},
 					{partition, PartitionNumber},
 					{step_number, StepNumber},
-					{mining_address, ar_util:safe_encode(MiningAddress)},
+					{mining_address, big_util:safe_encode(MiningAddress)},
 					{recall_byte1, RecallByte1},
 					{recall_byte2, RecallByte2},
-					{solution_h, ar_util:safe_encode(H)},
-					{nonce_limiter_output, ar_util:safe_encode(NonceLimiterOutput)}]),
-			ar:console("WARNING: we failed to validate our solution. Check logs for more "
+					{solution_h, big_util:safe_encode(H)},
+					{nonce_limiter_output, big_util:safe_encode(NonceLimiterOutput)}]),
+			big:console("WARNING: we failed to validate our solution. Check logs for more "
 					"details~n");
 		{false, Reason} ->
 			?LOG_WARNING([{event, found_invalid_solution},
 					{reason, Reason},
 					{partition, PartitionNumber},
 					{step_number, StepNumber},
-					{mining_address, ar_util:safe_encode(MiningAddress)},
+					{mining_address, big_util:safe_encode(MiningAddress)},
 					{recall_byte1, RecallByte1},
 					{recall_byte2, RecallByte2},
-					{solution_h, ar_util:safe_encode(H)},
-					{nonce_limiter_output, ar_util:safe_encode(NonceLimiterOutput)}]),
-			ar:console("WARNING: the solution we found is invalid. Check logs for more "
+					{solution_h, big_util:safe_encode(H)},
+					{nonce_limiter_output, big_util:safe_encode(NonceLimiterOutput)}]),
+			big:console("WARNING: the solution we found is invalid. Check logs for more "
 					"details~n");
 		{true, PoACache, PoA2Cache} ->
-			ar_events:send(miner, {found_solution, miner, Solution, PoACache, PoA2Cache})
+			big_events:send(miner, {found_solution, miner, Solution, PoACache, PoA2Cache})
 	end;
 post_solution(ExitPeer, Solution, #state{ is_pool_client = true }) ->
-	case ar_http_iface_client:post_partial_solution(ExitPeer, Solution) of
+	case big_http_iface_client:post_partial_solution(ExitPeer, Solution) of
 		{ok, _} ->
 			ok;
 		{error, Reason} ->
 			?LOG_WARNING([{event, found_partial_solution_but_failed_to_reach_exit_node},
 					{reason, io_lib:format("~p", [Reason])}]),
-			ar:console("We found a partial solution but failed to reach the exit node, "
+			big:console("We found a partial solution but failed to reach the exit node, "
 					"error: ~p.", [io_lib:format("~p", [Reason])])
 	end;
 post_solution(ExitPeer, Solution, _State) ->
-	case ar_http_iface_client:cm_publish_send(ExitPeer, Solution) of
+	case big_http_iface_client:cm_publish_send(ExitPeer, Solution) of
 		{ok, _} ->
 			ok;
 		{error, Reason} ->
 			?LOG_WARNING([{event, found_solution_but_failed_to_reach_exit_node},
 					{reason, io_lib:format("~p", [Reason])}]),
-			ar:console("We found a solution but failed to reach the exit node, "
+			big:console("We found a solution but failed to reach the exit node, "
 					"error: ~p.", [io_lib:format("~p", [Reason])])
 	end.
 
@@ -925,14 +925,14 @@ may_be_empty_poa(#poa{} = PoA) ->
 fetch_poa_from_peers(_RecallByte, PackingDifficulty) when PackingDifficulty >= 1 ->
 	not_found;
 fetch_poa_from_peers(RecallByte, _PackingDifficulty) ->
-	Peers = ar_data_discovery:get_bucket_peers(RecallByte div ?NETWORK_DATA_BUCKET_SIZE),
+	Peers = big_data_discovery:get_bucket_peers(RecallByte div ?NETWORK_DATA_BUCKET_SIZE),
 	From = self(),
 	lists:foreach(
 		fun(Peer) ->
 			spawn(
 				fun() ->
 					?LOG_INFO([{event, last_moment_proof_search},
-							{peer, ar_util:format_peer(Peer)}, {recall_byte, RecallByte}]),
+							{peer, big_util:format_peer(Peer)}, {recall_byte, RecallByte}]),
 					case fetch_poa_from_peer(Peer, RecallByte) of
 						not_found ->
 							ok;
@@ -955,7 +955,7 @@ fetch_poa_from_peers(RecallByte, _PackingDifficulty) ->
 	end.
 
 fetch_poa_from_peer(Peer, RecallByte) ->
-	case ar_http_iface_client:get_chunk_binary(Peer, RecallByte + 1, any) of
+	case big_http_iface_client:get_chunk_binary(Peer, RecallByte + 1, any) of
 		{ok, #{ data_path := DataPath, tx_path := TXPath }, _, _} ->
 			#poa{ data_path = DataPath, tx_path = TXPath };
 		_ ->
@@ -965,9 +965,9 @@ fetch_poa_from_peer(Peer, RecallByte) ->
 handle_computed_output(SessionKey, StepNumber, Output, PartitionUpperBound,
 		PartialDiff, State) ->
 	true = is_integer(StepNumber),
-	ar_mining_stats:vdf_computed(),
+	big_mining_stats:vdf_computed(),
 
-	State2 = case ar_mining_io:set_largest_seen_upper_bound(PartitionUpperBound) of
+	State2 = case big_mining_io:set_largest_seen_upper_bound(PartitionUpperBound) of
 		true ->
 			%% If the largest seen upper bound changed, a new partition may have been added
 			%% to the mining set, so we may need to update the chunk cache size limit.
@@ -982,7 +982,7 @@ handle_computed_output(SessionKey, StepNumber, Output, PartitionUpperBound,
 		false ->
 			?LOG_DEBUG([{event, mining_debug_skipping_vdf_output}, {reason, stale_session},
 				{step_number, StepNumber},
-				{session_key, ar_nonce_limiter:encode_session_key(SessionKey)},
+				{session_key, big_nonce_limiter:encode_session_key(SessionKey)},
 				{active_sessions, encode_sessions(State#state.active_sessions)}]);
 		true ->
 			{NextSeed, StartIntervalNumber, NextVDFDifficulty} = SessionKey,
@@ -999,9 +999,9 @@ handle_computed_output(SessionKey, StepNumber, Output, PartitionUpperBound,
 			},
 			distribute_output(Candidate, State3),
 			?LOG_DEBUG([{event, mining_debug_processing_vdf_output},
-				{step_number, StepNumber}, {output, ar_util:safe_encode(Output)},
+				{step_number, StepNumber}, {output, big_util:safe_encode(Output)},
 				{start_interval_number, StartIntervalNumber},
-				{session_key, ar_nonce_limiter:encode_session_key(SessionKey)}])
+				{session_key, big_nonce_limiter:encode_session_key(SessionKey)}])
 	end,
 	{noreply, State3}.
 
@@ -1034,7 +1034,7 @@ get_sub_chunk(Chunk, 0, _Nonce) ->
 	Chunk;
 get_sub_chunk(Chunk, PackingDifficulty, Nonce) ->
 	SubChunkSize = ?COMPOSITE_PACKING_SUB_CHUNK_SIZE,
-	SubChunkIndex = ar_block:get_sub_chunk_index(PackingDifficulty, Nonce),
+	SubChunkIndex = big_block:get_sub_chunk_index(PackingDifficulty, Nonce),
 	SubChunkStartOffset = SubChunkSize * SubChunkIndex,
 	binary:part(Chunk, SubChunkStartOffset, SubChunkSize).
 
@@ -1051,7 +1051,7 @@ sub_chunk_belongs_to_chunk(_SubChunk, _Chunk) ->
 
 read_poa(RecallByte, Packing) ->
 	Options = #{ pack => true, packing => Packing, is_miner_request => true },
-	case ar_data_sync:get_chunk(RecallByte + 1, Options) of
+	case big_data_sync:get_chunk(RecallByte + 1, Options) of
 		{ok, Proof} ->
 			#{ chunk := Chunk, tx_path := TXPath, data_path := DataPath } = Proof,
 			case Packing of
@@ -1061,7 +1061,7 @@ read_poa(RecallByte, Packing) ->
 							read_unpacked_chunk(RecallByte, Proof);
 						UnpackedChunk ->
 							{ok, #poa{ option = 1, chunk = Chunk,
-								unpacked_chunk = ar_packing_server:pad_chunk(UnpackedChunk),
+								unpacked_chunk = big_packing_server:pad_chunk(UnpackedChunk),
 								tx_path = TXPath, data_path = DataPath }}
 					end;
 				_ ->
@@ -1074,10 +1074,10 @@ read_poa(RecallByte, Packing) ->
 
 read_unpacked_chunk(RecallByte, Proof) ->
 	Options = #{ pack => true, packing => unpacked, is_miner_request => true },
-	case ar_data_sync:get_chunk(RecallByte + 1, Options) of
+	case big_data_sync:get_chunk(RecallByte + 1, Options) of
 		{ok, #{ chunk := UnpackedChunk, tx_path := TXPath, data_path := DataPath }} ->
 			{ok, #poa{ option = 1, chunk = maps:get(chunk, Proof),
-				unpacked_chunk = ar_packing_server:pad_chunk(UnpackedChunk),
+				unpacked_chunk = big_packing_server:pad_chunk(UnpackedChunk),
 				tx_path = TXPath, data_path = DataPath }};
 		Error ->
 			Error
@@ -1091,23 +1091,23 @@ validate_solution(Solution, DiffPair) ->
 		poa1 = PoA1, recall_byte1 = RecallByte1, seed = Seed,
 		solution_hash = SolutionHash,
 		packing_difficulty = PackingDifficulty } = Solution,
-	H0 = ar_block:compute_h0(NonceLimiterOutput, PartitionNumber, Seed, MiningAddress,
+	H0 = big_block:compute_h0(NonceLimiterOutput, PartitionNumber, Seed, MiningAddress,
 			PackingDifficulty),
-	{H1, _Preimage1} = ar_block:compute_h1(H0, Nonce, PoA1#poa.chunk),
-	{RecallRange1Start, RecallRange2Start} = ar_block:get_recall_range(H0,
+	{H1, _Preimage1} = big_block:compute_h1(H0, Nonce, PoA1#poa.chunk),
+	{RecallRange1Start, RecallRange2Start} = big_block:get_recall_range(H0,
 			PartitionNumber, PartitionUpperBound),
 	%% Assert recall_byte1 is computed correctly.
-	RecallByte1 = ar_block:get_recall_byte(RecallRange1Start, Nonce, PackingDifficulty),
-	{BlockStart1, BlockEnd1, TXRoot1} = ar_block_index:get_block_bounds(RecallByte1),
+	RecallByte1 = big_block:get_recall_byte(RecallRange1Start, Nonce, PackingDifficulty),
+	{BlockStart1, BlockEnd1, TXRoot1} = big_block_index:get_block_bounds(RecallByte1),
 	BlockSize1 = BlockEnd1 - BlockStart1,
-	Packing = ar_block:get_packing(PackingDifficulty, MiningAddress),
-	SubChunkIndex = ar_block:get_sub_chunk_index(PackingDifficulty, Nonce),
-	case ar_poa:validate({BlockStart1, RecallByte1, TXRoot1, BlockSize1, PoA1,
+	Packing = big_block:get_packing(PackingDifficulty, MiningAddress),
+	SubChunkIndex = big_block:get_sub_chunk_index(PackingDifficulty, Nonce),
+	case big_poa:validate({BlockStart1, RecallByte1, TXRoot1, BlockSize1, PoA1,
 			Packing, SubChunkIndex, not_set}) of
 		{true, ChunkID} ->
 			PoACache = {{BlockStart1, RecallByte1, TXRoot1, BlockSize1, Packing,
 					SubChunkIndex}, ChunkID},
-			case ar_node_utils:h1_passes_diff_check(H1, DiffPair, PackingDifficulty) of
+			case big_node_utils:h1_passes_diff_check(H1, DiffPair, PackingDifficulty) of
 				true ->
 					%% validates solution_hash
 					SolutionHash = H1,
@@ -1122,19 +1122,19 @@ validate_solution(Solution, DiffPair) ->
 						false ->
 							#mining_solution{
 								recall_byte2 = RecallByte2, poa2 = PoA2 } = Solution,
-							{H2, _Preimage2} = ar_block:compute_h2(H1, PoA2#poa.chunk, H0),
-							case ar_node_utils:h2_passes_diff_check(H2, DiffPair,
+							{H2, _Preimage2} = big_block:compute_h2(H1, PoA2#poa.chunk, H0),
+							case big_node_utils:h2_passes_diff_check(H2, DiffPair,
 									PackingDifficulty) of
 								false ->
 									{false, h2_diff_check};
 								true ->
 									SolutionHash = H2,
-									RecallByte2 = ar_block:get_recall_byte(RecallRange2Start,
+									RecallByte2 = big_block:get_recall_byte(RecallRange2Start,
 											Nonce, PackingDifficulty),
 									{BlockStart2, BlockEnd2, TXRoot2} =
-											ar_block_index:get_block_bounds(RecallByte2),
+											big_block_index:get_block_bounds(RecallByte2),
 									BlockSize2 = BlockEnd2 - BlockStart2,
-									case ar_poa:validate({BlockStart2, RecallByte2, TXRoot2,
+									case big_poa:validate({BlockStart2, RecallByte2, TXRoot2,
 											BlockSize2, PoA2,
 											Packing, SubChunkIndex, not_set}) of
 										{true, Chunk2ID} ->
@@ -1159,7 +1159,7 @@ validate_solution(Solution, DiffPair) ->
 reset_gc_timer(GarbageCollectionFrequency, State) ->
 	State2 = maybe_cancel_gc_timer(State),
 	Ref = erlang:make_ref(),
-	ar_util:cast_after(GarbageCollectionFrequency, ?MODULE,
+	big_util:cast_after(GarbageCollectionFrequency, ?MODULE,
 			{manual_garbage_collect, Ref}),
 	State2#state{ gc_process_ref = Ref, gc_frequency_ms = GarbageCollectionFrequency }.
 
@@ -1178,11 +1178,11 @@ pause() ->
 	gen_server:cast(?MODULE, pause).
 
 setup() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Config.
 
 cleanup(Config) ->
-	application:set_env(arweave, config, Config).
+	application:set_env(bigfile, config, Config).
 
 calculate_cache_limits_test_() ->
 	{setup, fun setup/0, fun cleanup/1,
@@ -1194,8 +1194,8 @@ calculate_cache_limits_test_() ->
 	}.
 
 test_calculate_cache_limits_default() ->
-	{ok, Config} = application:get_env(arweave, config),
-	application:set_env(arweave, config, Config#config{
+	{ok, Config} = application:get_env(bigfile, config),
+	application:set_env(bigfile, config, Config#config{
 		mining_cache_size_mb = undefined
 	}),
 	?assertEqual(
@@ -1248,8 +1248,8 @@ test_calculate_cache_limits_default() ->
 	).
 
 test_calculate_cache_limits_custom_low() ->
-	{ok, Config} = application:get_env(arweave, config),
-	application:set_env(arweave, config, Config#config{
+	{ok, Config} = application:get_env(bigfile, config),
+	application:set_env(bigfile, config, Config#config{
 		mining_cache_size_mb = 1
 	}),
 	?assertEqual(
@@ -1302,8 +1302,8 @@ test_calculate_cache_limits_custom_low() ->
 	).
 
 test_calculate_cache_limits_custom_high() ->
-	{ok, Config} = application:get_env(arweave, config),
-	application:set_env(arweave, config, Config#config{
+	{ok, Config} = application:get_env(bigfile, config),
+	application:set_env(bigfile, config, Config#config{
 		mining_cache_size_mb = 500_000
 	}),
 	?assertEqual(

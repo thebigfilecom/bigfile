@@ -1,4 +1,4 @@
--module(ar_nonce_limiter_server_worker).
+-module(big_nonce_limiter_server_worker).
 
 -behaviour(gen_server).
 
@@ -6,7 +6,7 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 
 -record(state, {
 	raw_peer,
@@ -19,7 +19,7 @@
 %% The frequency in milliseconds of re-resolving the domain name of the client,
 %% if the client is configured via the domain name.
 %%
-%% ar_nonce_limiter_server_worker periodically re-resolves and caches the address
+%% big_nonce_limiter_server_worker periodically re-resolves and caches the address
 %% of the corresponding client such that they can be identified upon request,
 %% unless we are configured as a public VDF server.
 -define(RE_RESOLVE_PEER_DOMAIN_MS, (30 * 1000)).
@@ -37,8 +37,8 @@ start_link(Name, RawPeer) ->
 %%%===================================================================
 
 init(RawPeer) ->
-	ok = ar_events:subscribe(nonce_limiter),
-	case ar_config:is_public_vdf_server() of
+	ok = big_events:subscribe(nonce_limiter),
+	case big_config:is_public_vdf_server() of
 		false ->
 			gen_server:cast(self(), re_resolve_peer_domain);
 		true ->
@@ -51,7 +51,7 @@ handle_call(Request, _From, State) ->
 	{reply, ok, State}.
 
 handle_cast(re_resolve_peer_domain, #state{ raw_peer = RawPeer } = State) ->
-	case ar_peers:resolve_and_cache_peer(RawPeer, vdf_client_peer) of
+	case big_peers:resolve_and_cache_peer(RawPeer, vdf_client_peer) of
 		{ok, _} ->
 			ok;
 		Error ->
@@ -59,7 +59,7 @@ handle_cast(re_resolve_peer_domain, #state{ raw_peer = RawPeer } = State) ->
 					{error, io_lib:format("~p", [Error])},
 					{peer, io_lib:format("~p", [RawPeer])}])
 	end,
-	ar_util:cast_after(?RE_RESOLVE_PEER_DOMAIN_MS, ?MODULE, re_resolve_peer_domain),
+	big_util:cast_after(?RE_RESOLVE_PEER_DOMAIN_MS, ?MODULE, re_resolve_peer_domain),
 	{noreply, State};
 
 handle_cast(Cast, State) ->
@@ -68,7 +68,7 @@ handle_cast(Cast, State) ->
 
 handle_info({event, nonce_limiter, {computed_output, Args}}, State) ->
 	#state{ raw_peer = RawPeer } = State,
-	case ar_peers:resolve_and_cache_peer(RawPeer, vdf_client_peer) of
+	case big_peers:resolve_and_cache_peer(RawPeer, vdf_client_peer) of
 		{error, _} ->
 			?LOG_WARNING([{event, failed_to_resolve_vdf_client_peer_before_push},
 					{raw_peer, io_lib:format("~p", [RawPeer])}]),
@@ -94,7 +94,7 @@ terminate(_Reason, _State) ->
 handle_computed_output(Peer, Args, State) ->
 	#state{ pause_until = Timestamp, format = Format } = State,
 	{SessionKey, StepNumber, Output, _PartitionUpperBound} = Args,
-	CurrentStepNumber = ar_nonce_limiter:get_current_step_number(),
+	CurrentStepNumber = big_nonce_limiter:get_current_step_number(),
 	case os:system_time(second) < Timestamp of
 		true ->
 			{noreply, State};
@@ -108,13 +108,13 @@ handle_computed_output(Peer, Args, State) ->
 	end.
 
 push_update(SessionKey, StepNumber, Output, Peer, Format, State) ->
-	Session = ar_nonce_limiter:get_session(SessionKey),
-	Update = ar_nonce_limiter_server:make_partial_nonce_limiter_update(
+	Session = big_nonce_limiter:get_session(SessionKey),
+	Update = big_nonce_limiter_server:make_partial_nonce_limiter_update(
 		SessionKey, Session, StepNumber, Output),
 	case Update of
 		not_found -> State;
 		_ ->
-			case ar_http_iface_client:push_nonce_limiter_update(Peer, Update, Format) of
+			case big_http_iface_client:push_nonce_limiter_update(Peer, Update, Format) of
 				ok ->
 					State;
 				{ok, Response} ->
@@ -132,7 +132,7 @@ push_update(SessionKey, StepNumber, Output, Peer, Format, State) ->
 						{false, _, _, _} ->
 							%% Client requested a different payload format
 							?LOG_DEBUG([{event, vdf_client_requested_different_format},
-								{peer, ar_util:format_peer(Peer)},
+								{peer, big_util:format_peer(Peer)},
 								{format, Format}, {requested_format, RequestedFormat}]),
 							push_update(SessionKey, StepNumber, Output, Peer, RequestedFormat,
 									State#state{ format = RequestedFormat });
@@ -143,7 +143,7 @@ push_update(SessionKey, StepNumber, Output, Peer, Format, State) ->
 						{true, true, false, _} ->
 							%% Client requested the full session
 							PrevSessionKey = Session#vdf_session.prev_session_key,
-							PrevSession = ar_nonce_limiter:get_session(PrevSessionKey),
+							PrevSession = big_nonce_limiter:get_session(PrevSessionKey),
 							case push_session(PrevSessionKey, PrevSession, Peer, Format) of
 								ok ->
 									%% Do not push the new session until the previous
@@ -169,11 +169,11 @@ push_update(SessionKey, StepNumber, Output, Peer, Format, State) ->
 	end.
 
 push_session(SessionKey, Session, Peer, Format) ->
-	Update = ar_nonce_limiter_server:make_full_nonce_limiter_update(SessionKey, Session),
+	Update = big_nonce_limiter_server:make_full_nonce_limiter_update(SessionKey, Session),
 	case Update of
 		not_found -> ok;
 		_ ->
-			case ar_http_iface_client:push_nonce_limiter_update(Peer, Update, Format) of
+			case big_http_iface_client:push_nonce_limiter_update(Peer, Update, Format) of
 				ok ->
 					ok;
 				{ok, #nonce_limiter_update_response{ step_number = ClientStepNumber,
@@ -193,8 +193,8 @@ log_failure(Peer, SessionKey, Update, Error, Extra) ->
 	StepNumber = Update#nonce_limiter_update.session#vdf_session.step_number,
 	Log = [{event, failed_to_push_nonce_limiter_update_to_peer},
 			{reason, io_lib:format("~p", [Error])},
-			{peer, ar_util:format_peer(Peer)},
-			{session_seed, ar_util:encode(SessionSeed)},
+			{peer, big_util:format_peer(Peer)},
+			{session_seed, big_util:encode(SessionSeed)},
 			{session_interval, SessionInterval},
 			{session_difficulty, NextVDFDifficulty},
 			{server_step_number, StepNumber}] ++ Extra,

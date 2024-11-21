@@ -1,12 +1,12 @@
--module(ar_p3_config).
+-module(big_p3_config).
 
 -export([
 	parse_p3/2, validate_config/1, get_payments_value/3, get_service_config/2, get_rate/2,
 	get_json/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_p3.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_p3.hrl").
 
 -define(RATE_TYPE_MAP, #{ <<"request">> => <<"Price per request">> }).
 
@@ -19,7 +19,7 @@
 %%
 %% "p3": {
 %%   "payments": {
-%%     "arweave/AR": {
+%%     "bigfile/BIG": {
 %%       "address": "BHAWuomQUIL18WON2LjqjDF4YuRDcmhme7wvFW2BDiU",
 %%       "minimum_balance": "-1000000",
 %%       "confirmations": 2
@@ -31,10 +31,10 @@
 %%       "modSeq": 1,
 %%       "rate_type": "request",
 %%       "rates": {
-%%         "arweave/AR: {
+%%         "bigfile/BIG: {
 %%           "price":"10000",
 %%         },
-%%         "arweave/VRT": {
+%%         "bigfile/VRT": {
 %%           "price":"1",
 %%         }
 %%       }
@@ -80,7 +80,7 @@ get_payments_value(P3Config, Asset, Field) when
 	end.
 
 get_service_config(P3Config, Req) ->
-	Path = ar_http_iface_server:label_req(Req),
+	Path = big_http_iface_server:label_req(Req),
 	case Path of
 		undefined ->
 			undefined;
@@ -115,11 +115,11 @@ parse_payments([], PaymentsConfig) ->
 parse_payments(BadToken, _PaymentsConfig) ->
 	erlang:error(
 		"'payments' object must be a map of assets to 'payment' objects. " ++
-		"Currently only 'arweave/AR' is supported.",
+		"Currently only 'bigfile/BIG' is supported.",
 		BadToken).
 
 parse_payment([{?P3_ADDRESS_HEADER, Address} | Rest], PaymentConfig) ->
-	case ar_wallet:base64_address_with_optional_checksum_to_decoded_address_safe(Address) of
+	case big_wallet:base64_address_with_optional_checksum_to_decoded_address_safe(Address) of
 		{error, invalid} ->
 			erlang:error(
 				"Invalid 'address' value. " ++
@@ -188,18 +188,18 @@ parse_service(BadToken, _ServiceConfig) ->
 		BadToken).
 
 %% @doc Parse each token in the rates object
-%% {"rate_type": "request", "arweave": {arweave}}
-parse_rates([{?ARWEAVE_AR, Price} | Rest], RatesConfig) ->
+%% {"rate_type": "request", "bigfile": {bigfile}}
+parse_rates([{?BigFile_BIG, Price} | Rest], RatesConfig) ->
 	parse_rates(
 		Rest,
-		RatesConfig#{ ?ARWEAVE_AR => to_integer(Price) });
+		RatesConfig#{ ?BIGFILE_BIG => to_integer(Price) });
 
 parse_rates([], RatesConfig) ->
 	RatesConfig;
 
 parse_rates(BadToken, _RatesConfig) ->
 	erlang:error(
-		"Unexpected 'rates' token. Only 'arweave/AR' is currenty supported.",
+		"Unexpected 'rates' token. Only 'bigfiLe/BIG' is currenty supported.",
 		BadToken).
 
 %% -------------------------------------------------------------------
@@ -207,7 +207,7 @@ parse_rates(BadToken, _RatesConfig) ->
 %% The response structure differs slightly from the config structure:
 %% {
 %%   "payment_methods": {
-%%     "arweave": {
+%%     "bigfile": {
 %%       "AR": {
 %%         "address": "89tR0-C1m3_sCWCoVCChg4gFYKdiH5_ZDyZpdJ2DDRw",
 %%         "minimum_balance": -1000,
@@ -221,7 +221,7 @@ parse_rates(BadToken, _RatesConfig) ->
 %%       "modSeq": 1,
 %%       "rates": {
 %%         "description": "Price per request",
-%%         "arweave": {
+%%         "bigfile": {
 %%           "AR" {
 %%             "price": 1000,
 %%             "address": "89tR0-C1m3_sCWCoVCChg4gFYKdiH5_ZDyZpdJ2DDRw"
@@ -245,7 +245,7 @@ to_json_payments(PaymentsConfig) ->
 
 to_json_payment(PaymentConfig) ->
 	#{
-		<<"address">> => ar_util:encode(PaymentConfig#p3_payment.address),
+		<<"address">> => big_util:encode(PaymentConfig#p3_payment.address),
 		<<"minimum_balance">> => PaymentConfig#p3_payment.minimum_balance,
 		<<"confirmations">> => PaymentConfig#p3_payment.confirmations
 	}.
@@ -273,7 +273,7 @@ to_json_rates(RatesConfig, P3Config) ->
 	maps:fold(
 		fun(Asset, Price, Acc) ->
 			{Network, Token} = ?FROM_P3_ASSET(Asset),
-			Address = ar_util:encode(get_payments_value(P3Config, Asset, #p3_payment.address)),
+			Address = big_util:encode(get_payments_value(P3Config, Asset, #p3_payment.address)),
 			Acc#{
 				Network => #{
 					Token => #{
@@ -327,7 +327,7 @@ validate_endpoint(undefined) ->
 	false;
 validate_endpoint(Endpoint) ->
 	EndpointString = binary_to_list(Endpoint),
-	case ar_http_iface_server:label_http_path(Endpoint) of
+	case big_http_iface_server:label_http_path(Endpoint) of
 		undefined ->
 			false;
 		Label when Label /= EndpointString ->

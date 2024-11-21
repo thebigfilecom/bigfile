@@ -1,4 +1,4 @@
--module(ar_mining_io).
+-module(big_mining_io).
 
 -behaviour(gen_server).
 
@@ -7,10 +7,10 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_mining.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_mining.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -define(CACHE_TTL_MS, 2000).
@@ -42,7 +42,7 @@ read_recall_range(WhichChunk, Worker, Candidate, RecallRangeStart) ->
 get_partitions(PartitionUpperBound) when PartitionUpperBound =< 0 ->
 	[];
 get_partitions(PartitionUpperBound) ->
-	Max = ar_node:get_max_partition_number(PartitionUpperBound),
+	Max = big_node:get_max_partition_number(PartitionUpperBound),
 	lists:sort(sets:to_list(
 		lists:foldl(
 			fun({Partition, MiningAddress, PackingDifficulty, _StoreID}, Acc) ->
@@ -93,8 +93,8 @@ handle_call({read_recall_range, WhichChunk, Worker, Candidate, RecallRangeStart}
 		#state{ io_threads = IOThreads } = State) ->
 	#mining_candidate{ mining_address = MiningAddress,
 		packing_difficulty = PackingDifficulty } = Candidate,
-	PartitionNumber = ar_node:get_partition_number(RecallRangeStart),
-	RangeEnd = RecallRangeStart + ar_block:get_recall_range_size(PackingDifficulty),
+	PartitionNumber = big_node:get_partition_number(RecallRangeStart),
+	RangeEnd = RecallRangeStart + big_block:get_recall_range_size(PackingDifficulty),
 	ThreadFound = case find_thread(PartitionNumber, MiningAddress, PackingDifficulty,
 			RangeEnd, RecallRangeStart, IOThreads) of
 		not_found ->
@@ -111,11 +111,11 @@ handle_call(Request, _From, State) ->
 
 handle_cast(garbage_collect, State) ->
 	erlang:garbage_collect(self(),
-		[{async, {ar_mining_io, self(), erlang:monotonic_time()}}]),
+		[{async, {big_mining_io, self(), erlang:monotonic_time()}}]),
 	maps:fold(
 		fun(_Key, Thread, _) ->
 			erlang:garbage_collect(Thread,
-				[{async, {ar_mining_io_worker, Thread, erlang:monotonic_time()}}])
+				[{async, {big_mining_io_worker, Thread, erlang:monotonic_time()}}])
 		end,
 		ok,
 		State#state.io_threads
@@ -164,7 +164,7 @@ terminate(_Reason, _State) ->
 %% The assumption is that each IO channel represents a distinct 200MiB/s read channel to
 %% which we will (later) assign an IO thread.
 get_io_channels() ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	MiningAddress = Config#config.mining_addr,
 
 	%% First get the start/end ranges for all storage modules configured for the mining address.
@@ -173,13 +173,13 @@ get_io_channels() ->
 			fun	({BucketSize, Bucket, {spora_2_6, Addr}} = M, Acc) when Addr == MiningAddress ->
 					Start = Bucket * BucketSize,
 					End = (Bucket + 1) * BucketSize,
-					StoreID = ar_storage_module:id(M),
+					StoreID = big_storage_module:id(M),
 					[{Start, End, MiningAddress, 0, StoreID} | Acc];
 				({BucketSize, Bucket, {composite, Addr, PackingDifficulty}} = M, Acc)
 						when Addr == MiningAddress ->
 					Start = Bucket * BucketSize,
 					End = (Bucket + 1) * BucketSize,
-					StoreID = ar_storage_module:id(M),
+					StoreID = big_storage_module:id(M),
 					[{Start, End, MiningAddress, PackingDifficulty, StoreID} | Acc];
 				(_Module, Acc) ->
 					Acc
@@ -198,7 +198,7 @@ get_io_channels([{Start, End, _MiningAddress, _PackingDifficulty, _StoreID} | St
 	get_io_channels(StorageModules, Channels);
 get_io_channels([{Start, End, MiningAddress, PackingDifficulty, StoreID} | StorageModules],
 		Channels) ->
-	PartitionNumber = ar_node:get_partition_number(Start),
+	PartitionNumber = big_node:get_partition_number(Start),
 	Channels2 = [{PartitionNumber, MiningAddress, PackingDifficulty, StoreID} | Channels],
 	StorageModules2 = [{Start + ?PARTITION_SIZE,
 			End, MiningAddress, PackingDifficulty, StoreID} | StorageModules],
@@ -218,7 +218,7 @@ start_io_thread(PartitionNumber, MiningAddress, PackingDifficulty, StoreID,
 					"default" ->
 						ok;
 					_ ->
-						ar_chunk_storage:open_files(StoreID)
+						big_chunk_storage:open_files(StoreID)
 				end,
 				io_thread(PartitionNumber, MiningAddress, PackingDifficulty, StoreID, #{}, Now)
 			end
@@ -229,7 +229,7 @@ start_io_thread(PartitionNumber, MiningAddress, PackingDifficulty, StoreID,
 	Refs2 = maps:put(Ref, Key, Refs),
 	?LOG_DEBUG([{event, started_io_mining_thread},
 			{partition_number, PartitionNumber},
-			{mining_addr, ar_util:safe_encode(MiningAddress)},
+			{mining_addr, big_util:safe_encode(MiningAddress)},
 			{packing_difficulty, PackingDifficulty},
 			{store_id, StoreID}]),
 	State#state{ io_threads = Threads2, io_thread_monitor_refs = Refs2 }.
@@ -249,7 +249,7 @@ io_thread(PartitionNumber, MiningAddress, PackingDifficulty, StoreID, Cache, Las
 		{WhichChunk, {Worker, Candidate, RecallRangeStart}} ->
 			{ChunkOffsets, Cache2} =
 				get_chunks(WhichChunk, Candidate, RecallRangeStart, StoreID, Cache),
-			ar_mining_worker:chunks_read(
+			big_mining_worker:chunks_read(
 				Worker, WhichChunk, Candidate, RecallRangeStart, ChunkOffsets),
 			{Cache3, LastClearTime2} = maybe_clear_cached_chunks(Cache2, LastClearTime),
 			io_thread(PartitionNumber, MiningAddress, PackingDifficulty, StoreID,
@@ -257,13 +257,13 @@ io_thread(PartitionNumber, MiningAddress, PackingDifficulty, StoreID, Cache, Las
 	end.
 
 get_packed_intervals(Start, End, MiningAddress, PackingDifficulty, "default", Intervals) ->
-	Packing = ar_block:get_packing(PackingDifficulty, MiningAddress),
-	case ar_sync_record:get_next_synced_interval(Start, End, Packing, ar_data_sync, "default") of
+	Packing = big_block:get_packing(PackingDifficulty, MiningAddress),
+	case big_sync_record:get_next_synced_interval(Start, End, Packing, big_data_sync, "default") of
 		not_found ->
 			Intervals;
 		{Right, Left} ->
 			get_packed_intervals(Right, End, MiningAddress, PackingDifficulty, "default",
-					ar_intervals:add(Intervals, Right, Left))
+					big_intervals:add(Intervals, Right, Left))
 	end;
 get_packed_intervals(_Start, _End, _MiningAddr, _PackingDifficulty, _StoreID, _Intervals) ->
 	no_interval_check_implemented_for_non_default_store.
@@ -319,10 +319,10 @@ cached_read_range(WhichChunk, Candidate, RangeStart, StoreID, Cache) ->
 				{store_id, StoreID},
 				{partition_number, Candidate#mining_candidate.partition_number},
 				{partition_number2, Candidate#mining_candidate.partition_number2},
-				{cm_peer, ar_util:format_peer(Candidate#mining_candidate.cm_lead_peer)},
+				{cm_peer, big_util:format_peer(Candidate#mining_candidate.cm_lead_peer)},
 				{cache_ref, Candidate#mining_candidate.cache_ref},
 				{session,
-				ar_nonce_limiter:encode_session_key(Candidate#mining_candidate.session_key)}]),
+				big_nonce_limiter:encode_session_key(Candidate#mining_candidate.session_key)}]),
 			{ChunkOffsets, Cache}
 	end.
 
@@ -330,10 +330,10 @@ read_range(WhichChunk, Candidate, RangeStart, StoreID) ->
 	StartTime = erlang:monotonic_time(),
 	#mining_candidate{ mining_address = MiningAddress,
 			packing_difficulty = PackingDifficulty } = Candidate,
-	RecallRangeSize = ar_block:get_recall_range_size(PackingDifficulty),
+	RecallRangeSize = big_block:get_recall_range_size(PackingDifficulty),
 	Intervals = get_packed_intervals(RangeStart, RangeStart + RecallRangeSize,
-			MiningAddress, PackingDifficulty, StoreID, ar_intervals:new()),
-	ChunkOffsets = ar_chunk_storage:get_range(RangeStart, RecallRangeSize, StoreID),
+			MiningAddress, PackingDifficulty, StoreID, big_intervals:new()),
+	ChunkOffsets = big_chunk_storage:get_range(RangeStart, RecallRangeSize, StoreID),
 	ChunkOffsets2 = filter_by_packing(ChunkOffsets, Intervals, StoreID),
 	log_read_range(Candidate, WhichChunk, length(ChunkOffsets), StartTime),
 	ChunkOffsets2.
@@ -341,7 +341,7 @@ read_range(WhichChunk, Candidate, RangeStart, StoreID) ->
 filter_by_packing([], _Intervals, _StoreID) ->
 	[];
 filter_by_packing([{EndOffset, Chunk} | ChunkOffsets], Intervals, "default" = StoreID) ->
-	case ar_intervals:is_inside(Intervals, EndOffset) of
+	case big_intervals:is_inside(Intervals, EndOffset) of
 		false ->
 			filter_by_packing(ChunkOffsets, Intervals, StoreID);
 		true ->
@@ -363,7 +363,7 @@ log_read_range(Candidate, WhichChunk, FoundChunks, StartTime) ->
 		chunk2 -> Candidate#mining_candidate.partition_number2
 	end,
 
-	ar_mining_stats:raw_read_rate(PartitionNumber, ReadRate),
+	big_mining_stats:raw_read_rate(PartitionNumber, ReadRate),
 
 	% ?LOG_DEBUG([{event, mining_debug_read_recall_range},
 	% 		{thread, self()},
@@ -398,7 +398,7 @@ find_thread2(PartitionNumber, MiningAddress, PackingDifficulty, Iterator) ->
 
 find_thread3([Key | Keys], RangeEnd, RangeStart, Max, MaxKey) ->
 	{_PartitionNumber, _MiningAddress, _PackingDifficulty, StoreID} = Key,
-	I = ar_sync_record:get_intersection_size(RangeEnd, RangeStart, ar_chunk_storage, StoreID),
+	I = big_sync_record:get_intersection_size(RangeEnd, RangeStart, big_chunk_storage, StoreID),
 	case I > Max of
 		true ->
 			find_thread3(Keys, RangeEnd, RangeStart, I, Key);

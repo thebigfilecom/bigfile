@@ -1,16 +1,16 @@
--module(ar_join).
+-module(big_join).
 
 -export([start/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %%% Represents a process that handles downloading the block index and the latest
 %%% blocks from the trusted peers, to initialize the node state.
 
 %% The number of block index elements to fetch per request.
-%% Must not exceed ?MAX_BLOCK_INDEX_RANGE_SIZE defined in ar_http_iface_middleware.erl.
+%% Must not exceed ?MAX_BLOCK_INDEX_RANGE_SIZE defined in big_http_iface_middleware.erl.
 -ifdef(DEBUG).
 -define(REQUEST_BLOCK_INDEX_RANGE_SIZE, 2).
 -else.
@@ -33,10 +33,10 @@ filter_peers(Peers) ->
 	filter_peers(Peers, []).
 
 filter_peers([Peer | Peers], Peers2) ->
-	case ar_http_iface_client:get_info(Peer, height) of
+	case big_http_iface_client:get_info(Peer, height) of
 		info_unavailable ->
 			?LOG_WARNING([{event, trusted_peer_unavailable},
-					{peer, ar_util:format_peer(Peer)}]),
+					{peer, big_util:format_peer(Peer)}]),
 			filter_peers(Peers, Peers2);
 		Height ->
 			filter_peers(Peers, [{Height, Peer} | Peers2])
@@ -51,32 +51,32 @@ filter_peers2([], _MaxHeight) ->
 	[];
 filter_peers2([{Height, Peer} | Peers], MaxHeight) when MaxHeight - Height >= 5 ->
 	?LOG_WARNING([{event, trusted_peer_five_or_more_blocks_behind},
-			{peer, ar_util:format_peer(Peer)}]),
+			{peer, big_util:format_peer(Peer)}]),
 	filter_peers2(Peers, MaxHeight);
 filter_peers2([{_Height, Peer} | Peers], MaxHeight) ->
 	[Peer | filter_peers2(Peers, MaxHeight)].
 
 start2([]) ->
-	ar:console("~nTrusted peers are not available.~n", []),
+	big:console("~nTrusted peers are not available.~n", []),
 	?LOG_WARNING([{event, not_joining}, {reason, trusted_peers_not_available}]),
 	timer:sleep(1000),
 	erlang:halt();
 start2(Peers) ->
-	ar:console("Joining the Arweave network...~n"),
+	big:console("Joining the Arweave network...~n"),
 	[{H, _, _} | _] = BI = get_block_index(Peers, ?REJOIN_RETRIES),
-	ar:console("Downloaded the block index successfully.~n", []),
+	big:console("Downloaded the block index successfully.~n", []),
 	B = get_block(Peers, H),
-	ExpectedBIMerkleH = ar_unbalanced_merkle:block_index_to_merkle_root(tl(BI)),
+	ExpectedBIMerkleH = big_unbalanced_merkle:block_index_to_merkle_root(tl(BI)),
 	case B#block.hash_list_merkle of
 		ExpectedBIMerkleH ->
 			do_join(Peers, B, BI);
 		_ ->
-			{ok, Config} = application:get_env(arweave, config),
-			ID = binary_to_list(ar_util:encode(crypto:strong_rand_bytes(16))),
+			{ok, Config} = application:get_env(bigfile, config),
+			ID = binary_to_list(big_util:encode(crypto:strong_rand_bytes(16))),
 			File = filename:join(Config#config.data_dir,
 					"inconsistent_joining_data_dump_" ++ ID),
 			file:write_file(File, term_to_binary({B, Peers, BI})),
-			ar:console("Inconsistent head block and block index. Error dump: ~s.", [File]),
+			big:console("Inconsistent head block and block index. Error dump: ~s.", [File]),
 			timer:sleep(2000),
 			erlang:halt()
 	end.
@@ -86,7 +86,7 @@ get_block_index(Peers, Retries) ->
 		unavailable ->
 			case Retries > 0 of
 				true ->
-					ar:console(
+					big:console(
 						"Failed to fetch the block index from any of the peers."
 						" Retrying..~n"
 					),
@@ -94,7 +94,7 @@ get_block_index(Peers, Retries) ->
 					timer:sleep(?REJOIN_TIMEOUT),
 					get_block_index(Peers, Retries - 1);
 				false ->
-					ar:console(
+					big:console(
 						"Failed to fetch the block index from any of the peers. Giving up.."
 						" Consider changing the peers.~n"
 					),
@@ -117,12 +117,12 @@ get_block_index([Peer | Peers]) ->
 	end.
 
 get_block_index2(Peer) ->
-	Height = ar_http_iface_client:get_info(Peer, height),
+	Height = big_http_iface_client:get_info(Peer, height),
 	get_block_index2(Peer, 0, Height, []).
 
 get_block_index2(Peer, Start, Height, BI) ->
 	N = ?REQUEST_BLOCK_INDEX_RANGE_SIZE,
-	case ar_http_iface_client:get_block_index(Peer, min(Start, Height),
+	case big_http_iface_client:get_block_index(Peer, min(Start, Height),
 			min(Height, Start + N - 1)) of
 		{ok, Range} when length(Range) < N ->
 			case Start of
@@ -154,7 +154,7 @@ get_block_index2(Peer, Start, Height, BI) ->
 	end.
 
 get_block(Peers, H) ->
-	case ar_storage:read_block(H) of
+	case big_storage:read_block(H) of
 		unavailable ->
 			get_block(Peers, H, 10);
 		BShadow ->
@@ -162,31 +162,31 @@ get_block(Peers, H) ->
 	end.
 
 get_block(Peers, H, Retries) ->
-	ar:console("Downloading joining block ~s.~n", [ar_util:encode(H)]),
-	case ar_http_iface_client:get_block_shadow(Peers, H) of
+	big:console("Downloading joining block ~s.~n", [big_util:encode(H)]),
+	case big_http_iface_client:get_block_shadow(Peers, H) of
 		{_Peer, #block{} = BShadow, _Time, _Size} ->
 			get_block(Peers, BShadow, BShadow#block.txs, [], Retries);
 		_ ->
 			case Retries > 0 of
 				true ->
-					ar:console(
+					big:console(
 						"Failed to fetch a joining block ~s from any of the peers."
-						" Retrying..~n", [ar_util:encode(H)]
+						" Retrying..~n", [big_util:encode(H)]
 					),
 					?LOG_WARNING([
 						{event, failed_to_fetch_joining_block},
-						{block, ar_util:encode(H)}
+						{block, big_util:encode(H)}
 					]),
 					timer:sleep(1000),
 					get_block(Peers, H, Retries - 1);
 				false ->
-					ar:console(
+					big:console(
 						"Failed to fetch a joining block ~s from any of the peers. Giving up.."
-						" Consider changing the peers.~n", [ar_util:encode(H)]
+						" Consider changing the peers.~n", [big_util:encode(H)]
 					),
 					?LOG_ERROR([
 						{event, failed_to_fetch_joining_block},
-						{block, ar_util:encode(H)}
+						{block, big_util:encode(H)}
 					]),
 					timer:sleep(1000),
 					erlang:halt()
@@ -196,30 +196,30 @@ get_block(Peers, H, Retries) ->
 get_block(_Peers, BShadow, [], TXs, _Retries) ->
 	BShadow#block{ txs = lists:reverse(TXs) };
 get_block(Peers, BShadow, [TXID | TXIDs], TXs, Retries) ->
-	case ar_http_iface_client:get_tx(Peers, TXID) of
+	case big_http_iface_client:get_tx(Peers, TXID) of
 		#tx{} = TX ->
 			get_block(Peers, BShadow, TXIDs, [TX | TXs], Retries);
 		_ ->
 			case Retries > 0 of
 				true ->
-					ar:console(
+					big:console(
 						"Failed to fetch a joining transaction ~s from any of the peers."
-						" Retrying..~n", [ar_util:encode(TXID)]
+						" Retrying..~n", [big_util:encode(TXID)]
 					),
 					?LOG_WARNING([
 						{event, failed_to_fetch_joining_tx},
-						{tx, ar_util:encode(TXID)}
+						{tx, big_util:encode(TXID)}
 					]),
 					timer:sleep(1000),
 					get_block(Peers, BShadow, [TXID | TXIDs], TXs, Retries - 1);
 				false ->
-					ar:console(
+					big:console(
 						"Failed to fetch a joining tx ~s from any of the peers. Giving up.."
-						" Consider changing the peers.~n", [ar_util:encode(TXID)]
+						" Consider changing the peers.~n", [big_util:encode(TXID)]
 					),
 					?LOG_ERROR([
 						{event, failed_to_fetch_joining_tx},
-						{block, ar_util:encode(TXID)}
+						{block, big_util:encode(TXID)}
 					]),
 					timer:sleep(1000),
 					erlang:halt()
@@ -228,20 +228,20 @@ get_block(Peers, BShadow, [TXID | TXIDs], TXs, Retries) ->
 
 %% @doc Perform the joining process.
 do_join(Peers, B, BI) ->
-	ar:console("Downloading the block trail.~n", []),
-	{ok, Config} = application:get_env(arweave, config),
+	big:console("Downloading the block trail.~n", []),
+	{ok, Config} = application:get_env(bigfile, config),
 	WorkerQ = queue:from_list([spawn(fun() -> worker() end)
 			|| _ <- lists:seq(1, Config#config.join_workers)]),
 	PeerQ = queue:from_list(Peers),
 	Trail = lists:sublist(tl(BI), 2 * ?MAX_TX_ANCHOR_DEPTH),
-	SizeTaggedTXs = ar_block:generate_size_tagged_list_from_txs(B#block.txs, B#block.height),
+	SizeTaggedTXs = big_block:generate_size_tagged_list_from_txs(B#block.txs, B#block.height),
 	Retries = lists:foldl(fun(Peer, Acc) -> maps:put(Peer, 10, Acc) end, #{}, Peers),
 	Blocks = [B#block{ size_tagged_txs = SizeTaggedTXs }
 			| get_block_trail(WorkerQ, PeerQ, Trail, Retries)],
-	ar:console("Downloaded the block trail successfully.~n", []),
+	big:console("Downloaded the block trail successfully.~n", []),
 	Blocks2 = maybe_set_reward_history(Blocks, Peers),
 	Blocks3 = maybe_set_block_time_history(Blocks2, Peers),
-	ar_node_worker ! {join, B#block.height, BI, Blocks3},
+	big_node_worker ! {join, B#block.height, BI, Blocks3},
 	join_peers(Peers).
 
 %% @doc Get the 2 * ?MAX_TX_ANCHOR_DEPTH blocks preceding the head block.
@@ -270,7 +270,7 @@ request_blocks([{H, _, _} | Trail], WorkerQ, PeerQ) ->
 get_block_trail_loop(WorkerQ, PeerQ, Retries, Trail, FetchState) ->
 	receive
 		{block_response, H, _Peer, {_, #block{} = BShadow, _, _}} ->
-			ar_disk_cache:write_block_shadow(BShadow),
+			big_disk_cache:write_block_shadow(BShadow),
 			TXCount = length(BShadow#block.txs),
 			FetchState2 = maps:put(H, {BShadow, #{}, TXCount}, FetchState),
 			AwaitingBlockCount = maps:get(awaiting_block_count, FetchState2),
@@ -295,12 +295,12 @@ get_block_trail_loop(WorkerQ, PeerQ, Retries, Trail, FetchState) ->
 			PeerRetries = maps:get(Peer, Retries),
 			case PeerRetries > 0 of
 				true ->
-					ar:console("Failed to fetch a joining block ~s from ~s."
-							" Retrying..~n", [ar_util:encode(H), ar_util:format_peer(Peer)]),
+					big:console("Failed to fetch a joining block ~s from ~s."
+							" Retrying..~n", [big_util:encode(H), big_util:format_peer(Peer)]),
 					?LOG_WARNING([
 						{event, failed_to_fetch_joining_block},
-						{block, ar_util:encode(H)},
-						{peer, ar_util:format_peer(Peer)},
+						{block, big_util:encode(H)},
+						{peer, big_util:format_peer(Peer)},
 						{response, io_lib:format("~p", [Response])}
 					]),
 					timer:sleep(1000),
@@ -310,7 +310,7 @@ get_block_trail_loop(WorkerQ, PeerQ, Retries, Trail, FetchState) ->
 				false ->
 					case queue:to_list(PeerQ) of
 						[Peer] -> % The last peer left and it is out of attempts.
-							ar:console(
+							big:console(
 								"Failed to fetch the joining headers from any of the peers, "
 								"consider trying some other trusted peers.", []),
 							?LOG_ERROR([{event, failed_to_join}]),
@@ -324,13 +324,13 @@ get_block_trail_loop(WorkerQ, PeerQ, Retries, Trail, FetchState) ->
 											FetchState);
 								true ->
 									PeerQ2 = queue:delete(Peer, PeerQ),
-									ar:console("Failed to fetch a joining block ~s from ~s. "
+									big:console("Failed to fetch a joining block ~s from ~s. "
 											"Removing the peer from the queue..",
-											[ar_util:encode(H), ar_util:format_peer(Peer)]),
+											[big_util:encode(H), big_util:format_peer(Peer)]),
 									?LOG_ERROR([
 										{event, failed_to_fetch_joining_block},
-										{block, ar_util:encode(H)},
-										{peer, ar_util:format_peer(Peer)},
+										{block, big_util:encode(H)},
+										{peer, big_util:format_peer(Peer)},
 										{response, io_lib:format("~p", [Response])}
 									]),
 									{WorkerQ2, PeerQ3} = request_block(H, WorkerQ, PeerQ2),
@@ -340,7 +340,7 @@ get_block_trail_loop(WorkerQ, PeerQ, Retries, Trail, FetchState) ->
 					end
 			end;
 		{tx_response, H, TXID, _Peer, #tx{} = TX} ->
-			ar_disk_cache:write_tx(TX),
+			big_disk_cache:write_tx(TX),
 			{BShadow, TXMap, AwaitingTXCount} = maps:get(H, FetchState),
 			TXMap2 = maps:put(TXID, TX, TXMap),
 			AwaitingTXCount2 = AwaitingTXCount - 1,
@@ -366,12 +366,12 @@ get_block_trail_loop(WorkerQ, PeerQ, Retries, Trail, FetchState) ->
 			PeerRetries = maps:get(Peer, Retries),
 			case PeerRetries > 0 of
 				true ->
-					ar:console("Failed to fetch a joining transaction ~s from ~s. "
-							"Retrying..~n", [ar_util:encode(TXID), ar_util:format_peer(Peer)]),
+					big:console("Failed to fetch a joining transaction ~s from ~s. "
+							"Retrying..~n", [big_util:encode(TXID), big_util:format_peer(Peer)]),
 					?LOG_WARNING([{event, failed_to_fetch_joining_tx},
-							{block, ar_util:encode(H)},
-							{tx, ar_util:encode(TXID)},
-							{peer, ar_util:format_peer(Peer)},
+							{block, big_util:encode(H)},
+							{tx, big_util:encode(TXID)},
+							{peer, big_util:format_peer(Peer)},
 							{response, io_lib:format("~p", [Response])}]),
 					timer:sleep(1000),
 					Retries2 = maps:put(Peer, PeerRetries - 1, Retries),
@@ -380,7 +380,7 @@ get_block_trail_loop(WorkerQ, PeerQ, Retries, Trail, FetchState) ->
 				false ->
 					case queue:to_list(PeerQ) of
 						[Peer] -> % The last peer left and it is out of attempts.
-							ar:console(
+							big:console(
 								"Failed to fetch the joining headers from any of the peers, "
 								"consider trying some other trusted peers.", []),
 							?LOG_ERROR([{event, failed_to_join}]),
@@ -394,14 +394,14 @@ get_block_trail_loop(WorkerQ, PeerQ, Retries, Trail, FetchState) ->
 											FetchState);
 								true ->
 									PeerQ2 = queue:delete(Peer, PeerQ),
-									ar:console("Failed to fetch a joining tx ~s from ~s. "
+									big:console("Failed to fetch a joining tx ~s from ~s. "
 											"Removing the peer from the queue..",
-											[ar_util:encode(TXID), ar_util:format_peer(Peer)]),
+											[big_util:encode(TXID), big_util:format_peer(Peer)]),
 									?LOG_ERROR([
 										{event, failed_to_fetch_joining_tx},
-										{block, ar_util:encode(H)},
-										{tx, ar_util:encode(TXID)},
-										{peer, ar_util:format_peer(Peer)},
+										{block, big_util:encode(H)},
+										{tx, big_util:encode(TXID)},
+										{peer, big_util:format_peer(Peer)},
 										{response, io_lib:format("~p", [Response])}
 									]),
 									{WorkerQ2, PeerQ3} = request_tx(H, TXID, WorkerQ, PeerQ2),
@@ -429,7 +429,7 @@ get_blocks([], _FetchState) ->
 get_blocks([{H, _, _} | Trail], FetchState) ->
 	{B, TXMap, _} = maps:get(H, FetchState),
 	TXs = [maps:get(TXID, TXMap) || TXID <- B#block.txs],
-	SizeTaggedTXs = ar_block:generate_size_tagged_list_from_txs(TXs, B#block.height),
+	SizeTaggedTXs = big_block:generate_size_tagged_list_from_txs(TXs, B#block.height),
 	[B#block{ txs = TXs, size_tagged_txs = SizeTaggedTXs } | get_blocks(Trail, FetchState)].
 
 request_block(H, WorkerQ, PeerQ) ->
@@ -440,32 +440,32 @@ request_block(H, WorkerQ, PeerQ) ->
 
 maybe_set_reward_history(Blocks, Peers) ->
 	HeadB = hd(Blocks),
-	ExpectedHashesLen = ar_rewards:expected_hashes_length(HeadB#block.height),
+	ExpectedHashesLen = big_rewards:expected_hashes_length(HeadB#block.height),
 	ExpectedHashes = [B#block.reward_history_hash
 			|| B <- lists:sublist(Blocks, ExpectedHashesLen)],
-	case ar_http_iface_client:get_reward_history(Peers, HeadB, ExpectedHashes) of
+	case big_http_iface_client:get_reward_history(Peers, HeadB, ExpectedHashes) of
 		{ok, RewardHistory} ->
-			ar_rewards:set_reward_history(Blocks, RewardHistory);
+			big_rewards:set_reward_history(Blocks, RewardHistory);
 		_ ->
-			ar:console("Failed to fetch the reward history for the block ~s from "
+			big:console("Failed to fetch the reward history for the block ~s from "
 					"any of the peers. Consider changing the peers.~n",
-					[ar_util:encode((hd(Blocks))#block.indep_hash)]),
+					[big_util:encode((hd(Blocks))#block.indep_hash)]),
 			?LOG_WARNING([{event, failed_to_fetch_reward_history}]),
 			timer:sleep(1000),
 			erlang:halt()
 	end.
 
 maybe_set_block_time_history([#block{ height = Height } | _] = Blocks, Peers) ->
-	case Height >= ar_fork:height_2_7() of
+	case Height >= big_fork:height_2_7() of
 		true ->
-			case ar_http_iface_client:get_block_time_history(
-					Peers, hd(Blocks), ar_block_time_history:get_hashes(Blocks)) of
+			case big_http_iface_client:get_block_time_history(
+					Peers, hd(Blocks), big_block_time_history:get_hashes(Blocks)) of
 				{ok, BlockTimeHistory} ->
-					ar_block_time_history:set_history(Blocks, BlockTimeHistory);
+					big_block_time_history:set_history(Blocks, BlockTimeHistory);
 				_ ->
-					ar:console("Failed to fetch the block time history for the block ~s from "
+					big:console("Failed to fetch the block time history for the block ~s from "
 							"any of the peers. Consider changing the peers.~n",
-							[ar_util:encode((hd(Blocks))#block.indep_hash)]),
+							[big_util:encode((hd(Blocks))#block.indep_hash)]),
 					timer:sleep(1000),
 					erlang:halt()
 			end;
@@ -476,7 +476,7 @@ maybe_set_block_time_history([#block{ height = Height } | _] = Blocks, Peers) ->
 join_peers(Peers) ->
 	lists:foreach(
 		fun(Peer) ->
-			ar_http_iface_client:add_peer(Peer)
+			big_http_iface_client:add_peer(Peer)
 		end,
 		Peers
 	).
@@ -484,10 +484,10 @@ join_peers(Peers) ->
 worker() ->
 	receive
 		{get_block_shadow, H, Peer, From} ->
-			From ! {block_response, H, Peer, ar_http_iface_client:get_block_shadow([Peer], H)},
+			From ! {block_response, H, Peer, big_http_iface_client:get_block_shadow([Peer], H)},
 			worker();
 		{get_tx, H, TXID, Peer, From} ->
-			From ! {tx_response, H, TXID, Peer, ar_http_iface_client:get_tx(Peer, TXID)},
+			From ! {tx_response, H, TXID, Peer, big_http_iface_client:get_tx(Peer, TXID)},
 			worker()
 	end.
 
@@ -498,27 +498,27 @@ worker() ->
 %% @doc Check that nodes can join a running network by using the fork recoverer.
 basic_node_join_test() ->
 	{timeout, 60, fun() ->
-		[B0] = ar_weave:init([]),
-		ar_test_node:start(B0),
-		ar_test_node:mine(),
-		ar_test_node:wait_until_height(1),
-		ar_test_node:mine(),
-		ar_test_node:wait_until_height(2),
-		ar_test_node:join_on(#{ node => peer1, join_on => main }),
-		ar_test_node:assert_wait_until_height(peer1, 2)
+		[B0] = big_weave:init([]),
+		big_test_node:start(B0),
+		big_test_node:mine(),
+		big_test_node:wait_until_height(1),
+		big_test_node:mine(),
+		big_test_node:wait_until_height(2),
+		big_test_node:join_on(#{ node => peer1, join_on => main }),
+		big_test_node:assert_wait_until_height(peer1, 2)
 	end}.
 
 %% @doc Ensure that both nodes can mine after a join.
 node_join_test() ->
 	{timeout, 60, fun() ->
-		[B0] = ar_weave:init([]),
-		ar_test_node:start(B0),
-		ar_test_node:mine(),
-		ar_test_node:wait_until_height(1),
-		ar_test_node:mine(),
-		ar_test_node:wait_until_height(2),
-		ar_test_node:join_on(#{ node => peer1, join_on => main }),
-		ar_test_node:assert_wait_until_height(peer1, 2),
-		ar_test_node:mine(peer1),
-		ar_test_node:wait_until_height(3)
+		[B0] = big_weave:init([]),
+		big_test_node:start(B0),
+		big_test_node:mine(),
+		big_test_node:wait_until_height(1),
+		big_test_node:mine(),
+		big_test_node:wait_until_height(2),
+		big_test_node:join_on(#{ node => peer1, join_on => main }),
+		big_test_node:assert_wait_until_height(peer1, 2),
+		big_test_node:mine(peer1),
+		big_test_node:wait_until_height(3)
 	end}.

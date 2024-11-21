@@ -1,4 +1,4 @@
--module(ar_mining_hash).
+-module(big_mining_hash).
 
 -behaviour(gen_server).
 
@@ -7,10 +7,10 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_mining.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_mining.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -record(state, {
@@ -43,7 +43,7 @@ garbage_collect() ->
 %%%===================================================================
 
 init([]) ->
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	State = lists:foldl(
 		fun(_, Acc) -> start_hashing_thread(Acc) end,
 		#state{},
@@ -63,11 +63,11 @@ handle_cast({compute, HashType, Worker, Candidate},
 
 handle_cast(garbage_collect, State) ->
 	erlang:garbage_collect(self(),
-		[{async, {ar_mining_hash, self(), erlang:monotonic_time()}}]),
+		[{async, {big_mining_hash, self(), erlang:monotonic_time()}}]),
 	queue:fold(
 		fun(Thread, _) ->
 			erlang:garbage_collect(Thread,
-				[{async, {ar_mining_hash_worker, Thread, erlang:monotonic_time()}}])
+				[{async, {big_mining_hash_worker, Thread, erlang:monotonic_time()}}])
 		end,
 		ok,
 		State#state.hashing_threads
@@ -115,7 +115,7 @@ start_hashing_thread(State) ->
 	#state{ hashing_threads = Threads, hashing_thread_monitor_refs = Refs } = State,
 	Thread = spawn_link(
 		fun() ->
-			hashing_thread(ar_packing_server:get_packing_state())
+			hashing_thread(big_packing_server:get_packing_state())
 		end
 	),
 	Ref = monitor(process, Thread),
@@ -140,19 +140,19 @@ hashing_thread(PackingState) ->
 				mining_address = MiningAddress, nonce_limiter_output = Output,
 				partition_number = PartitionNumber, seed = Seed,
 				packing_difficulty = PackingDifficulty } = Candidate,
-			H0 = ar_block:compute_h0(Output, PartitionNumber, Seed, MiningAddress,
+			H0 = big_block:compute_h0(Output, PartitionNumber, Seed, MiningAddress,
 					PackingDifficulty, PackingState),
-			ar_mining_worker:computed_hash(Worker, computed_h0, H0, undefined, Candidate),
+			big_mining_worker:computed_hash(Worker, computed_h0, H0, undefined, Candidate),
 			hashing_thread(PackingState);
 		{compute, h1, Worker, Candidate} ->
 			#mining_candidate{ h0 = H0, nonce = Nonce, chunk1 = Chunk1 } = Candidate,
-			{H1, Preimage} = ar_block:compute_h1(H0, Nonce, Chunk1),
-			ar_mining_worker:computed_hash(Worker, computed_h1, H1, Preimage, Candidate),
+			{H1, Preimage} = big_block:compute_h1(H0, Nonce, Chunk1),
+			big_mining_worker:computed_hash(Worker, computed_h1, H1, Preimage, Candidate),
 			hashing_thread(PackingState);
 		{compute, h2, Worker, Candidate} ->
 			#mining_candidate{ h0 = H0, h1 = H1, chunk2 = Chunk2 } = Candidate,
-			{H2, Preimage} = ar_block:compute_h2(H1, Chunk2, H0),
-			ar_mining_worker:computed_hash(Worker, computed_h2, H2, Preimage, Candidate),
+			{H2, Preimage} = big_block:compute_h2(H1, Chunk2, H0),
+			big_mining_worker:computed_hash(Worker, computed_h2, H2, Preimage, Candidate),
 			hashing_thread(PackingState)
 	end.
 

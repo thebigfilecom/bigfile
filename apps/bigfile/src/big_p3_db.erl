@@ -1,10 +1,10 @@
--module(ar_p3_db).
+-module(big_p3_db).
 
 -behaviour(gen_server).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_p3.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_p3.hrl").
 
 -export([
 	get_or_create_account/3, get_account/1, get_transaction/2, get_balance/1, get_balance/2,
@@ -70,8 +70,8 @@ get_scan_height() ->
 init([]) ->
 	process_flag(trap_exit, true),
 	%% Database for general P3 state data (e.g. last scanned block height)
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "ar_p3_ledger_db"),
-			ar_p3_state_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_p3_ledger_db"),
+			big_p3_state_db),
 	{ok, #{}}.
 
 handle_call({get_or_create_account, Address, PublicKey, Asset}, _From, State) ->
@@ -148,15 +148,15 @@ terminate(_Reason, _State) ->
 %%%===================================================================
 
 create_account(Address, PublicKey, Asset) ->
-	DatabaseId = binary_to_list(ar_util:encode(Address)),
+	DatabaseId = binary_to_list(big_util:encode(Address)),
 	BasicOpts = [{max_open_files, 10000}],
 
 	ColumnFamilyDescriptors = [
 		{"default", BasicOpts},
 		{"p3_account", BasicOpts},
 		{"p3_tx", BasicOpts}],
-	ok = ar_kv:open(
-		filename:join([?ROCKS_DB_DIR, "ar_p3_ledger_db", DatabaseId]),
+	ok = big_kv:open(
+		filename:join([?ROCKS_DB_DIR, "big_p3_ledger_db", DatabaseId]),
 		ColumnFamilyDescriptors, [],
 		[{?MODULE, Address}, {p3_account, Address}, {p3_tx, Address}]),
 	Account = #p3_account{
@@ -180,7 +180,7 @@ get_account2(Address) ->
 
 put_account(Account) ->
 	Address = Account#p3_account.address,
-	ar_kv:put({p3_account, Address}, Address, term_to_binary(Account)).
+	big_kv:put({p3_account, Address}, Address, term_to_binary(Account)).
 
 request_label(#{ method := Method, path := Path })
   		when is_bitstring(Method), is_bitstring(Path) ->
@@ -252,7 +252,7 @@ post_transaction(Account, Id, Amount, Description)
 				description = Description,
 				timestamp = os:system_time(microsecond)
 			},
-			ok = ar_kv:put({p3_tx, Address}, term_to_binary(Id), term_to_binary(Transaction)),
+			ok = big_kv:put({p3_tx, Address}, term_to_binary(Id), term_to_binary(Transaction)),
 			ok = put_account(Account#p3_account{
 				count = Account#p3_account.count + 1,
 				balance = Account#p3_account.balance + Amount}
@@ -269,7 +269,7 @@ set_scan_height2(Height) when
 		is_integer(Height), Height >= 0 ->
 	case get_scan_height2() < Height of
 		true ->
-			ar_kv:put(ar_p3_state_db, <<"scan_height">>, term_to_binary(Height)),
+			big_kv:put(big_p3_state_db, <<"scan_height">>, term_to_binary(Height)),
 			{ok, Height};
 		false ->
 			{error, invalid_height}
@@ -278,7 +278,7 @@ set_scan_height2(_) ->
 	{error, invalid_height}.
 
 get_scan_height2() ->
-	case safe_get(ar_p3_state_db, <<"scan_height">>, not_found) of
+	case safe_get(big_p3_state_db, <<"scan_height">>, not_found) of
 		not_found ->
 			0;
 		Height ->
@@ -307,7 +307,7 @@ validated_call(Address, Message) ->
 
 safe_get(Name, Key, Default) ->
 	try
-		case ar_kv:get(Name, Key) of
+		case big_kv:get(Name, Key) of
 			{ok, Value} ->
 				Value;
 			not_found ->

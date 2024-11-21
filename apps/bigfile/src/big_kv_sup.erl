@@ -1,4 +1,4 @@
--module(ar_kv_sup).
+-module(big_kv_sup).
 
 -behaviour(supervisor).
 
@@ -6,8 +6,8 @@
 
 -export([init/1]).
 
--include_lib("arweave/include/ar_sup.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big_sup.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 %%%===================================================================
 %%% Public interface.
@@ -21,5 +21,5 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-	ar_kv:create_ets(),
-	{ok, {{one_for_one, 5, 10}, [?CHILD(ar_kv, worker)]}}.
+	big_kv:create_ets(),
+	{ok, {{one_for_one, 5, 10}, [?CHILD(big_kv, worker)]}}.

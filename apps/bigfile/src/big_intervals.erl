@@ -1,5 +1,5 @@
 %%% @doc A set of non-overlapping intervals.
--module(ar_intervals).
+-module(big_intervals).
 
 -export([new/0, from_list/1, add/3, delete/3, cut/2, is_inside/2, sum/1, union/2, serialize/2,
 		safe_from_etf/1, count/1, is_empty/1, take_smallest/1, take_largest/1, largest/1,
@@ -221,7 +221,7 @@ serialize_random_subset(Intervals, Limit, Format) ->
 		false ->
 			{Largest, _} = gb_sets:largest(Intervals),
 			RandomOffsets = [rand:uniform(Largest) || _ <- lists:seq(1, Limit)],
-			serialize_random_subset(Intervals, RandomOffsets, Format, ar_intervals:new(), Limit)
+			serialize_random_subset(Intervals, RandomOffsets, Format, big_intervals:new(), Limit)
 	end.
 
 serialize_empty(etf) ->
@@ -238,7 +238,7 @@ serialize_random_subset(Intervals, [Offset | Offsets], Format, PickedIntervals, 
 			serialize_random_subset(Intervals, Offsets, Format, PickedIntervals, Limit);
 		{{End, Start}, _} ->
 			serialize_random_subset(Intervals, Offsets, Format,
-					ar_intervals:add(PickedIntervals, End, Start), Limit)
+					big_intervals:add(PickedIntervals, End, Start), Limit)
 	end.
 
 serialize_list(L, etf) ->

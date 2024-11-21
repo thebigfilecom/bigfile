@@ -1,4 +1,4 @@
--module(ar_metrics_collector).
+-module(big_metrics_collector).
 
 -behaviour(prometheus_collector).
 
@@ -39,24 +39,24 @@ metrics() ->
 	[
 	 {storage_blocks_stored, gauge,
 		"Blocks stored",
-		case ets:lookup(ar_header_sync, synced_blocks) of [] -> 0; [{_, N}] -> N end},
+		case ets:lookup(big_header_sync, synced_blocks) of [] -> 0; [{_, N}] -> N end},
 	 {arnode_queue_len, gauge,
-		"Size of message queuee on ar_node_worker",
-		element(2, erlang:process_info(whereis(ar_node_worker), message_queue_len))},
+		"Size of message queuee on big_node_worker",
+		element(2, erlang:process_info(whereis(big_node_worker), message_queue_len))},
 	 {arbridge_queue_len, gauge,
-		"Size of message queuee on ar_bridge",
-		element(2, erlang:process_info(whereis(ar_bridge), message_queue_len))},
+		"Size of message queuee on big_bridge",
+		element(2, erlang:process_info(whereis(big_bridge), message_queue_len))},
 	 {ignored_ids_len, gauge,
 		"Size of table of Ignored/already seen IDs:",
 		ets:info(ignored_ids, size)},
-	 {ar_data_discovery_bytes_total, gauge, "ar_data_discovery process memory",
-		get_process_memory(ar_data_discovery)},
-	 {ar_node_worker_bytes_total, gauge, "ar_node_worker process memory",
-		get_process_memory(ar_node_worker)},
-	 {ar_header_sync_bytes_total, gauge, "ar_header_sync process memory",
-		get_process_memory(ar_header_sync)},
-	 {ar_wallets_bytes_total, gauge, "ar_wallets process memory",
-		get_process_memory(ar_wallets)}
+	 {big_data_discovery_bytes_total, gauge, "big_data_discovery process memory",
+		get_process_memory(big_data_discovery)},
+	 {big_node_worker_bytes_total, gauge, "big_node_worker process memory",
+		get_process_memory(big_node_worker)},
+	 {big_header_sync_bytes_total, gauge, "big_header_sync process memory",
+		get_process_memory(big_header_sync)},
+	 {big_wallets_bytes_total, gauge, "big_wallets process memory",
+		get_process_memory(big_wallets)}
 	].
 
 get_process_memory(Name) ->

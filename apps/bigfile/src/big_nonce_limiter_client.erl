@@ -1,4 +1,4 @@
--module(ar_nonce_limiter_client).
+-module(big_nonce_limiter_client).
 
 -behaviour(gen_server).
 
@@ -6,8 +6,8 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -record(state, {
 	remote_servers,
@@ -42,13 +42,13 @@ maybe_request_sessions(SessionKey) ->
 %%%===================================================================
 
 init([]) ->
-	case ar_config:use_remote_vdf_server() andalso ar_config:pull_from_remote_vdf_server() of
+	case big_config:use_remote_vdf_server() andalso big_config:pull_from_remote_vdf_server() of
 		false ->
 			ok;
 		true ->
 			gen_server:cast(?MODULE, pull)
 	end,
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	Now =  erlang:system_time(millisecond),
 	RawPeersWithTimestamp = queue:from_list([{RawPeer, Now-?PULL_THROTTLE_MS}
 			|| RawPeer <- Config#config.nonce_limiter_server_trusted_peers]),
@@ -65,10 +65,10 @@ handle_cast(pull, State) ->
 	RotatedServers = queue:in({RawPeer, Now}, Q2),
 	case Now < Timestamp + ?PULL_THROTTLE_MS of
 		true ->
-			ar_util:cast_after(?PULL_THROTTLE_MS, ?MODULE, pull),
+			big_util:cast_after(?PULL_THROTTLE_MS, ?MODULE, pull),
 			{noreply, State};
 		false ->
-			case ar_peers:resolve_and_cache_peer(RawPeer, vdf_server_peer) of
+			case big_peers:resolve_and_cache_peer(RawPeer, vdf_server_peer) of
 				{error, _} ->
 					?LOG_WARNING([{event, failed_to_resolve_peer},
 							{raw_peer, io_lib:format("~p", [RawPeer])}]),
@@ -76,15 +76,15 @@ handle_cast(pull, State) ->
 					%% Push the peer to the back of the queue.
 					{noreply, State#state{ remote_servers = RotatedServers }};
 				{ok, Peer} ->
-					case ar_http_iface_client:get_vdf_update(Peer) of
+					case big_http_iface_client:get_vdf_update(Peer) of
 						{ok, Update} ->
 							#nonce_limiter_update{ session_key = SessionKey,
 									session = #vdf_session{
 											step_number = SessionStepNumber } } = Update,
 							State2 = update_latest_session_key(Peer, SessionKey, State),
-							case ar_nonce_limiter:apply_external_update(Update, Peer) of
+							case big_nonce_limiter:apply_external_update(Update, Peer) of
 								ok ->
-									ar_util:cast_after(?PULL_FREQUENCY_MS, ?MODULE, pull),
+									big_util:cast_after(?PULL_FREQUENCY_MS, ?MODULE, pull),
 									{noreply, State2};
 								#nonce_limiter_update_response{ session_found = false } ->
 									case fetch_and_apply_session_and_previous_session(Peer) of
@@ -93,7 +93,7 @@ handle_cast(pull, State) ->
 											{noreply, State2#state{
 													remote_servers = RotatedServers }};
 										_ ->
-											ar_util:cast_after(?PULL_FREQUENCY_MS,
+											big_util:cast_after(?PULL_FREQUENCY_MS,
 													?MODULE, pull),
 											{noreply, State2}
 									end;
@@ -109,7 +109,7 @@ handle_cast(pull, State) ->
 								#nonce_limiter_update_response{ step_number = StepNumber }
 										when StepNumber == SessionStepNumber ->
 									%% We are in sync with the server. Re-try soon.
-									ar_util:cast_after(?NO_UPDATE_PULL_FREQUENCY_MS,
+									big_util:cast_after(?NO_UPDATE_PULL_FREQUENCY_MS,
 											?MODULE, pull),
 									{noreply, State2};
 								_ ->
@@ -122,14 +122,14 @@ handle_cast(pull, State) ->
 											{noreply, State2#state{
 													remote_servers = RotatedServers }};
 										_ ->
-											ar_util:cast_after(?PULL_FREQUENCY_MS,
+											big_util:cast_after(?PULL_FREQUENCY_MS,
 													?MODULE, pull),
 											{noreply, State2}
 									end
 							end;
 						{error, not_found} ->
 							?LOG_WARNING([{event, failed_to_fetch_vdf_update},
-									{peer, ar_util:format_peer(Peer)},
+									{peer, big_util:format_peer(Peer)},
 									{error, not_found}]),
 							%% The server might be restarting.
 							%% Try another one, if there are any.
@@ -137,7 +137,7 @@ handle_cast(pull, State) ->
 							{noreply, State#state{ remote_servers = RotatedServers }};
 						{error, Reason} ->
 							?LOG_WARNING([{event, failed_to_fetch_vdf_update},
-									{peer, ar_util:format_peer(Peer)},
+									{peer, big_util:format_peer(Peer)},
 									{error, io_lib:format("~p", [Reason])}]),
 							%% Try another server, if there are any.
 							gen_server:cast(?MODULE, pull),
@@ -151,7 +151,7 @@ handle_cast({maybe_request_sessions, SessionKey}, State) ->
 	{{value, {RawPeer, _Timestamp}}, Q2} = queue:out(Q),
 	Now = erlang:system_time(millisecond),
 	State2 = State#state{ remote_servers = queue:in({RawPeer, Now}, Q2) },
-	case ar_peers:resolve_and_cache_peer(RawPeer, vdf_server_peer) of
+	case big_peers:resolve_and_cache_peer(RawPeer, vdf_server_peer) of
 		{error, _} ->
 			%% Push the peer to the back of the queue.
 			{noreply, State2};
@@ -186,36 +186,36 @@ terminate(_Reason, _State) ->
 %%%===================================================================
 
 fetch_and_apply_session_and_previous_session(Peer) ->
-	case ar_http_iface_client:get_vdf_session(Peer) of
+	case big_http_iface_client:get_vdf_session(Peer) of
 		{ok, #nonce_limiter_update{ session = #vdf_session{
 				prev_session_key = PrevSessionKey } } = Update} ->
-			case ar_http_iface_client:get_previous_vdf_session(Peer) of
+			case big_http_iface_client:get_previous_vdf_session(Peer) of
 				{ok, #nonce_limiter_update{ session_key = PrevSessionKey } = Update2} ->
-					ar_nonce_limiter:apply_external_update(Update2, Peer),
-					ar_nonce_limiter:apply_external_update(Update, Peer);
+					big_nonce_limiter:apply_external_update(Update2, Peer),
+					big_nonce_limiter:apply_external_update(Update, Peer);
 				{ok, _} ->
 					%% The session should have just changed, retry.
 					fetch_and_apply_session_and_previous_session(Peer);
 				{error, Reason} = Error ->
 					?LOG_WARNING([{event, failed_to_fetch_previous_vdf_session},
-						{peer, ar_util:format_peer(Peer)},
+						{peer, big_util:format_peer(Peer)},
 						{error, io_lib:format("~p", [Reason])}]),
 					Error
 			end;
 		{error, Reason2} = Error2 ->
 			?LOG_WARNING([{event, failed_to_fetch_vdf_session},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{error, io_lib:format("~p", [Reason2])}]),
 			Error2
 	end.
 
 fetch_and_apply_session(Peer) ->
-	case ar_http_iface_client:get_vdf_session(Peer) of
+	case big_http_iface_client:get_vdf_session(Peer) of
 		{ok, Update} ->
-			ar_nonce_limiter:apply_external_update(Update, Peer);
+			big_nonce_limiter:apply_external_update(Update, Peer);
 		{error, Reason} = Error ->
 			?LOG_WARNING([{event, failed_to_fetch_vdf_session},
-					{peer, ar_util:format_peer(Peer)},
+					{peer, big_util:format_peer(Peer)},
 					{error, io_lib:format("~p", [Reason])}]),
 			Error
 	end.

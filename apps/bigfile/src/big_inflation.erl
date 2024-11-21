@@ -27,7 +27,7 @@ calculate2(Height) when Height =< ?FORK_15_HEIGHT ->
 calculate2(Height) when Height =< ?PRE_25_BLOCKS_PER_YEAR ->
     calculate_base(Height) + ?POST_15_Y1_EXTRA;
 calculate2(Height) ->
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		true ->
 			calculate_base(Height);
 		false ->
@@ -38,7 +38,7 @@ calculate2(Height) ->
 %% Note: I've confirmed that when TARGET_BLOCK_TIME = 120 the following equation is
 %% exactly equal to `30 * 24 * 365` when executed within an Erlang shell (i.e. 262800).
 blocks_per_year(Height) ->
-	((60 * 60 * 24 * 365) div ar_testnet:target_block_time(Height)).
+	((60 * 60 * 24 * 365) div big_testnet:target_block_time(Height)).
 
 %%%===================================================================
 %%% Private functions.
@@ -51,7 +51,7 @@ pre_15_calculate(Height) ->
 		true ->
 			1;
 		false ->
-			?WINSTON_PER_AR
+			?WINSTON_PER_BIG
 				* 0.2
 				* ?GENESIS_TOKENS
 				* math:pow(2, -(Height - RewardDelay) / ?PRE_15_BLOCKS_PER_YEAR)
@@ -64,9 +64,9 @@ calculate_base(Height) ->
 	Dividend = Height * Ln2Dividend,
 	Divisor = blocks_per_year(Height) * Ln2Divisor,
 	Precision = ?INFLATION_NATURAL_EXPONENT_DECIMAL_FRACTION_PRECISION,
-	{EXDividend, EXDivisor} = ar_fraction:natural_exponent({Dividend, Divisor}, Precision),
+	{EXDividend, EXDivisor} = big_fraction:natural_exponent({Dividend, Divisor}, Precision),
 	?GENESIS_TOKENS
-		* ?WINSTON_PER_AR
+		* ?WINSTON_PER_BIG
 		* EXDivisor
 		* 2
 		* Ln2Dividend
@@ -78,7 +78,7 @@ calculate_base(Height) ->
 		).
 
 calculate_base_pre_fork_2_5(Height) ->
-	?WINSTON_PER_AR
+	?WINSTON_PER_BIG
 		* (
 			0.2
 			* ?GENESIS_TOKENS
@@ -107,61 +107,61 @@ year_1_test_() ->
 	{timeout, 60, fun test_year_1/0}.
 
 test_year_1() ->
-    true = is_in_tolerance(year_sum_rewards(0), ?AR(5500000)).
+    true = is_in_tolerance(year_sum_rewards(0), ?BIG(5500000)).
 
 year_2_test_() ->
 	{timeout, 60, fun test_year_2/0}.
 
 test_year_2() ->
-    true = is_in_tolerance(year_sum_rewards(1), ?AR(2750000)).
+    true = is_in_tolerance(year_sum_rewards(1), ?BIG(2750000)).
 
 year_3_test() ->
 	{timeout, 60, fun test_year_3/0}.
 
 test_year_3() ->
-    true = is_in_tolerance(year_sum_rewards(2), ?AR(1375000)).
+    true = is_in_tolerance(year_sum_rewards(2), ?BIG(1375000)).
 
 year_4_test() ->
 	{timeout, 60, fun test_year_4/0}.
 
 test_year_4() ->
-    true = is_in_tolerance(year_sum_rewards(3), ?AR(687500)).
+    true = is_in_tolerance(year_sum_rewards(3), ?BIG(687500)).
 
 year_5_test() ->
 	{timeout, 60, fun test_year_5/0}.
 
 test_year_5() ->
-    true = is_in_tolerance(year_sum_rewards(4), ?AR(343750)).
+    true = is_in_tolerance(year_sum_rewards(4), ?BIG(343750)).
 
 year_6_test() ->
 	{timeout, 60, fun test_year_6/0}.
 
 test_year_6() ->
-    true = is_in_tolerance(year_sum_rewards(5), ?AR(171875)).
+    true = is_in_tolerance(year_sum_rewards(5), ?BIG(171875)).
 
 year_7_test() ->
 	{timeout, 60, fun test_year_7/0}.
 
 test_year_7() ->
-    true = is_in_tolerance(year_sum_rewards(6), ?AR(85937.5)).
+    true = is_in_tolerance(year_sum_rewards(6), ?BIG(85937.5)).
 
 year_8_test() ->
 	{timeout, 60, fun test_year_8/0}.
 
 test_year_8() ->
-    true = is_in_tolerance(year_sum_rewards(7), ?AR(42968.75)).
+    true = is_in_tolerance(year_sum_rewards(7), ?BIG(42968.75)).
 
 year_9_test() ->
 	{timeout, 60, fun test_year_9/0}.
 
 test_year_9() ->
-    true = is_in_tolerance(year_sum_rewards(8), ?AR(21484.375)).
+    true = is_in_tolerance(year_sum_rewards(8), ?BIG(21484.375)).
 
 year_10_test() ->
 	{timeout, 60, fun test_year_10/0}.
 
 test_year_10() ->
-    true = is_in_tolerance(year_sum_rewards(9), ?AR(10742.1875)).
+    true = is_in_tolerance(year_sum_rewards(9), ?BIG(10742.1875)).
 
 %% @doc Is the value X within TolerancePercent of Y.
 is_in_tolerance(X, Y) ->

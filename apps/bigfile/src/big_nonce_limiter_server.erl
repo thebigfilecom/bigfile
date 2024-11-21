@@ -1,4 +1,4 @@
--module(ar_nonce_limiter_server).
+-module(big_nonce_limiter_server).
 
 -behaviour(gen_server).
 
@@ -7,8 +7,8 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
 -record(state, {
 	session_key,
@@ -88,7 +88,7 @@ get_full_prev_update(Format) ->
 %%%===================================================================
 
 init([]) ->
-	ok = ar_events:subscribe(nonce_limiter),
+	ok = big_events:subscribe(nonce_limiter),
 	{ok, #state{}}.
 
 handle_call(Request, _From, State) ->
@@ -144,24 +144,24 @@ handle_computed_output({SessionKey, StepNumber, _, _},
 	{noreply, State};
 handle_computed_output(Args, State) ->
 	{SessionKey, StepNumber, Output, _PartitionUpperBound} = Args,
-	case ar_nonce_limiter:get_session(SessionKey) of
+	case big_nonce_limiter:get_session(SessionKey) of
 		not_found ->
 			?LOG_WARNING([{event, computed_output_session_not_found},
-					{session_key, ar_nonce_limiter:encode_session_key(SessionKey)},
+					{session_key, big_nonce_limiter:encode_session_key(SessionKey)},
 					{step_number, StepNumber}]),
 			{noreply, State};
 		Session ->
 			PrevSessionKey = Session#vdf_session.prev_session_key,
-			PrevSession = ar_nonce_limiter:get_session(PrevSessionKey),
+			PrevSession = big_nonce_limiter:get_session(PrevSessionKey),
 			PartialUpdate = make_partial_nonce_limiter_update(SessionKey, Session,
 					StepNumber, Output),
 			FullUpdate = make_full_nonce_limiter_update(SessionKey, Session),
 
-			PartialUpdateBin2 = ar_serialize:nonce_limiter_update_to_binary(2, PartialUpdate),
-			PartialUpdateBin3 = ar_serialize:nonce_limiter_update_to_binary(3, PartialUpdate),
-			FullUpdateBin2 = ar_serialize:nonce_limiter_update_to_binary(2, FullUpdate),
-			FullUpdateBin3 = ar_serialize:nonce_limiter_update_to_binary(3, FullUpdate),
-			FullUpdateBin4 = ar_serialize:nonce_limiter_update_to_binary(4, FullUpdate),
+			PartialUpdateBin2 = big_serialize:nonce_limiter_update_to_binary(2, PartialUpdate),
+			PartialUpdateBin3 = big_serialize:nonce_limiter_update_to_binary(3, PartialUpdate),
+			FullUpdateBin2 = big_serialize:nonce_limiter_update_to_binary(2, FullUpdate),
+			FullUpdateBin3 = big_serialize:nonce_limiter_update_to_binary(3, FullUpdate),
+			FullUpdateBin4 = big_serialize:nonce_limiter_update_to_binary(4, FullUpdate),
 			Keys = [
 				{{partial_update, 2}, PartialUpdateBin2},
 				{{partial_update, 3}, PartialUpdateBin3},
@@ -176,11 +176,11 @@ handle_computed_output(Args, State) ->
 					_ ->
 						FullPrevUpdate = make_full_nonce_limiter_update(
 								PrevSessionKey, PrevSession),
-						FullPrevUpdateBin2 = ar_serialize:nonce_limiter_update_to_binary(
+						FullPrevUpdateBin2 = big_serialize:nonce_limiter_update_to_binary(
 								2, FullPrevUpdate),
-						FullPrevUpdateBin3 = ar_serialize:nonce_limiter_update_to_binary(
+						FullPrevUpdateBin3 = big_serialize:nonce_limiter_update_to_binary(
 								3, FullPrevUpdate),
-						FullPrevUpdateBin4 = ar_serialize:nonce_limiter_update_to_binary(
+						FullPrevUpdateBin4 = big_serialize:nonce_limiter_update_to_binary(
 								4, FullPrevUpdate),
 						Keys ++ [
 							{{full_prev_update, 2}, FullPrevUpdateBin2},
