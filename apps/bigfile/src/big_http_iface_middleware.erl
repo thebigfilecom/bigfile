@@ -4,7 +4,7 @@
 
 -export([execute/2, read_body_chunk/4]).
 
--include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 -include_lib("bigfile/include/big_config.hrl").
 -include_lib("bigfile/include/big_mining.hrl").
 -include_lib("bigfile/include/big_data_sync.hrl").

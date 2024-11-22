@@ -1,7 +1,7 @@
 -ifndef(BIG_PEERS_HRL).
 -define(BIG_PEERS_HRL, true).
 
--include_lib("ar.hrl").
+-include_lib("big.hrl").
 
 -record(performance, {
 	version = 3,

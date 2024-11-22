@@ -33,7 +33,7 @@
 
 		mock_functions/1, test_with_mocked_functions/2, test_with_mocked_functions/3]).
 
--include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/big.hrl").
 -include_lib("bigfile/include/big_config.hrl").
 -include_lib("bigfile/include/big_consensus.hrl").
 -include_lib("eunit/include/eunit.hrl").

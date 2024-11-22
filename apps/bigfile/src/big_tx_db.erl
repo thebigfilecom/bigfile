@@ -5,7 +5,7 @@
 
 -export([get_error_codes/1, put_error_codes/2, ensure_error/1, clear_error_codes/1]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("arweave/include/big.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
