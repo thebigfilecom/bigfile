@@ -1509,15 +1509,15 @@ record_economic_metrics2(B, PrevB) ->
 	end,
 	%% 2.5 metrics:
 	prometheus_gauge:set(network_burden, Burden),
-	Burden_10_USD_AR = big_pricing:get_storage_cost(B#block.weave_size, B#block.timestamp,
+	Burden_10_USD_BIG = big_pricing:get_storage_cost(B#block.weave_size, B#block.timestamp,
 			{1, 10}, B#block.height),
-	prometheus_gauge:set(network_burden_10_usd_ar, Burden_10_USD_AR),
+	prometheus_gauge:set(network_burden_10_usd_big, Burden_10_USD_BIG),
 	Burden_200_Years = Burden - big_pricing:get_storage_cost(B#block.weave_size,
 			B#block.timestamp + Period_200_Years, B#block.usd_to_big_rate, B#block.height),
 	prometheus_gauge:set(network_burden_200_years, Burden_200_Years),
-	Burden_200_Years_10_USD_AR = Burden_10_USD_AR - big_pricing:get_storage_cost(
+	Burden_200_Years_10_USD_BIG = Burden_10_USD_BIG - big_pricing:get_storage_cost(
 			B#block.weave_size, B#block.timestamp + Period_200_Years, {1, 10}, B#block.height),
-	prometheus_gauge:set(network_burden_200_years_10_usd_ar, Burden_200_Years_10_USD_AR),
+	prometheus_gauge:set(network_burden_200_years_10_usd_big, Burden_200_Years_10_USD_BIG),
 	case catch big_pricing:get_expected_min_decline_rate(B#block.timestamp,
 			Period_200_Years, B#block.reward_pool, B#block.weave_size, B#block.usd_to_big_rate,
 			B#block.height) of

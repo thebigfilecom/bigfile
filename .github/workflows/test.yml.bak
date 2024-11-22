@@ -11,69 +11,69 @@ jobs:
       max-parallel: 6
       matrix:
         core_test_mod: [
-            ar,
-            ar_block,
-            ar_block_cache,
-            ar_chunk_storage,
-            ar_data_sync_worker_master,
-            ar_deep_hash,
-            ar_diff_dag,
-            ar_ets_intervals,
-            ar_events,
-            ar_inflation,
-            ar_intervals,
-            ar_join,
-            ar_kv,
-            ar_merkle,
-            ar_mining_server,
-            ar_mining_stats,
-            ar_node,
-            ar_node_utils,
-            ar_nonce_limiter,
-            ar_packing_server,
-            ar_patricia_tree,
-            ar_peers,
-            ar_poa,
-            ar_pricing,
-            ar_retarget,
-            ar_serialize,
-            ar_storage_module,
-            ar_storage,
-            ar_storage_module,
-            ar_sync_buckets,
-            ar_tx,
-            ar_tx_db,
-            ar_unbalanced_merkle,
-            ar_util,
-            ar_pool,
+            big,
+            big_block,
+            big_block_cache,
+            big_chunk_storage,
+            big_data_sync_worker_master,
+            big_deep_hash,
+            big_diff_dag,
+            big_ets_intervals,
+            big_events,
+            big_inflation,
+            big_intervals,
+            big_join,
+            big_kv,
+            big_merkle,
+            big_mining_server,
+            big_mining_stats,
+            big_node,
+            big_node_utils,
+            big_nonce_limiter,
+            big_packing_server,
+            big_patricia_tree,
+            big_peers,
+            big_poa,
+            big_pricing,
+            big_retarget,
+            big_serialize,
+            big_storage_module,
+            big_storage,
+            big_storage_module,
+            big_sync_buckets,
+            big_tx,
+            big_tx_db,
+            big_unbalanced_merkle,
+            big_util,
+            big_pool,
 
             ## Note, that _tests are implicitly run by a matching prefix name
-            ar_base64_compatibility_tests,
-            ar_config_tests,
-            ar_coordinated_mining_tests,
-            ar_data_sync_tests,
-            ar_difficulty_tests,
-            ar_fork_recovery_tests,
-            ar_header_sync_tests,
-            ar_http_iface_tests,
-            ar_http_util_tests,
-            ar_mempool_tests,
-            ar_mine_randomx_tests,
-            ar_mine_vdf_tests,
-            ar_mining_io_tests,
-            ar_multiple_txs_per_wallet_tests,
-            # ar_node_tests, ## implicitly runs from ar_node
-            # ar_poa_tests, ## implicitly runs from ar_poa
-            ar_poller_tests,
-            ar_post_block_tests,
-            # ar_pricing_tests, ## implicitly runs from ar_pricing
-            ar_semaphore_tests,
-            ar_tx_blacklist_tests,
-            ar_tx_replay_pool_tests,
-            ar_vdf_server_tests,
-            ar_vdf_tests,
-            ar_wallet_tests,
-            ar_webhook_tests,
+            big_base64_compatibility_tests,
+            big_config_tests,
+            big_coordinated_mining_tests,
+            big_data_sync_tests,
+            big_difficulty_tests,
+            big_fork_recovery_tests,
+            big_header_sync_tests,
+            big_http_iface_tests,
+            big_http_util_tests,
+            big_mempool_tests,
+            big_mine_randomx_tests,
+            big_mine_vdf_tests,
+            big_mining_io_tests,
+            big_multiple_txs_per_wallet_tests,
+            # big_node_tests, ## implicitly runs from big_node
+            # big_poa_tests, ## implicitly runs from big_poa
+            big_poller_tests,
+            big_post_block_tests,
+            # big_pricing_tests, ## implicitly runs from big_pricing
+            big_semaphore_tests,
+            big_tx_blacklist_tests,
+            big_tx_replay_pool_tests,
+            big_vdf_server_tests,
+            big_vdf_tests,
+            big_wallet_tests,
+            big_webhook_tests,
           ]
     steps:
       - uses: actions/checkout@v4
@@ -92,7 +92,7 @@ jobs:
         run: |
           rm -rf _build || true
           tar -xzf build.tar.gz
-      - name: Build arweave test sources
+      - name: Build bigfile test sources
         if: steps.cache-build.outputs.cache-hit != 'true'
         run: |
           rm -rf _build build.tar.gz || true
@@ -121,7 +121,7 @@ jobs:
           export ERL_EPMD_ADDRESS=127.0.0.1
           export TIMESTAMP_IN_MILLISECONDS=$(date +%s%3N)
           export NAMESPACE="${{ matrix.core_test_mod }}_${TIMESTAMP_IN_MILLISECONDS}"
-          export ERL_TEST_OPTS="-pa $(echo $(pwd)/_build/test/lib/*/ebin) $(pwd)/_build/test/lib/arweave/test -config $(pwd)/config/sys.config"
+          export ERL_TEST_OPTS="-pa $(echo $(pwd)/_build/test/lib/*/ebin) $(pwd)/_build/test/lib/bigfile/test -config $(pwd)/config/sys.config"
           RETRYABLE=1
           while [[ $RETRYABLE -eq 1 ]]; do
             RETRYABLE=0

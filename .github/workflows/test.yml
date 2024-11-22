@@ -1,4 +1,4 @@
-name: "Arweave Tests"
+name: "BigFile Tests"
 on:
   workflow_dispatch:
   push:
@@ -11,12 +11,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: "recursive"
-      - name: Build arweave test sources
+      - name: Build bigfile test sources
         run: |
           rm -rf _build || true
           ./ar-rebar3 test compile
           chmod -R u+w ./_build
-          tar --dereference -czf /tmp/arweave_build_${{ github.run_id }}.tar.gz _build
+          tar --dereference -czf /tmp/bigfile_build_${{ github.run_id }}.tar.gz _build
 
   eunit-tests:
     needs: build
@@ -28,78 +28,78 @@ jobs:
         core_test_mod: [
             ## Long-running tests. Put these first to limit the overall runtime of the 
             ## test suite
-            ar_coordinated_mining_tests,
-            ar_data_sync_tests,
-            ar_fork_recovery_tests,
-            ar_multiple_txs_per_wallet_tests,
-            ar_packing_tests,
-            ar_poa,
-            ar_vdf_server_tests,
-            ar_post_block_tests,
-            ar_reject_chunks_tests,
+            big_coordinated_mining_tests,
+            big_data_sync_tests,
+            big_fork_recovery_tests,
+            big_multiple_txs_per_wallet_tests,
+            big_packing_tests,
+            big_poa,
+            big_vdf_server_tests,
+            big_post_block_tests,
+            big_reject_chunks_tests,
 
             ## Modules containing tests
-            ar,
-            ar_block,
-            ar_block_cache,
-            ar_chain_stats,
-            ar_chunk_storage,
-            ar_data_sync_worker_master,
-            ar_deep_hash,
-            ar_diff_dag,
-            ar_ets_intervals,
-            ar_events,
-            ar_inflation,
-            ar_intervals,
-            ar_join,
-            ar_kv,
-            ar_merkle,
-            ar_mining_server,
-            ar_mining_stats,
-            ar_node,
-            ar_node_utils,
-            ar_nonce_limiter,
-            # ar_p3,
-            # ar_p3_config,
-            # ar_p3_db,
-            ar_packing_server,
-            ar_patricia_tree,
-            ar_peers,
-            ar_pricing,
-            ar_retarget,
-            ar_serialize,
-            ar_storage_module,
-            ar_storage,
-            ar_sync_buckets,
-            ar_sync_record,
-            ar_tx,
-            ar_tx_db,
-            ar_unbalanced_merkle,
-            ar_util,
-            ar_verify_chunks,
-            ar_wallet,
-            ar_webhook,
-            ar_pool,
+            big,
+            big_block,
+            big_block_cache,
+            big_chain_stats,
+            big_chunk_storage,
+            big_data_sync_worker_master,
+            big_deep_hash,
+            big_diff_dag,
+            big_ets_intervals,
+            big_events,
+            big_inflation,
+            big_intervals,
+            big_join,
+            big_kv,
+            big_merkle,
+            big_mining_server,
+            big_mining_stats,
+            big_node,
+            big_node_utils,
+            big_nonce_limiter,
+            # big_p3,
+            # big_p3_config,
+            # big_p3_db,
+            big_packing_server,
+            big_patricia_tree,
+            big_peers,
+            big_pricing,
+            big_retarget,
+            big_serialize,
+            big_storage_module,
+            big_storage,
+            big_sync_buckets,
+            big_sync_record,
+            big_tx,
+            big_tx_db,
+            big_unbalanced_merkle,
+            big_util,
+            big_verify_chunks,
+            big_wallet,
+            big_webhook,
+            big_pool,
 
             ## Test modules (note: that _tests are implicitly run by a matching prefix name
-            ar_base64_compatibility_tests,
-            ar_config_tests,
-            ar_difficulty_tests,
-            ar_header_sync_tests,
-            ar_http_iface_tests,
-            ar_http_util_tests,
-            ar_info_tests,
-            ar_mempool_tests,
-            ar_mine_randomx_tests,
-            ar_mine_vdf_tests,
-            ar_mining_io_tests,
-            ar_poller_tests,
-            ar_reject_chunks_tests,
-            ar_semaphore_tests,
-            ar_start_from_block_tests,
-            ar_tx_blacklist_tests,
-            ar_tx_replay_pool_tests,
-            ar_vdf_tests,
+            big_base64_compatibility_tests,
+            big_config_tests,
+            big_difficulty_tests,
+            big_header_sync_tests,
+            big_http_iface_tests,
+            big_http_util_tests,
+            big_info_tests,
+            big_mempool_tests,
+            big_mine_randomx_tests,
+            big_mine_vdf_tests,
+            big_mining_io_tests,
+            big_poller_tests,
+            big_reject_chunks_tests,
+            big_semaphore_tests,
+            big_start_from_block_tests,
+            big_tx_blacklist_tests,
+            big_tx_replay_pool_tests,
+            big_vdf_tests,
           ]
     steps:
       - uses: actions/checkout@v4
@@ -109,7 +109,7 @@ jobs:
         run: |
           if [ ! -d "_build_${{ github.run_id }}" ]; then
             rm -rf _build || true
-            tar -xzf /tmp/arweave_build_${{ github.run_id }}.tar.gz
+            tar -xzf /tmp/bigfile_build_${{ github.run_id }}.tar.gz
             mv ./_build ./_build_${{ github.run_id }}
           fi
       - name: Restart epmd
@@ -128,7 +128,7 @@ jobs:
           export ERL_EPMD_ADDRESS=127.0.0.1
           export TIMESTAMP_IN_MILLISECONDS=$(date +%s%3N)
           export NAMESPACE="${{ matrix.core_test_mod }}_${TIMESTAMP_IN_MILLISECONDS}"
-          export ERL_TEST_OPTS="-pa $(echo $(pwd)/_build_${{ github.run_id }}/test/lib/*/ebin) $(pwd)/_build_${{ github.run_id }}/test/lib/arweave/test -config $(pwd)/config/sys.config"
+          export ERL_TEST_OPTS="-pa $(echo $(pwd)/_build_${{ github.run_id }}/test/lib/*/ebin) $(pwd)/_build_${{ github.run_id }}/test/lib/bigfile/test -config $(pwd)/config/sys.config"
           RETRYABLE=1
           while [[ $RETRYABLE -eq 1 ]]; do
             RETRYABLE=0
@@ -202,9 +202,9 @@ jobs:
     steps:
       - name: Cleanup build directories
         run: |
-          rm -rf /tmp/arweave_build_${{ github.run_id }}.tar.gz
+          rm -rf /tmp/bigfile_build_${{ github.run_id }}.tar.gz
           find /home/runner -type d -name "_build_${{ github.run_id }}" -exec rm -rf {} +
       - name: Cleanup old build artifacts
         run: |
-          find /tmp -maxdepth 1 -name "arweave_build_*" -type f -mtime +7 -exec rm -f {} +
+          find /tmp -maxdepth 1 -name "bigfile_build_*" -type f -mtime +7 -exec rm -f {} +
           find /home/runner -name "_build_*" -type d -mtime +7 -exec rm -rf {} +
