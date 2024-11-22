@@ -1,5 +1,5 @@
 {
-  description = "The Arweave server and App Developer Toolkit.";
+  description = "The BigFile server and App Developer Toolkit.";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -13,24 +13,24 @@
   outputs = { self, nixpkgs, utils, ... }: utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
-      arweave = pkgs.callPackage ./nix/arweave.nix { inherit pkgs; };
+      bigfile = pkgs.callPackage ./nix/bigfile.nix { inherit pkgs; };
     in
     {
       packages = utils.lib.flattenTree {
-        inherit arweave;
+        inherit bigfile;
       };
 
-      nixosModules.arweave = {
+      nixosModules.bigfile = {
         imports = [ ./nix/module.nix ];
-        nixpkgs.overlays = [ (prev: final: { inherit arweave; }) ];
+        nixpkgs.overlays = [ (prev: final: { inherit bigfile; }) ];
       };
 
-      defaultPackage = self.packages."${system}".arweave;
+      defaultPackage = self.packages."${system}".bigfile;
 
       devShells = {
-        # for arweave development, made to work with rebar3 builds (not nix)
+        # for bigfile development, made to work with rebar3 builds (not nix)
         default = with pkgs; mkShellNoCC {
-          name = "arweave-dev";
+          name = "bigfile-dev";
           buildInputs = [
             bashInteractive
             cmake

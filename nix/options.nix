@@ -5,7 +5,7 @@ in
 {
 
   enable = mkEnableOption ''
-    Enable arweave node as systemd service
+    Enable bigfile node as systemd service
   '';
 
   peer = mkOption {
@@ -38,8 +38,8 @@ in
   package = mkOption {
     type = types.package;
     default = defaultArweavePackage;
-    defaultText = literalExpression "pkgs.arweave";
-    example = literalExpression "pkgs.arweave";
+    defaultText = literalExpression "pkgs.bigfile";
+    example = literalExpression "pkgs.bigfile";
     description = ''
       The Arweave expression to use
     '';
@@ -47,15 +47,15 @@ in
 
   dataDir = mkOption {
     type = types.path;
-    default = "/arweave-data";
+    default = "/bigfile-data";
     description = ''
-      Data directory path for arweave node.
+      Data directory path for bigfile node.
     '';
   };
 
   logDir = mkOption {
     type = types.path;
-    default = "/var/lib/arweave/logs";
+    default = "/var/lib/bigfile/logs";
     description = ''
       Logging directory path.
     '';
@@ -63,7 +63,7 @@ in
 
   crashDumpsDir = mkOption {
     type = types.path;
-    default = "/var/lib/arweave/dumps";
+    default = "/var/lib/bigfile/dumps";
     description = ''
       Crash dumps directory path.
     '';
@@ -100,7 +100,7 @@ in
 
   user = mkOption {
     type = types.str;
-    default = "arweave";
+    default = "bigfile";
     description = "Run Arweave Node under this user.";
   };
 
@@ -113,7 +113,7 @@ in
   transactionBlacklists = mkOption {
     type = types.listOf types.str;
     default = [ ];
-    example = [ "/user/arweave/blacklist.txt" ];
+    example = [ "/user/bigfile/blacklist.txt" ];
     description = ''
       List of paths to textfiles containing blacklisted txids and/or byte ranges
     '';
@@ -131,7 +131,7 @@ in
   transactionWhitelists = mkOption {
     type = types.listOf types.str;
     default = [ ];
-    example = [ "/user/arweave/whitelist.txt" ];
+    example = [ "/user/bigfile/whitelist.txt" ];
     description = ''
       List of paths to textfiles containing whitelisted txids
     '';

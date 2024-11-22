@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -ne 2 ]; then
-	echo "ar-rebar3 <profile> <command>"
+	echo "big-rebar3 <profile> <command>"
     exit 1
 fi
 

@@ -1,22 +1,22 @@
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.services.arweave;
-  arweavePkg = (pkgs.callPackage ./arweave.nix {
+  cfg = config.services.bigfile;
+  bigfilePkg = (pkgs.callPackage ./bigfile.nix {
     inherit pkgs;
     crashDumpsDir = cfg.crashDumpsDir;
     erlangCookie = cfg.erlangCookie;
     vcPatches = cfg.patches;
-  }).arweave;
-  generatedConfigFile = "${import ./generate-config.nix { arweaveConfig = cfg; inherit pkgs; }}";
-  arweave-service-start =
+  }).bigfile;
+  generatedConfigFile = "${import ./generate-config.nix { bigfileConfig = cfg; inherit pkgs; }}";
+  bigfile-service-start =
     let
       command = "${cfg.package}/bin/start-nix-foreground config_file ${cfg.configFile}";
       peers = "${builtins.concatStringsSep " " (builtins.concatMap (p: ["peer" p]) cfg.peer)}";
       vdf-peers = "${builtins.concatStringsSep " " (builtins.concatMap (p: ["vdf_client_peer" p]) cfg.vdfClientPeer)}";
       vdf-server-peers = "${builtins.concatStringsSep " " (builtins.concatMap (p: ["vdf_server_trusted_peer" p]) cfg.vdfServerTrustedPeer)}";
     in
-    pkgs.writeScriptBin "arweave-start" ''
+    pkgs.writeScriptBin "bigfile-start" ''
       #!${pkgs.bash}/bin/bash
       # Function to handle termination and cleanup
       cleanup() {
@@ -53,21 +53,21 @@ let
 in
 {
 
-  options.services.arweave = import ./options.nix {
+  options.services.bigfile = import ./options.nix {
     inherit lib;
     defaultArweaveConfigFile = generatedConfigFile;
-    defaultArweavePackage = arweavePkg;
+    defaultArweavePackage = bigfilePkg;
   };
 
   config = lib.mkIf cfg.enable {
-    systemd.services.arweave-screen = {
+    systemd.services.bigfile-screen = {
       enable = false;
     };
 
-    systemd.services.arweave = {
+    systemd.services.bigfile = {
       after = [ "network.target" ];
       serviceConfig.Type = "simple";
-      serviceConfig.ExecStart = "${arweave-service-start}/bin/arweave-start";
+      serviceConfig.ExecStart = "${bigfile-service-start}/bin/bigfile-start";
       serviceConfig.TimeoutStartSec = "60";
       serviceConfig.ExecStop = "${pkgs.bash}/bin/bash -c '${cfg.package}/bin/stop-nix || true; ${pkgs.procps}/bin/pkill beam || true; sleep 15'";
       serviceConfig.TimeoutStopSec = "120";
