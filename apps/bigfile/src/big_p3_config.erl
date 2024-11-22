@@ -106,10 +106,10 @@ get_json(P3Config) when
 %% -------------------------------------------------------------------
 %% Parse JSON into the p3_config record
 %% -------------------------------------------------------------------
-parse_payments([{?ARWEAVE_AR, {Payment}} | Rest], PaymentsConfig) ->
+parse_payments([{?BIGFILE_BIG, {Payment}} | Rest], PaymentsConfig) ->
 	parse_payments(
 		Rest,
-		PaymentsConfig#{ ?ARWEAVE_AR => parse_payment(Payment, #p3_payment{}) });
+		PaymentsConfig#{ ?BIGFILE_BIG => parse_payment(Payment, #p3_payment{}) });
 parse_payments([], PaymentsConfig) ->
 	PaymentsConfig;
 parse_payments(BadToken, _PaymentsConfig) ->
@@ -295,7 +295,7 @@ validate_payments(PaymentsConfig) ->
 	lists:all(fun validate_payment/1, maps:to_list(PaymentsConfig)).
 
 validate_payment({Asset, PaymentConfig}) ->
-	Asset == ?ARWEAVE_AR andalso
+	Asset == ?BIGFILE_BIG andalso
 	is_record(PaymentConfig, p3_payment) andalso
 	validate_address(PaymentConfig#p3_payment.address) andalso
 	validate_minimum_balance(PaymentConfig#p3_payment.minimum_balance) andalso
@@ -351,7 +351,7 @@ validate_rates(RatesConfig) ->
 	lists:all(fun validate_rate/1, maps:to_list(RatesConfig)).
 
 validate_rate({Asset, Price}) ->
-	Asset == ?ARWEAVE_AR andalso
+	Asset == ?BIGFILE_BIG andalso
 	is_integer(Price).
 
 to_integer(Value) when is_integer(Value) ->
