@@ -656,7 +656,7 @@ sign_tx_test_() ->
 test_sign_tx() ->
 	NewTX = new(<<"TEST DATA">>, ?BIG(1)),
 	{Priv, Pub} = big_wallet:new(),
-	Rate = ?INITIAL_USD_TO_AR_PRE_FORK_2_5,
+	Rate = ?INITIAL_USD_TO_BIG_PRE_FORK_2_5,
 	PricePerGiBMinute = 1,
 	Timestamp = os:system_time(seconds),
 	ValidTXs = [
@@ -751,7 +751,7 @@ forge_test_() ->
 test_forge() ->
 	NewTX = new(<<"TEST DATA">>, ?BIG(10)),
 	{Priv, Pub} = big_wallet:new(),
-	Rate = ?INITIAL_USD_TO_AR_PRE_FORK_2_5,
+	Rate = ?INITIAL_USD_TO_BIG_PRE_FORK_2_5,
 	PricePerGiBMinute = 400,
 	Height = 0,
 	InvalidSignTX = (sign_v1(NewTX, Priv, Pub))#tx{

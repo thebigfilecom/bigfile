@@ -57,8 +57,8 @@ init(WalletList, Diff, GenesisDataSize) ->
 			timestamp = Timestamp,
 			last_retarget = Timestamp,
 			size_tagged_txs = SizeTaggedTXs,
-			usd_to_big_rate = ?NEW_WEAVE_USD_TO_AR_RATE,
-			scheduled_usd_to_big_rate = ?NEW_WEAVE_USD_TO_AR_RATE,
+			usd_to_big_rate = ?NEW_WEAVE_USD_TO_BIG_RATE,
+			scheduled_usd_to_big_rate = ?NEW_WEAVE_USD_TO_BIG_RATE,
 			packing_2_5_threshold = 0,
 			strict_data_split_threshold = BlockSize,
 			account_tree = AccountTree

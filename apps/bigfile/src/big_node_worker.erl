@@ -1361,7 +1361,7 @@ apply_validated_block2(State, B, PrevBlocks, Orphans, RecentBI, BlockTXPairs) ->
 			true ->
 				{B#block.usd_to_big_rate, B#block.scheduled_usd_to_big_rate};
 			false ->
-				{?INITIAL_USD_TO_AR((Height + 1))(), ?INITIAL_USD_TO_AR((Height + 1))()}
+				{?INITIAL_USD_TO_BIG((Height + 1))(), ?INITIAL_USD_TO_BIG((Height + 1))()}
 		end,
 	AddedBlocks = tl(lists:reverse([B | [PrevB2 || PrevB2 <- PrevBlocks]])),
 	AddedBIElements = [block_index_entry(Blck) || Blck <- AddedBlocks],
