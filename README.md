@@ -68,8 +68,8 @@ for more information on running your own VDF server.
 **Download the repo:**
 
 ```sh
-$ git clone --recursive https://github.com/thebigfilecom/bigfile
-$ cd arweave
+$ git clone --recursive https://github.com/thebigfilecom/bigfile.git
+$ cd bigfile
 ```
 
 Increase the [open file
