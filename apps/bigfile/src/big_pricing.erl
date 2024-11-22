@@ -699,10 +699,10 @@ system_time_to_universal_time(Time, TimeUnit) ->
 	SecondsPerDay = 86400,
 	calendar:gregorian_seconds_to_datetime(Seconds + (DaysFrom0To1970 * SecondsPerDay)).
 
-recalculate_usd_to_ar_rate2(#block{ height = PrevHeight } = B) ->
+recalculate_usd_to_big_rate2(#block{ height = PrevHeight } = B) ->
 	case is_price_adjustment_height(PrevHeight + 1) of
 		false ->
-			{B#block.usd_to_ar_rate, B#block.scheduled_usd_to_ar_rate};
+			{B#block.usd_to_big_rate, B#block.scheduled_usd_to_big_rate};
 		true ->
 			Fork_2_6 = ar_fork:height_2_6(),
 			true = PrevHeight + 1 /= Fork_2_6,
@@ -710,20 +710,20 @@ recalculate_usd_to_ar_rate2(#block{ height = PrevHeight } = B) ->
 				true ->
 					%% Keep the rate fixed after the 2.6 fork till the transition to the
 					%% new pricing scheme ends. Then it won't be used any longer.
-					{B#block.scheduled_usd_to_ar_rate, B#block.scheduled_usd_to_ar_rate};
+					{B#block.scheduled_usd_to_big_rate, B#block.scheduled_usd_to_big_rate};
 				false ->
-					recalculate_usd_to_ar_rate3(B)
+					recalculate_usd_to_big_rate3(B)
 			end
 	end.
 
-recalculate_usd_to_ar_rate3(#block{ height = PrevHeight, diff = Diff } = B) ->
+recalculate_usd_to_big_rate3(#block{ height = PrevHeight, diff = Diff } = B) ->
 	Height = PrevHeight + 1,
 	InitialDiff = ar_retarget:switch_to_linear_diff(?INITIAL_USD_TO_BIG_DIFF(Height)()),
 	MaxDiff = ?MAX_DIFF,
 	InitialRate = ?INITIAL_USD_TO_BIG(Height)(),
 	{Dividend, Divisor} = InitialRate,
 	ScheduledRate = {Dividend * (MaxDiff - Diff), Divisor * (MaxDiff - InitialDiff)},
-	Rate = B#block.scheduled_usd_to_ar_rate,
+	Rate = B#block.scheduled_usd_to_big_rate,
 	MaxAdjustmentUp = ar_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_UP_MULTIPLIER),
 	MaxAdjustmentDown = ar_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_DOWN_MULTIPLIER),
 	CappedScheduledRate = ar_fraction:reduce(ar_fraction:maximum(
