@@ -68,7 +68,7 @@ for more information on running your own VDF server.
 **Download the repo:**
 
 ```sh
-$ git clone --recursive https://github.com/ArweaveTeam/arweave.git
+$ git clone --recursive https://github.com/thebigfilecom/bigfile
 $ cd arweave
 ```
 
