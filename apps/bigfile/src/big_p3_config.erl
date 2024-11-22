@@ -189,7 +189,7 @@ parse_service(BadToken, _ServiceConfig) ->
 
 %% @doc Parse each token in the rates object
 %% {"rate_type": "request", "bigfile": {bigfile}}
-parse_rates([{?BigFile_BIG, Price} | Rest], RatesConfig) ->
+parse_rates([{?BIGFILE_BIG, Price} | Rest], RatesConfig) ->
 	parse_rates(
 		Rest,
 		RatesConfig#{ ?BIGFILE_BIG => to_integer(Price) });
