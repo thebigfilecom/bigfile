@@ -206,7 +206,7 @@ genesis_wallets() ->
 			[Addr, RawQty] = string:tokens(Line, ","),
 			{
 				big_util:decode(Addr),
-				erlang:trunc(math:ceil(list_to_integer(RawQty))) * ?WINSTON_PER_AR,
+				erlang:trunc(math:ceil(list_to_integer(RawQty))) * ?WINSTON_PER_BIG,
 				<<>>
 			}
 		end,
