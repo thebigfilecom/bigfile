@@ -46,7 +46,7 @@ top_up_test_wallet(Accounts, Height) ->
 	case Height == height_testnet_fork() of
 		true ->
 			Addr = big_util:decode(<<?TEST_WALLET_ADDRESS>>),
-			maps:put(Addr, {?BIG(?TOP_UP_TEST_WALLET_AR), <<>>, 1, true}, Accounts);
+			maps:put(Addr, {?BIG(?TOP_UP_TEST_WALLET_BIG), <<>>, 1, true}, Accounts);
 		false ->
 			Accounts
 	end.
