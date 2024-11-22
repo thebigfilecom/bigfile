@@ -14,9 +14,9 @@ start_node() ->
 	%% This wallet is never spent from or deposited to, so the balance is predictable
 	StaticWallet = {_, Pub3} = big_wallet:new(),
 	[B0] = big_weave:init([
-		{big_wallet:to_address(Pub1), ?AR(10000), <<>>},
-		{big_wallet:to_address(Pub2), ?AR(10000), <<>>},
-		{big_wallet:to_address(Pub3), ?AR(10), <<"TEST_ID">>}
+		{big_wallet:to_address(Pub1), ?BIG(10000), <<>>},
+		{big_wallet:to_address(Pub2), ?BIG(10000), <<>>},
+		{big_wallet:to_address(Pub3), ?BIG(10), <<"TEST_ID">>}
 	], 0), %% Set difficulty to 0 to speed up tests
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
@@ -35,7 +35,7 @@ setup_all_batch() ->
 	{Setup, Cleanup} = big_test_node:mock_functions([
 		{big_retarget, is_retarget_height, fun(_Height) -> false end},
 		{big_retarget, is_retarget_block, fun(_Block) -> false end},
-		{big_tx, get_tx_fee, fun(_Args) -> ?AR(1) end}
+		{big_tx, get_tx_fee, fun(_Args) -> ?BIG(1) end}
 		]),
 	Functions = Setup(),
 	GenesisData = start_node(),
@@ -375,7 +375,7 @@ test_get_balance({B0, _, _, {_, Pub1}}) ->
 			peer => big_test_node:peer_ip(main),
 			path => "/wallet/" ++ Addr ++ "/balance"
 		}),
-	?assertEqual(?AR(10), binary_to_integer(Body)),
+	?assertEqual(?BIG(10), binary_to_integer(Body)),
 	RootHash = binary_to_list(big_util:encode(B0#block.wallet_list)),
 	{ok, {{<<"200">>, _}, _, Body, _, _}} =
 		big_http:req(#{
@@ -408,9 +408,9 @@ test_get_wallet_list_in_chunks({B0, {_, Pub1}, {_, Pub2}, {_, StaticPub}}) ->
 	GenesisAddr = big_wallet:to_address(TX#tx.owner, {?RSA_SIGN_ALG, 65537}),
 	TXID = TX#tx.id,
 	ExpectedWallets = lists:sort([
-			{Addr1, {?AR(10000), <<>>}},
-			{Addr2, {?AR(10000), <<>>}},
-			{StaticAddr, {?AR(10), <<"TEST_ID">>}},
+			{Addr1, {?BIG(10000), <<>>}},
+			{Addr2, {?BIG(10000), <<>>}},
+			{StaticAddr, {?BIG(10), <<"TEST_ID">>}},
 			{GenesisAddr, {0, TXID}}]),
 	{ExpectedWallets1, ExpectedWallets2} = lists:split(2, ExpectedWallets),
 	RootHash = binary_to_list(big_util:encode(B0#block.wallet_list)),
@@ -661,8 +661,8 @@ test_add_tx_and_get_last({_B0, Wallet1, Wallet2, _StaticWallet}) ->
 	{_Priv2, Pub2} = Wallet2,
 	SignedTX = big_test_node:sign_tx(Wallet1, #{
 		target => big_wallet:to_address(Pub2),
-		quantity => ?AR(2),
-		reward => ?AR(1)}),
+		quantity => ?BIG(2),
+		reward => ?BIG(1)}),
 	ID = SignedTX#tx.id,
 	big_http_iface_client:send_tx_binary(big_test_node:peer_ip(main), SignedTX#tx.id,
 			big_serialize:tx_to_binary(SignedTX)),
@@ -805,8 +805,8 @@ test_post_unsigned_tx({_B0, Wallet1, _Wallet2, _StaticWallet}) ->
 	TopUpTX = big_test_node:sign_tx(Wallet, #{
 		owner => Pub,
 		target => big_util:decode(Address),
-		quantity => ?AR(100),
-		reward => ?AR(1)
+		quantity => ?BIG(100),
+		reward => ?BIG(1)
 		}),
 	{ok, {{<<"200">>, _}, _, _, _, _}} =
 		big_http:req(#{
@@ -819,7 +819,7 @@ test_post_unsigned_tx({_B0, Wallet1, _Wallet2, _StaticWallet}) ->
 	big_test_node:mine(),
 	wait_until_height(LocalHeight + 1),
 	%% Send an unsigned transaction to be signed with the generated key.
-	TX = (big_tx:new())#tx{reward = ?AR(1), last_tx = TopUpTX#tx.id},
+	TX = (big_tx:new())#tx{reward = ?BIG(1), last_tx = TopUpTX#tx.id},
 	UnsignedTXProps = [
 		{<<"last_tx">>, <<>>},
 		{<<"target">>, TX#tx.target},

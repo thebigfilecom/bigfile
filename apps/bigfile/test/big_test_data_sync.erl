@@ -29,7 +29,7 @@ setup_nodes(Options) ->
 
 setup_nodes2(#{ addr := MainAddr, peer_addr := PeerAddr } = Options) ->
 	Wallet = {_, Pub} = big_wallet:new(),
-	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(200000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(200000), <<>>}]),
 	{ok, Config} = application:get_env(bigfile, config),
 	case maps:get(storage_modules, Options, not_found) of
 		not_found ->

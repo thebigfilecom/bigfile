@@ -654,7 +654,7 @@ tags_to_binary(Tags) ->
 sign_tx_test_() ->
 	{timeout, 30, fun test_sign_tx/0}.
 test_sign_tx() ->
-	NewTX = new(<<"TEST DATA">>, ?AR(1)),
+	NewTX = new(<<"TEST DATA">>, ?BIG(1)),
 	{Priv, Pub} = big_wallet:new(),
 	Rate = ?INITIAL_USD_TO_AR_PRE_FORK_2_5,
 	PricePerGiBMinute = 1,
@@ -668,7 +668,7 @@ test_sign_tx() ->
 			Accounts =
 				lists:foldl(
 					fun(Addr, Acc) ->
-						maps:put(Addr, {?AR(10), <<>>}, Acc)
+						maps:put(Addr, {?BIG(10), <<>>}, Acc)
 					end,
 					#{},
 					big_tx:get_addresses([TX])
@@ -701,7 +701,7 @@ test_sign_tx() ->
 			Accounts =
 				lists:foldl(
 					fun(Addr, Acc) ->
-						maps:put(Addr, {?AR(10), <<>>}, Acc)
+						maps:put(Addr, {?BIG(10), <<>>}, Acc)
 					end,
 					#{},
 					big_tx:get_addresses([TX])
@@ -730,7 +730,7 @@ test_sign_and_verify_chunked() ->
 				format = 2,
 				data = TXData,
 				data_size = byte_size(TXData),
-				reward = ?AR(100)
+				reward = ?BIG(100)
 			}
 		),
 	SignedTX = sign(UnsignedTX#tx{ data = <<>> }, Priv, Pub),
@@ -740,7 +740,7 @@ test_sign_and_verify_chunked() ->
 	Timestamp = os:system_time(seconds),
 	Address = big_wallet:to_address(Pub),
 	Args = {Rate, PricePerGiBMinute, 1, 1, 0, Height,
-			maps:from_list([{Address, {?AR(100), <<>>}}]), Timestamp},
+			maps:from_list([{Address, {?BIG(100), <<>>}}]), Timestamp},
 	?assert(verify(SignedTX, Args)).
 
 %% Ensure that a forged transaction does not pass verification.
@@ -749,7 +749,7 @@ forge_test_() ->
 	{timeout, 30, fun test_forge/0}.
 
 test_forge() ->
-	NewTX = new(<<"TEST DATA">>, ?AR(10)),
+	NewTX = new(<<"TEST DATA">>, ?BIG(10)),
 	{Priv, Pub} = big_wallet:new(),
 	Rate = ?INITIAL_USD_TO_AR_PRE_FORK_2_5,
 	PricePerGiBMinute = 400,
@@ -763,7 +763,7 @@ test_forge() ->
 
 %% Ensure that transactions above the minimum tx cost are accepted.
 is_tx_fee_sufficient_test() ->
-	ValidTX = new(<<"TEST DATA">>, ?AR(10)),
+	ValidTX = new(<<"TEST DATA">>, ?BIG(10)),
 	InvalidTX = new(<<"TEST DATA">>, 1),
 	PricePerGiBMinute = 2,
 	Height = 2,
@@ -786,9 +786,9 @@ test_check_last_tx() ->
 	{_Priv1, Pub1} = big_wallet:new(),
 	{Priv2, Pub2} = big_wallet:new(),
 	{Priv3, Pub3} = big_wallet:new(),
-	TX = big_tx:new(Pub2, ?AR(1), ?AR(500), <<>>),
-	TX2 = big_tx:new(Pub3, ?AR(1), ?AR(400), TX#tx.id),
-	TX3 = big_tx:new(Pub1, ?AR(1), ?AR(300), TX#tx.id),
+	TX = big_tx:new(Pub2, ?BIG(1), ?BIG(500), <<>>),
+	TX2 = big_tx:new(Pub3, ?BIG(1), ?BIG(400), TX#tx.id),
+	TX3 = big_tx:new(Pub1, ?BIG(1), ?BIG(300), TX#tx.id),
 	SignedTX2 = sign_v1(TX2, Priv2, Pub2),
 	SignedTX3 = sign_v1(TX3, Priv3, Pub3),
 	WalletList =

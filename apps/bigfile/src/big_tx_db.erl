@@ -65,7 +65,7 @@ test_tx_db() ->
 		{big_wallet:to_address(Pub2), ?BIG(10000), <<>>}
 	],
 	WL = maps:from_list([{A, {B, LTX}} || {A, B, LTX} <- Wallets]),
-	OrphanedTX1 = big_tx:new(Pub1, ?BIG(1), ?AR(5000), <<>>),
+	OrphanedTX1 = big_tx:new(Pub1, ?BIG(1), ?BIG(5000), <<>>),
 	BadTX = OrphanedTX1#tx{ owner = Owner1, signature = <<"BAD">> },
 	Timestamp = os:system_time(seconds),
 	?assert(not big_tx:verify(BadTX, {{1, 4}, 1, 1, 1, 0, 1, WL, Timestamp})),

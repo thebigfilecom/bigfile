@@ -99,7 +99,7 @@ is_in_tolerance_test() ->
     false = is_in_tolerance(101.1, 100, 1),
     true = is_in_tolerance(100.0001, 100, 0.01),
     false = is_in_tolerance(100.0001, 100, 0.00009),
-    true = is_in_tolerance(?AR(100 * 1000000), ?AR(100 * 1000000) + 10, 0.01).
+    true = is_in_tolerance(?BIG(100 * 1000000), ?BIG(100 * 1000000) + 10, 0.01).
 
 %%% Calculate and verify per-year expected and actual inflation.
 

@@ -13,7 +13,7 @@ test_height_plus_one_fork_recovery() ->
 	%% Mine on two nodes until they fork. Mine an extra block on one of them.
 	%% Expect the other one to recover.
 	{_, Pub} = big_wallet:new(),
-	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
@@ -42,7 +42,7 @@ test_height_plus_three_fork_recovery() ->
 	%% Mine on two nodes until they fork. Mine three extra blocks on one of them.
 	%% Expect the other one to recover.
 	{_, Pub} = big_wallet:new(),
-	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
@@ -71,7 +71,7 @@ test_missing_txs_fork_recovery() ->
 	%% but do not gossip the transaction. The main node
 	%% is expected fetch the missing transaction and apply the block.
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
@@ -93,11 +93,11 @@ test_orphaned_txs_are_remined_after_fork_recovery() ->
 	%% make the transaction orphaned. Mine a block on peer1 and
 	%% assert the transaction is re-mined.
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
-	TX = #tx{ id = TXID } = big_test_node:sign_tx(Key, #{ denomination => 1, reward => ?AR(1) }),
+	TX = #tx{ id = TXID } = big_test_node:sign_tx(Key, #{ denomination => 1, reward => ?BIG(1) }),
 	big_test_node:assert_post_tx_to_peer(peer1, TX),
 	big_test_node:mine(peer1),
 	[{H1, _, _} | _] = big_test_node:wait_until_height(peer1, 1),
@@ -230,7 +230,7 @@ fake_block_with_strong_cumulative_difficulty(B, PrevB, CDiff) ->
 	
 	test_fork_recovery(Split) ->
 		Wallet = big_test_data_sync:setup_nodes(),
-		{TX1, Chunks1} = big_test_data_sync:tx(Wallet, {Split, 13}, v2, ?AR(10)),
+		{TX1, Chunks1} = big_test_data_sync:tx(Wallet, {Split, 13}, v2, ?BIG(10)),
 		?debugFmt("Posting tx to main ~s.~n", [big_util:encode(TX1#tx.id)]),
 		B1 = big_test_node:post_and_mine(#{ miner => main, await_on => peer1 }, [TX1]),
 		?debugFmt("Mined block ~s, height ~B.~n", [big_util:encode(B1#block.indep_hash),
@@ -240,15 +240,15 @@ fake_block_with_strong_cumulative_difficulty(B, PrevB, CDiff) ->
 		UpperBound = big_node:get_partition_upper_bound(big_node:get_block_index()),
 		big_test_data_sync:wait_until_syncs_chunks(peer1, Proofs1, UpperBound),
 		big_test_node:disconnect_from(peer1),
-		{PeerTX2, PeerChunks2} = big_test_data_sync:tx(Wallet, {Split, 15}, v2, ?AR(10)),
-		{PeerTX3, PeerChunks3} = big_test_data_sync:tx(Wallet, {Split, 17}, v2, ?AR(10)),
+		{PeerTX2, PeerChunks2} = big_test_data_sync:tx(Wallet, {Split, 15}, v2, ?BIG(10)),
+		{PeerTX3, PeerChunks3} = big_test_data_sync:tx(Wallet, {Split, 17}, v2, ?BIG(10)),
 		?debugFmt("Posting tx to peer1 ~s.~n", [big_util:encode(PeerTX2#tx.id)]),
 		?debugFmt("Posting tx to peer1 ~s.~n", [big_util:encode(PeerTX3#tx.id)]),
 		PeerB2 = big_test_node:post_and_mine(#{ miner => peer1, await_on => peer1 },
 				[PeerTX2, PeerTX3]),
 		?debugFmt("Mined block ~s, height ~B.~n", [big_util:encode(PeerB2#block.indep_hash),
 				PeerB2#block.height]),
-		{MainTX2, MainChunks2} = big_test_data_sync:tx(Wallet, {Split, 14}, v2, ?AR(10)),
+		{MainTX2, MainChunks2} = big_test_data_sync:tx(Wallet, {Split, 14}, v2, ?BIG(10)),
 		?debugFmt("Posting tx to main ~s.~n", [big_util:encode(MainTX2#tx.id)]),
 		MainB2 = big_test_node:post_and_mine(#{ miner => main, await_on => main },
 				[MainTX2]),
@@ -256,7 +256,7 @@ fake_block_with_strong_cumulative_difficulty(B, PrevB, CDiff) ->
 				MainB2#block.height]),
 		_PeerProofs2 = big_test_data_sync:post_proofs(peer1, PeerB2, PeerTX2, PeerChunks2),
 		_PeerProofs3 = big_test_data_sync:post_proofs(peer1, PeerB2, PeerTX3, PeerChunks3),
-		{PeerTX4, PeerChunks4} = big_test_data_sync:tx(Wallet, {Split, 22}, v2, ?AR(10)),
+		{PeerTX4, PeerChunks4} = big_test_data_sync:tx(Wallet, {Split, 22}, v2, ?BIG(10)),
 		?debugFmt("Posting tx to peer1 ~s.~n", [big_util:encode(PeerTX4#tx.id)]),
 		PeerB3 = big_test_node:post_and_mine(#{ miner => peer1, await_on => peer1 },
 				[PeerTX4]),
@@ -265,7 +265,7 @@ fake_block_with_strong_cumulative_difficulty(B, PrevB, CDiff) ->
 		_PeerProofs4 = big_test_data_sync:post_proofs(peer1, PeerB3, PeerTX4, PeerChunks4),
 		big_test_node:post_and_mine(#{ miner => main, await_on => main }, []),
 		MainProofs2 = big_test_data_sync:post_proofs(main, MainB2, MainTX2, MainChunks2),
-		{MainTX3, MainChunks3} = big_test_data_sync:tx(Wallet, {Split, 16}, v2, ?AR(10)),
+		{MainTX3, MainChunks3} = big_test_data_sync:tx(Wallet, {Split, 16}, v2, ?BIG(10)),
 		?debugFmt("Posting tx to main ~s.~n", [big_util:encode(MainTX3#tx.id)]),
 		MainB3 = big_test_node:post_and_mine(#{ miner => main, await_on => main },
 				[MainTX3]),
