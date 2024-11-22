@@ -31,7 +31,7 @@ void feistel_encrypt_block(const unsigned char *in_left, const unsigned char *in
 		// right[j] = temp;
 	}
 
-	// NOTE will be unused by arweave
+	// NOTE will be unused by bigfile
 	// for (size_t i = 1; i < round_count - 1; i++) {
 	// 	feistel_hash(right, key, key_hash);
 	// 	key += FEISTEL_BLOCK_LENGTH;
@@ -70,7 +70,7 @@ void feistel_decrypt_block(const unsigned char *in_left, const unsigned char *in
 		// left[j] = temp;
 	}
 
-	// NOTE will be unused by arweave
+	// NOTE will be unused by bigfile
 	// for (size_t i = 1; i < round_count - 1; i++) {
 	// 	feistel_hash(left, key, key_hash);
 	// 	key -= FEISTEL_BLOCK_LENGTH;

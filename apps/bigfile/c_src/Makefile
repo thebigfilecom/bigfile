@@ -62,9 +62,9 @@ CXXFLAGS += -fPIC -I $(ERTS_INCLUDE_DIR) -I $(ERL_INTERFACE_INCLUDE_DIR) -I ../l
 LDLIBS += -L $(ERL_INTERFACE_LIB_DIR) -L /usr/local/lib -lei -lssl -lcrypto 
 
 
-RX512_OUTPUT ?= $(CURDIR)/../priv/rx512_arweave.so
-RX4096_OUTPUT ?= $(CURDIR)/../priv/rx4096_arweave.so
-VDF_OUTPUT ?= $(CURDIR)/../priv/vdf_arweave.so
+RX512_OUTPUT ?= $(CURDIR)/../priv/rx512_bigfile.so
+RX4096_OUTPUT ?= $(CURDIR)/../priv/rx4096_bigfile.so
+VDF_OUTPUT ?= $(CURDIR)/../priv/vdf_bigfile.so
 
 COMMON_RANDOMX_SOURCES = $(wildcard $(C_SRC_DIR)/randomx/*.c $(C_SRC_DIR)/randomx/*.cpp)
 RX512_SOURCES = $(COMMON_RANDOMX_SOURCES) $(wildcard $(C_SRC_DIR)/*.c $(C_SRC_DIR)/randomx/rx512/*.c)
