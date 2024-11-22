@@ -1534,7 +1534,7 @@ record_economic_metrics2(B, PrevB) ->
 			?LOG_ERROR([{event, failed_to_compute_expected_min_decline_rate2}]);
 		{RateDivisor2, RateDividend2} ->
 			prometheus_gauge:set(
-					expected_minimum_200_years_storage_costs_decline_rate_10_usd_ar,
+					expected_minimum_200_years_storage_costs_decline_rate_10_usd_big,
 					big_util:safe_divide(RateDivisor2, RateDividend2))
 	end.
 

@@ -590,7 +590,7 @@ get_gb_cost_per_year_at_datetime({{Y, M, _}, _} = DT, Height) ->
 	FracY = fraction_of_year(PrevY, NextY, DT, Height),
 	PrevYCost = usd_p_gby(PrevY, Height),
 	NextYCost = usd_p_gby(NextY, Height),
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		true ->
 			{FracYDividend, FracYDivisor} = FracY,
 			{PrevYCostDividend, PrevYCostDivisor} = PrevYCost,
@@ -630,12 +630,12 @@ next_jun_30_year(Y, _M) ->
 %% @doc Return the cost in USD of storing 1 GB per average block time.
 -spec get_gb_cost_per_block_at_datetime(DT::datetime(), Height::nonegint()) -> usd().
 get_gb_cost_per_block_at_datetime(DT, Height) ->
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		true ->
 			{Dividend, Divisor} = get_gb_cost_per_year_at_datetime(DT, Height),
-			{Dividend, Divisor * ar_inflation:blocks_per_year(Height)};
+			{Dividend, Divisor * big_inflation:blocks_per_year(Height)};
 		false ->
-			get_gb_cost_per_year_at_datetime(DT, Height) / ar_inflation:blocks_per_year(Height)
+			get_gb_cost_per_year_at_datetime(DT, Height) / big_inflation:blocks_per_year(Height)
 	end.
 
 %% @doc Return the cost in USD of storing 1 GB per year. Estmimated from empirical data.
@@ -645,7 +645,7 @@ get_gb_cost_per_block_at_datetime(DT, Height) ->
 -spec usd_p_gby(nonegint(), nonegint()) -> usd().
 usd_p_gby(2018, Height) ->
 	{Dividend, Divisor} = ?USD_PER_GBY_2018,
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		true ->
 			{Dividend, Divisor};
 		false ->
@@ -653,20 +653,20 @@ usd_p_gby(2018, Height) ->
 	end;
 usd_p_gby(2019, Height) ->
 	{Dividend, Divisor} = ?USD_PER_GBY_2019,
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		true ->
 			{Dividend, Divisor};
 		false ->
 			Dividend / Divisor
 	end;
 usd_p_gby(Y, Height) ->
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		true ->
 			{KDividend, KDivisor} = ?USD_PER_GBY_2019,
 			{ADividend, ADivisor} = ?LN_PRICE_DECAY_ANNUAL,
 			T = Y - 2019,
 			P = ?TX_PRICE_NATURAL_EXPONENT_DECIMAL_FRACTION_PRECISION,
-			{EDividend, EDivisor} = ar_fraction:natural_exponent({ADividend * T, ADivisor}, P),
+			{EDividend, EDivisor} = big_fraction:natural_exponent({ADividend * T, ADivisor}, P),
 			{EDividend * KDividend, EDivisor * KDivisor};	
 		false ->
 			{Dividend, Divisor} = ?USD_PER_GBY_2019,
@@ -685,7 +685,7 @@ fraction_of_year(PrevY, NextY, {{Y, Mo, D}, {H, Mi, S}}, Height) ->
 	Start = calendar:datetime_to_gregorian_seconds({{PrevY, 6, 30}, {23, 59, 59}}),
 	Now = calendar:datetime_to_gregorian_seconds({{Y, Mo, D}, {H, Mi, S}}),
 	End = calendar:datetime_to_gregorian_seconds({{NextY, 6, 30}, {23, 59, 59}}),
-	case Height >= ar_fork:height_2_5() of
+	case Height >= big_fork:height_2_5() of
 		true ->
 			{Now - Start, End - Start};
 		false ->
@@ -704,7 +704,7 @@ recalculate_usd_to_big_rate2(#block{ height = PrevHeight } = B) ->
 		false ->
 			{B#block.usd_to_big_rate, B#block.scheduled_usd_to_big_rate};
 		true ->
-			Fork_2_6 = ar_fork:height_2_6(),
+			Fork_2_6 = big_fork:height_2_6(),
 			true = PrevHeight + 1 /= Fork_2_6,
 			case PrevHeight + 1 > Fork_2_6 of
 				true ->
@@ -718,26 +718,26 @@ recalculate_usd_to_big_rate2(#block{ height = PrevHeight } = B) ->
 
 recalculate_usd_to_big_rate3(#block{ height = PrevHeight, diff = Diff } = B) ->
 	Height = PrevHeight + 1,
-	InitialDiff = ar_retarget:switch_to_linear_diff(?INITIAL_USD_TO_BIG_DIFF(Height)()),
+	InitialDiff = big_retarget:switch_to_linear_diff(?INITIAL_USD_TO_BIG_DIFF(Height)()),
 	MaxDiff = ?MAX_DIFF,
 	InitialRate = ?INITIAL_USD_TO_BIG(Height)(),
 	{Dividend, Divisor} = InitialRate,
 	ScheduledRate = {Dividend * (MaxDiff - Diff), Divisor * (MaxDiff - InitialDiff)},
 	Rate = B#block.scheduled_usd_to_big_rate,
-	MaxAdjustmentUp = ar_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_UP_MULTIPLIER),
-	MaxAdjustmentDown = ar_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_DOWN_MULTIPLIER),
-	CappedScheduledRate = ar_fraction:reduce(ar_fraction:maximum(
-			ar_fraction:minimum(ScheduledRate, MaxAdjustmentUp), MaxAdjustmentDown),
+	MaxAdjustmentUp = big_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_UP_MULTIPLIER),
+	MaxAdjustmentDown = big_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_DOWN_MULTIPLIER),
+	CappedScheduledRate = big_fraction:reduce(big_fraction:maximum(
+			big_fraction:minimum(ScheduledRate, MaxAdjustmentUp), MaxAdjustmentDown),
 			?USD_TO_BIG_FRACTION_REDUCTION_LIMIT),
 	?LOG_DEBUG([{event, recalculated_rate},
-			{new_rate, ar_util:safe_divide(element(1, Rate), element(2, Rate))},
-			{new_scheduled_rate, ar_util:safe_divide(element(1, CappedScheduledRate),
+			{new_rate, big_util:safe_divide(element(1, Rate), element(2, Rate))},
+			{new_scheduled_rate, big_util:safe_divide(element(1, CappedScheduledRate),
 					element(2, CappedScheduledRate))},
 			{new_scheduled_rate_without_capping,
-					ar_util:safe_divide(element(1, ScheduledRate), element(2, ScheduledRate))},
-		{max_adjustment_up, ar_util:safe_divide(element(1, MaxAdjustmentUp),
+					big_util:safe_divide(element(1, ScheduledRate), element(2, ScheduledRate))},
+		{max_adjustment_up, big_util:safe_divide(element(1, MaxAdjustmentUp),
 				element(2,MaxAdjustmentUp))},
-		{max_adjustment_down, ar_util:safe_divide(element(1, MaxAdjustmentDown),
+		{max_adjustment_down, big_util:safe_divide(element(1, MaxAdjustmentDown),
 				element(2,MaxAdjustmentDown))}]),
 	{Rate, CappedScheduledRate}.
 
@@ -765,7 +765,7 @@ log_price_metrics(Event,
 
 network_data_size(Height,
 		AverageHashRate, IntervalTotal, VDFIntervalTotal, SolutionsPerPartitionPerVDFStep) ->
-	TargetTime = ar_testnet:target_block_time(Height),
+	TargetTime = big_testnet:target_block_time(Height),
 	SolutionsPerPartitionPerBlock =
 		(SolutionsPerPartitionPerVDFStep * VDFIntervalTotal * TargetTime) div IntervalTotal,
 	EstimatedPartitionCount = AverageHashRate div SolutionsPerPartitionPerBlock,
@@ -777,11 +777,11 @@ network_data_size(Height,
 
 get_gb_cost_per_year_at_datetime_is_monotone_test_() ->
 	[
-		ar_test_node:test_with_mocked_functions([{ar_fork, height_2_5, fun() -> infinity end}],
+		big_test_node:test_with_mocked_functions([{big_fork, height_2_5, fun() -> infinity end}],
 			fun test_get_gb_cost_per_year_at_datetime_is_monotone/0, 120)
 		| 
 		[
-			ar_test_node:test_with_mocked_functions([{ar_fork, height_2_5, fun() -> Height end}],
+			big_test_node:test_with_mocked_functions([{big_fork, height_2_5, fun() -> Height end}],
 				fun test_get_gb_cost_per_year_at_datetime_is_monotone/0, 120)
 			|| Height <- lists:seq(0, 20)
 		]

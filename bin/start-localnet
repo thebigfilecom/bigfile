@@ -11,8 +11,8 @@ source $SCRIPT_DIR/bigfile.env
 while true; do
     echo Launching Erlang Virtual Machine...
     if
-        # -run ar main: call ar:main() on launch
-        $BIGFILE $BIGFILE_COMMAND $BIGFILE_OPTS -run ar main $RANDOMX_JIT "$@"
+        # -run big main: call big:main() on launch
+        $BIGFILE $BIGFILE_COMMAND $BIGFILE_OPTS -run big main $RANDOMX_JIT "$@"
     then
         echo "BigFile Heartbeat: Server terminated safely."
         exit 0

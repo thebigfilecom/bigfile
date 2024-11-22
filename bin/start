@@ -37,8 +37,8 @@ echo "Custom Erlang Options: ${ERLANG_ARGS[@]}"
 while true; do
     echo Launching Erlang Virtual Machine...
     if
-        # -run ar main: call ar:main() on launch
-        $BIGFILE $BIGFILE_COMMAND $BIGFILE_OPTS ${ERLANG_ARGS[@]} -run ar main $RANDOMX_JIT ${BIGFILE_ARGS[@]}
+        # -run big main: call big:main() on launch
+        $BIGFILE $BIGFILE_COMMAND $BIGFILE_OPTS ${ERLANG_ARGS[@]} -run big main $RANDOMX_JIT ${BIGFILE_ARGS[@]}
     then
         echo "BigFile Heartbeat: Server terminated safely."
         exit 0

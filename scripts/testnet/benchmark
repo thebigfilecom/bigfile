@@ -14,4 +14,4 @@ if [ -d benchmark ]; then
     mv -i benchmark benchmark.old;
 fi
 
-$BIGFILE foreground -run ar main $RANDOMX_JIT init mine data_dir benchmark
+$BIGFILE foreground -run big main $RANDOMX_JIT init mine data_dir benchmark

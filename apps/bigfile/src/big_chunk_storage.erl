@@ -171,7 +171,7 @@ run_defragmentation() ->
 		false ->
 			ok;
 		true ->
-			ar:console("Defragmentation threshold: ~B bytes.~n",
+			big:console("Defragmentation threshold: ~B bytes.~n",
 					   [Config#config.defragmentation_trigger_threshold]),
 			DefragModules = modules_to_defrag(Config),
 			Sizes = read_chunks_sizes(Config#config.data_dir),
@@ -252,7 +252,7 @@ warn_custom_chunk_group_size(StoreID) ->
 			WarningMessage = "WARNING: changing chunk_storage_file_size is not "
 				"recommended and may cause errors if different sizes are used for the same "
 				"chunk storage files.",
-			ar:console(WarningMessage),
+			big:console(WarningMessage),
 			?LOG_WARNING(WarningMessage);
 		false ->
 			ok
@@ -703,7 +703,7 @@ defrag_files([Filepath | Rest]) ->
 	%% We expect nothing to be returned on successful calls.
 	[] = os:cmd(DefragCmd),
 	[] = os:cmd(MoveDefragCmd),
-	ar:console("Defragmented ~s...~n", [Filepath]),
+	big:console("Defragmented ~s...~n", [Filepath]),
 	defrag_files(Rest).
 
 update_sizes_file([], Sizes) ->
@@ -760,7 +760,7 @@ chunk_offset_list_to_map(ChunkOffsets) ->
 repack(Cursor, RightBound, Packing, StoreID) ->
 	case big_sync_record:get_next_synced_interval(Cursor, RightBound, ?MODULE, StoreID) of
 		not_found ->
-			ar:console("~n~nRepacking of ~s is complete! "
+			big:console("~n~nRepacking of ~s is complete! "
 					"We suggest you stop the node, rename "
 					"the storage module folder to reflect the new packing, and start the "
 					"node with the new storage module.~n", [StoreID]),

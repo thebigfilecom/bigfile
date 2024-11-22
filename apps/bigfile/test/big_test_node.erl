@@ -79,7 +79,7 @@ try_boot_peer(Node, Retries) ->
     filelib:ensure_dir("./.tmp"),
 	Schedulers = erlang:system_info(schedulers_online),
     Cmd = io_lib:format(
-        "erl +S ~B:~B -noshell -name ~s -pa ~s -setcookie ~s -run ar main debug port ~p " ++
+        "erl +S ~B:~B -noshell -name ~s -pa ~s -setcookie ~s -run big main debug port ~p " ++
         "data_dir .tmp/data_test_~s no_auto_join packing_rate 20 " ++
 		"> ~s-~s.out 2>&1 &",
         [Schedulers, Schedulers, NodeName, string:join(Paths, " "), Cookie, Port, NodeName,
@@ -174,7 +174,7 @@ start_node(B0, Config, WaitUntilSync) ->
 		storage_modules = Config#config.storage_modules
 	},
 	ok = application:set_env(bigfile, config, Config2),
-	ar:start_dependencies(),
+	big:start_dependencies(),
 	wait_until_joined(),
 	case WaitUntilSync of
 		true ->
@@ -493,13 +493,13 @@ start(B0, RewardAddr, Config, StorageModules) ->
 				pack_served_chunks | Config#config.enable],
 		debug = true
 	}),
-	ar:start_dependencies(),
+	big:start_dependencies(),
 	wait_until_joined(),
 	wait_until_syncs_genesis_data().
 
 restart() ->
 	stop(),
-	ar:start_dependencies(),
+	big:start_dependencies(),
 	wait_until_joined(),
 	wait_until_syncs_genesis_data().
 
@@ -658,7 +658,7 @@ sign_tx(Node, Wallet, Args, SignFun) ->
 stop() ->
 	{ok, Config} = application:get_env(bigfile, config),
 	application:stop(bigfile),
-	ar:stop_dependencies(),
+	big:stop_dependencies(),
 	Config.
 
 stop(Node) ->
@@ -692,7 +692,7 @@ join(JoinOnNode, Rejoin) ->
 		auto_join = true,
 		peers = [Peer]
 	}),
-	ar:start_dependencies(),
+	big:start_dependencies(),
 	whereis(big_node_worker).
 
 get_default_storage_module_packing(RewardAddr, Index) ->

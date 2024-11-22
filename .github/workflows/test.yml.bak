@@ -127,7 +127,7 @@ jobs:
             RETRYABLE=0
             set +e
             set -x
-            erl $ERL_TEST_OPTS -noshell -name main-${NAMESPACE}@127.0.0.1 -setcookie ${{ matrix.core_test_mod }} -run ar tests "${{ matrix.core_test_mod }}" -s init stop 2>&1 | tee main.out
+            erl $ERL_TEST_OPTS -noshell -name main-${NAMESPACE}@127.0.0.1 -setcookie ${{ matrix.core_test_mod }} -run big tests "${{ matrix.core_test_mod }}" -s init stop 2>&1 | tee main.out
             EXIT_CODE=${PIPESTATUS[0]}
             set +x
             set -e

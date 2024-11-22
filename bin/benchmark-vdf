@@ -7,4 +7,4 @@ SCRIPT_DIR="$(dirname "$0")"
 # Sets $BIGFILE and $BIGFILE_* variables
 source $SCRIPT_DIR/bigfile.env
 
-$BIGFILE foreground $BIGFILE_OPTS -run ar benchmark_vdf
+$BIGFILE foreground $BIGFILE_OPTS -run big benchmark_vdf

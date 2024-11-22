@@ -7,5 +7,5 @@ SCRIPT_DIR="$(dirname "$0")"
 # Sets $BIGFILE and $BIGFILE_* variables
 source $SCRIPT_DIR/bigfile.env
 
-$BIGFILE foreground $BIGFILE_OPTS -run ar create_wallet "$@"
+$BIGFILE foreground $BIGFILE_OPTS -run big create_wallet "$@"
 

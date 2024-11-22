@@ -279,7 +279,7 @@ let
         -config config/sys.config \
         -name stopper@127.0.0.1 \
         -setcookie bigfile \
-        -s ar shutdown bigfile@127.0.0.1 -s init stop
+        -s big shutdown bigfile@127.0.0.1 -s init stop
     '';
   };
 
@@ -310,7 +310,7 @@ let
        -pa $(echo $PROFILE_DIR/lib/*/ebin) \
        -config $ROOT_DIR/config/sys.config \
        -args_file $ROOT_DIR/config/vm.args.dev \
-       -run ar main $RANDOMX_JIT "$@"
+       -run big main $RANDOMX_JIT "$@"
     '';
   };
 
@@ -349,7 +349,7 @@ let
        -mode embedded \
        +MBas aobf +MBlmbcs 512 +A100 +SDio100 +A100 +SDio100 +Bi -pa $(echo $PROFILE_DIR/lib/*/ebin) \
        -args_file $ROOT_DIR/config/vm.args.dev \
-       -run ar main $RANDOMX_JIT "$@"
+       -run big main $RANDOMX_JIT "$@"
     '';
   };
 

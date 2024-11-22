@@ -7,4 +7,4 @@ SCRIPT_DIR="$(dirname "$0")"
 # Sets $BIGFILEand $BIGFILE_* variables
 source $SCRIPT_DIR/bigfile.env
 
-$BIGFILE foreground $BIGFILE_OPTS -run ar benchmark_hash ${@:1}
+$BIGFILE foreground $BIGFILE_OPTS -run big benchmark_hash ${@:1}
