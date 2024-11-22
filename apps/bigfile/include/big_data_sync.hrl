@@ -168,7 +168,7 @@
 	%% A compact set of non-overlapping intervals containing all the intervals from the
 	%% sync intervals queue. We use it to quickly check which intervals have been queued
 	%% already and avoid syncing the same interval twice.
-	sync_intervals_queue_intervals = ar_intervals:new(),
+	sync_intervals_queue_intervals = big_intervals:new(),
 	%% A key marking the beginning of a full disk pool scan.
 	disk_pool_full_scan_start_key = none,
 	%% The timestamp of the beginning of a full disk pool scan. Used to measure
