@@ -14,7 +14,7 @@ jobs:
       - name: Build bigfile test sources
         run: |
           rm -rf _build || true
-          ./ar-rebar3 test compile
+          ./big-rebar3 test compile
           chmod -R u+w ./_build
           tar --dereference -czf /tmp/bigfile_build_${{ github.run_id }}.tar.gz _build
 
