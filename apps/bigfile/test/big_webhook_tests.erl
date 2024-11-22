@@ -1,17 +1,17 @@
--module(ar_webhook_tests).
+-module(big_webhook_tests).
 
 -export([init/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
--import(ar_test_node, [
+-import(big_test_node, [
 		wait_until_height/1, read_block_when_stored/1]).
 
 init(Req, State) ->
-	SplitPath = ar_http_iface_server:split_path(cowboy_req:path(Req)),
+	SplitPath = big_http_iface_server:split_path(cowboy_req:path(Req)),
 	handle(SplitPath, Req, State).
 
 handle([<<"tx">>], Req, State) ->
@@ -38,10 +38,10 @@ webhooks_test_() ->
 	{timeout, 120, fun test_webhooks/0}.
 
 test_webhooks() ->
-	{_, Pub} = Wallet = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	{_, Pub} = Wallet = big_wallet:new(),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 	{ok, Config} = application:get_env(arweave, config),
-	Port = ar_test_node:get_unused_port(),
+	Port = big_test_node:get_unused_port(),
 	PortBinary = integer_to_binary(Port),
 	TXBlacklistFilename = random_tx_blacklist_filename(),
 	Config2 = Config#config{
@@ -61,13 +61,13 @@ test_webhooks() ->
 		],
 		transaction_blacklist_files = [TXBlacklistFilename]
 	},
-	ar_test_node:start(B0, ar_wallet:to_address(ar_wallet:new_keyfile()), Config2),
+	big_test_node:start(B0, big_wallet:to_address(big_wallet:new_keyfile()), Config2),
 	%% Setup a server that would be listening for the webhooks and registering
 	%% them in the ETS table.
 	ets:new(?MODULE, [named_table, set, public]),
-	Routes = [{"/[...]", ar_webhook_tests, []}],
+	Routes = [{"/[...]", big_webhook_tests, []}],
 	cowboy:start_clear(
-		ar_webhook_test_listener,
+		big_webhook_test_listener,
 		[{port, Port}],
 		#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 	),
@@ -79,38 +79,38 @@ test_webhooks() ->
 					case Height rem 2 == 1 of
 						true ->
 							Data = crypto:strong_rand_bytes(262144 * 2 + 10),
-							ar_test_node:sign_v1_tx(main, Wallet, #{ data => Data });
+							big_test_node:sign_v1_tx(main, Wallet, #{ data => Data });
 						false ->
 							case Height == 2 of
 								true ->
 									V2TX;
 								false ->
-									ar_test_node:sign_tx(main, Wallet, #{})
+									big_test_node:sign_tx(main, Wallet, #{})
 							end
 					end,
-				ar_test_node:assert_post_tx_to_peer(main, SignedTX),
-				ar_test_node:mine(),
+				big_test_node:assert_post_tx_to_peer(main, SignedTX),
+				big_test_node:mine(),
 				wait_until_height(Height),
 				SignedTX
 			end,
 			lists:seq(1, 10)
 		),
-	UnconfirmedTX = ar_test_node:sign_tx(main, Wallet, #{}),
-	ar_test_node:assert_post_tx_to_peer(main, UnconfirmedTX),
+	UnconfirmedTX = big_test_node:sign_tx(main, Wallet, #{}),
+	big_test_node:assert_post_tx_to_peer(main, UnconfirmedTX),
 	lists:foreach(
 		fun(Height) ->
 			TX = lists:nth(Height, TXs),
-			true = ar_util:do_until(
+			true = big_util:do_until(
 				fun() ->
 					case ets:lookup(?MODULE, {block, Height}) of
 						[{_, B}] ->
-							{H, _, _} = ar_node:get_block_index_entry(Height),
+							{H, _, _} = big_node:get_block_index_entry(Height),
 							B2 = read_block_when_stored(H),
-							Struct = ar_serialize:block_to_json_struct(B2),
+							Struct = big_serialize:block_to_json_struct(B2),
 							Expected =
 								maps:remove(
 									<<"wallet_list">>,
-									jiffy:decode(ar_serialize:jsonify(Struct), [return_maps])
+									jiffy:decode(big_serialize:jsonify(Struct), [return_maps])
 								),
 							?assertEqual(Expected, B),
 							true;	
@@ -121,15 +121,15 @@ test_webhooks() ->
 				200,
 				10000
 			),
-			true = ar_util:do_until(
+			true = big_util:do_until(
 				fun() ->
-					case ets:lookup(?MODULE, {tx, ar_util:encode(TX#tx.id)}) of
+					case ets:lookup(?MODULE, {tx, big_util:encode(TX#tx.id)}) of
 						[{_, TX2}] ->
-							Struct = ar_serialize:tx_to_json_struct(TX),
+							Struct = big_serialize:tx_to_json_struct(TX),
 							Expected =
 								maps:remove(
 									<<"data">>,
-									jiffy:decode(ar_serialize:jsonify(Struct), [return_maps])
+									jiffy:decode(big_serialize:jsonify(Struct), [return_maps])
 								),
 							?assertEqual(Expected, TX2),
 							true;
@@ -151,15 +151,15 @@ test_webhooks() ->
 		end,
 		lists:seq(1, 10)
 	),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
-			case ets:lookup(?MODULE, {tx, ar_util:encode(UnconfirmedTX#tx.id)}) of
+			case ets:lookup(?MODULE, {tx, big_util:encode(UnconfirmedTX#tx.id)}) of
 				[{_, TX}] ->
-					Struct = ar_serialize:tx_to_json_struct(UnconfirmedTX),
+					Struct = big_serialize:tx_to_json_struct(UnconfirmedTX),
 					Expected =
 						maps:remove(
 							<<"data">>,
-							jiffy:decode(ar_serialize:jsonify(Struct), [return_maps])
+							jiffy:decode(big_serialize:jsonify(Struct), [return_maps])
 						),
 					?assertEqual(Expected, TX),
 					true;
@@ -186,35 +186,35 @@ test_webhooks() ->
 	timer:sleep(3000),
 	upload_chunks(Proofs),
 	assert_transaction_data_synced(V2TXID),
-	cowboy:stop_listener(ar_webhook_test_listener),
+	cowboy:stop_listener(big_webhook_test_listener),
 	application:set_env(arweave, config, Config#config{ webhooks = [] }).
 
 create_v2_tx(Wallet) ->
 	DataSize = 3 * ?DATA_CHUNK_SIZE + 11,
-	Chunks = ar_tx:chunk_binary(?DATA_CHUNK_SIZE, crypto:strong_rand_bytes(DataSize)),
-	SizeTaggedChunks = ar_tx:chunks_to_size_tagged_chunks(Chunks),
-	SizedChunkIDs = ar_tx:sized_chunks_to_sized_chunk_ids(SizeTaggedChunks),
-	{DataRoot, DataTree} = ar_merkle:generate_tree(SizedChunkIDs),
-	TX = ar_test_node:sign_tx(main, Wallet,
-			#{ format => 2, data_root => DataRoot, data_size => DataSize, reward => ?AR(1) }),
+	Chunks = big_tx:chunk_binary(?DATA_CHUNK_SIZE, crypto:strong_rand_bytes(DataSize)),
+	SizeTaggedChunks = big_tx:chunks_to_size_tagged_chunks(Chunks),
+	SizedChunkIDs = big_tx:sized_chunks_to_sized_chunk_ids(SizeTaggedChunks),
+	{DataRoot, DataTree} = big_merkle:generate_tree(SizedChunkIDs),
+	TX = big_test_node:sign_tx(main, Wallet,
+			#{ format => 2, data_root => DataRoot, data_size => DataSize, reward => ?BIG(1) }),
 	Proofs = [encode_proof(#{ data_root => DataRoot, chunk => Chunk,
-				data_path => ar_merkle:generate_path(DataRoot, Offset - 1, DataTree),
+				data_path => big_merkle:generate_path(DataRoot, Offset - 1, DataTree),
 				offset => Offset - 1, data_size => DataSize })
 			|| {Chunk, Offset} <- SizeTaggedChunks],
 	{TX, Proofs}.
 
 encode_proof(Proof) ->
-	ar_serialize:jsonify(#{
-		chunk => ar_util:encode(maps:get(chunk, Proof)),
-		data_path => ar_util:encode(maps:get(data_path, Proof)),
-		data_root => ar_util:encode(maps:get(data_root, Proof)),
+	big_serialize:jsonify(#{
+		chunk => big_util:encode(maps:get(chunk, Proof)),
+		data_path => big_util:encode(maps:get(data_path, Proof)),
+		data_root => big_util:encode(maps:get(data_root, Proof)),
 		data_size => integer_to_binary(maps:get(data_size, Proof)),
 		offset => integer_to_binary(maps:get(offset, Proof))
 	}).
 
 assert_transaction_data_synced(TXID) ->
-	EncodedTXID = ar_util:encode(TXID),
-	true = ar_util:do_until(
+	EncodedTXID = big_util:encode(TXID),
+	true = big_util:do_until(
 		fun() ->
 			case ets:lookup(?MODULE, {tx_data_payload, EncodedTXID}) of
 				[{_, JSON}] ->
@@ -230,7 +230,7 @@ assert_transaction_data_synced(TXID) ->
 upload_chunks([]) ->
 	ok;
 upload_chunks([Proof | Proofs]) ->
-	{ok, {{<<"200">>, _}, _, _, _, _}} = ar_test_node:post_chunk(main, Proof),
+	{ok, {{<<"200">>, _}, _, _, _, _}} = big_test_node:post_chunk(main, Proof),
 	upload_chunks(Proofs).
 
 random_tx_blacklist_filename() ->
@@ -238,16 +238,16 @@ random_tx_blacklist_filename() ->
 	filename:join(Config#config.data_dir,
 		"ar-webhook-tests-transaction-blacklist-"
 		++
-		binary_to_list(ar_util:encode(crypto:strong_rand_bytes(32)))).
+		binary_to_list(big_util:encode(crypto:strong_rand_bytes(32)))).
 
 append_txid_to_file(TXID, Filename) ->
 	{ok, F} = file:open(Filename, [append]),
-	ok = file:write(F, io_lib:format("~s~n", [ar_util:encode(TXID)])),
+	ok = file:write(F, io_lib:format("~s~n", [big_util:encode(TXID)])),
 	file:close(F).
 
 assert_transaction_data_removed(TXID) ->
-	EncodedTXID = ar_util:encode(TXID),
-	true = ar_util:do_until(
+	EncodedTXID = big_util:encode(TXID),
+	true = big_util:do_until(
 		fun() ->
 			[{_, JSON}] = ets:lookup(?MODULE, {tx_data_payload, EncodedTXID}),
 			maps:get(<<"event">>, JSON) == <<"transaction_data_removed">>
@@ -257,7 +257,7 @@ assert_transaction_data_removed(TXID) ->
 	).
 
 append_second_chunk_to_file(TXID, Filename) ->
-	{ok, {EndOffset, Size}} = ar_data_sync:get_tx_offset(TXID),
+	{ok, {EndOffset, Size}} = big_data_sync:get_tx_offset(TXID),
 	SecondChunkStart = EndOffset - Size + ?DATA_CHUNK_SIZE,
 	SecondChunkEnd = SecondChunkStart + ?DATA_CHUNK_SIZE,
 	{ok, F} = file:open(Filename, [append]),

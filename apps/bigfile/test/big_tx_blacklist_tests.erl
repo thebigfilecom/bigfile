@@ -1,33 +1,33 @@
--module(ar_tx_blacklist_tests).
+-module(big_tx_blacklist_tests).
 
 -export([init/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 
--import(ar_test_node, [
+-import(big_test_node, [
 		sign_v1_tx/2, random_v1_data/1, 
 		 wait_until_height/1,
 		assert_wait_until_height/2]).
 
 init(Req, State) ->
-	SplitPath = ar_http_iface_server:split_path(cowboy_req:path(Req)),
+	SplitPath = big_http_iface_server:split_path(cowboy_req:path(Req)),
 	handle(SplitPath, Req, State).
 
 handle([<<"empty">>], Req, State) ->
 	{ok, cowboy_req:reply(200, #{}, <<>>, Req), State};
 
 handle([<<"good">>], Req, State) ->
-	{ok, cowboy_req:reply(200, #{}, ar_util:encode(hd(State)), Req), State};
+	{ok, cowboy_req:reply(200, #{}, big_util:encode(hd(State)), Req), State};
 
 handle([<<"bad">>, <<"and">>, <<"good">>], Req, State) ->
 	Reply =
 		list_to_binary(
 			io_lib:format(
 				"~s\nbad base64url \n~s\n",
-				lists:map(fun ar_util:encode/1, State)
+				lists:map(fun big_util:encode/1, State)
 			)
 		),
 	{ok, cowboy_req:reply(200, #{}, Reply, Req), State}.
@@ -50,9 +50,9 @@ test_uses_blacklists() ->
 	} = setup(),
 	WhitelistFile = random_filename(),
 	ok = file:write_file(WhitelistFile, <<>>),
-	RewardAddr = ar_wallet:to_address(ar_wallet:new_keyfile()),
-	ar_test_node:start(B0, RewardAddr,
-			(element(2, application:get_env(arweave, config)))#config{
+	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
+	big_test_node:start(B0, RewardAddr,
+			(element(2, application:get_env(bigfile, config)))#config{
 		transaction_blacklist_files = BlacklistFiles,
 		transaction_whitelist_files = [WhitelistFile],
 		sync_jobs = 10,
@@ -66,20 +66,20 @@ test_uses_blacklists() ->
 			"http://localhost:1985/bad/and/good"
 		]
 	}),
-	ar_test_node:connect_to_peer(peer1),
+	big_test_node:connect_to_peer(peer1),
 	BadV1TXIDs = [V1TX#tx.id],
 	lists:foreach(
 		fun({TX, Height}) ->
-			ar_test_node:assert_post_tx_to_peer(peer1, TX),
-			ar_test_node:assert_wait_until_receives_txs([TX]),
+			big_test_node:assert_post_tx_to_peer(peer1, TX),
+			big_test_node:assert_wait_until_receives_txs([TX]),
 			case Height == length(TXs) of
 				true ->
-					ar_test_node:assert_post_tx_to_peer(peer1, V1TX),
-					ar_test_node:assert_wait_until_receives_txs([V1TX]);
+					big_test_node:assert_post_tx_to_peer(peer1, V1TX),
+					big_test_node:assert_wait_until_receives_txs([V1TX]);
 				_ ->
 					ok
 			end,
-			ar_test_node:mine(peer1),
+			big_test_node:mine(peer1),
 			upload_data([TX], DataTrees),
 			wait_until_height(Height)
 		end,
@@ -93,9 +93,9 @@ test_uses_blacklists() ->
 	assert_does_not_accept_offsets(BadOffsets),
 	%% Add a new transaction to the blacklist, add a blacklisted transaction to whitelist.
 	ok = file:write_file(lists:nth(3, BlacklistFiles), <<>>),
-	ok = file:write_file(WhitelistFile, ar_util:encode(lists:nth(2, BadTXIDs))),
+	ok = file:write_file(WhitelistFile, big_util:encode(lists:nth(2, BadTXIDs))),
 	ok = file:write_file(lists:nth(4, BlacklistFiles), io_lib:format("~s~n~s",
-			[ar_util:encode(hd(GoodTXIDs)), ar_util:encode(V1TX#tx.id)])),
+			[big_util:encode(hd(GoodTXIDs)), big_util:encode(V1TX#tx.id)])),
 	[UnblacklistedOffsets, WhitelistOffsets | BadOffsets2] = BadOffsets,
 	RestoredOffsets = [UnblacklistedOffsets, WhitelistOffsets] ++
 			[lists:nth(6, lists:reverse(BadOffsets))],
@@ -113,24 +113,24 @@ test_uses_blacklists() ->
 	assert_removed_offsets(BadOffsets3),
 	assert_does_not_accept_offsets(BadOffsets3),
 	%% Blacklist the last transaction. Fork the weave. Assert the blacklisted offsets are moved.
-	ar_test_node:disconnect_from(peer1),
-	TX = ar_test_node:sign_tx(Wallet, #{ data => crypto:strong_rand_bytes(?DATA_CHUNK_SIZE),
-			last_tx => ar_test_node:get_tx_anchor(peer1) }),
-	ar_test_node:assert_post_tx_to_peer(main, TX),
-	ar_test_node:mine(),
+	big_test_node:disconnect_from(peer1),
+	TX = big_test_node:sign_tx(Wallet, #{ data => crypto:strong_rand_bytes(?DATA_CHUNK_SIZE),
+			last_tx => big_test_node:get_tx_anchor(peer1) }),
+	big_test_node:assert_post_tx_to_peer(main, TX),
+	big_test_node:mine(),
 	[{_, WeaveSize, _} | _] = wait_until_height(length(TXs) + 1),
 	assert_present_offsets([[WeaveSize]]),
-	ok = file:write_file(lists:nth(3, BlacklistFiles), ar_util:encode(TX#tx.id)),
+	ok = file:write_file(lists:nth(3, BlacklistFiles), big_util:encode(TX#tx.id)),
 	assert_removed_offsets([[WeaveSize]]),
 	TX2 = sign_v1_tx(Wallet, #{ data => random_v1_data(2 * ?DATA_CHUNK_SIZE),
-			last_tx => ar_test_node:get_tx_anchor(peer1) }),
-	ar_test_node:assert_post_tx_to_peer(peer1, TX2),
-	ar_test_node:mine(peer1),
+			last_tx => big_test_node:get_tx_anchor(peer1) }),
+	big_test_node:assert_post_tx_to_peer(peer1, TX2),
+	big_test_node:mine(peer1),
 	assert_wait_until_height(peer1, length(TXs) + 1),
-	ar_test_node:assert_post_tx_to_peer(peer1, TX),
-	ar_test_node:mine(peer1),
+	big_test_node:assert_post_tx_to_peer(peer1, TX),
+	big_test_node:mine(peer1),
 	assert_wait_until_height(peer1, length(TXs) + 2),
-	ar_test_node:connect_to_peer(peer1),
+	big_test_node:connect_to_peer(peer1),
 	[{_, WeaveSize2, _} | _] = wait_until_height(length(TXs) + 2),
 	assert_removed_offsets([[WeaveSize2]]),
 	assert_present_offsets([[WeaveSize]]),
@@ -142,7 +142,7 @@ setup() ->
 	TXIDs = [TX#tx.id || TX <- TXs],
 	BadTXIDs = [lists:nth(1, TXIDs), lists:nth(3, TXIDs)],
 	V1TX = sign_v1_tx(Wallet, #{ data => random_v1_data(3 * ?DATA_CHUNK_SIZE),
-			last_tx => ar_test_node:get_tx_anchor(peer1), reward => ?AR(10000) }),
+			last_tx => big_test_node:get_tx_anchor(peer1), reward => ?AR(10000) }),
 	DataSizes = [TX#tx.data_size || TX <- TXs],
 	S0 = B0#block.block_size,
 	[S1, S2, S3, S4, S5, S6, S7, S8 | _] = DataSizes,
@@ -158,10 +158,10 @@ setup() ->
 			]),
 	BadTXIDs2 = [lists:nth(5, TXIDs), lists:nth(7, TXIDs)], % The endpoint.
 	BadTXIDs3 = [lists:nth(4, TXIDs), lists:nth(6, TXIDs)], % Ranges.
-	Routes = [{"/[...]", ar_tx_blacklist_tests, BadTXIDs2}],
+	Routes = [{"/[...]", big_tx_blacklist_tests, BadTXIDs2}],
 	{ok, _PID} =
-		ar_test_node:remote_call(peer1, cowboy, start_clear, [
-			ar_tx_blacklist_test_listener,
+		big_test_node:remote_call(peer1, cowboy, start_clear, [
+			big_tx_blacklist_test_listener,
 			[{port, 1985}],
 			#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 		]),
@@ -206,9 +206,9 @@ setup() ->
 	}.
 
 setup(Node) ->
-	Wallet = {_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(100000000), <<>>}]),
-	ar_test_node:start_peer(Node, B0),
+	Wallet = {_, Pub} = big_wallet:new(),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(100000000), <<>>}]),
+	big_test_node:start_peer(Node, B0),
 	{B0, Wallet}.
 
 create_txs(Wallet) ->
@@ -217,16 +217,16 @@ create_txs(Wallet) ->
 			(_, {TXs, DataTrees}) ->
 				Chunks =
 					lists:sublist(
-						ar_tx:chunk_binary(?DATA_CHUNK_SIZE,
+						big_tx:chunk_binary(?DATA_CHUNK_SIZE,
 								crypto:strong_rand_bytes(10 * ?DATA_CHUNK_SIZE)),
 						10
 					), % Exclude empty chunk created by chunk_to_binary.
-				SizedChunkIDs = ar_tx:sized_chunks_to_sized_chunk_ids(
-					ar_tx:chunks_to_size_tagged_chunks(Chunks)
+				SizedChunkIDs = big_tx:sized_chunks_to_sized_chunk_ids(
+					big_tx:chunks_to_size_tagged_chunks(Chunks)
 				),
-				{DataRoot, DataTree} = ar_merkle:generate_tree(SizedChunkIDs),
-				TX = ar_test_node:sign_tx(Wallet, #{ format => 2, data_root => DataRoot,
-						data_size => 10 * ?DATA_CHUNK_SIZE, last_tx => ar_test_node:get_tx_anchor(peer1),
+				{DataRoot, DataTree} = big_merkle:generate_tree(SizedChunkIDs),
+				TX = big_test_node:sign_tx(Wallet, #{ format => 2, data_root => DataRoot,
+						data_size => 10 * ?DATA_CHUNK_SIZE, last_tx => big_test_node:get_tx_anchor(peer1),
 						reward => ?AR(10000), denomination => 1 }),
 				{[TX | TXs], maps:put(TX#tx.id, {DataTree, Chunks}, DataTrees)}
 		end,
@@ -238,12 +238,12 @@ create_files(BadTXIDs, [{Start1, End1}, {Start2, End2}, {Start3, End3}]) ->
 	Files = [
 		{random_filename(), <<>>},
 		{random_filename(), <<"bad base64url ">>},
-		{random_filename(), ar_util:encode(lists:nth(2, BadTXIDs))},
+		{random_filename(), big_util:encode(lists:nth(2, BadTXIDs))},
 		{random_filename(),
 			list_to_binary(
 				io_lib:format(
 					"~s\nbad base64url \n~s\n~s\n~B,~B\n",
-					lists:map(fun ar_util:encode/1, BadTXIDs) ++ [Start1, End1]
+					lists:map(fun big_util:encode/1, BadTXIDs) ++ [Start1, End1]
 				)
 			)},
 		{random_filename(), list_to_binary(io_lib:format("~B,~B\n~B,~B",
@@ -259,17 +259,17 @@ create_files(BadTXIDs, [{Start1, End1}, {Start2, End2}, {Start3, End3}]) ->
 	[Filename || {Filename, _} <- Files].
 
 random_filename() ->
-	{ok, Config} = ar_test_node:remote_call(peer1, application, get_env, [arweave, config]),
+	{ok, Config} = big_test_node:remote_call(peer1, application, get_env, [bigfile, config]),
 	filename:join(Config#config.data_dir,
 		"ar-tx-blacklist-tests-transaction-blacklist-"
 		++
-		binary_to_list(ar_util:encode(crypto:strong_rand_bytes(32)))).
+		binary_to_list(big_util:encode(crypto:strong_rand_bytes(32)))).
 
 encode_chunk(Proof) ->
-	ar_serialize:jsonify(#{
-		chunk => ar_util:encode(maps:get(chunk, Proof)),
-		data_path => ar_util:encode(maps:get(data_path, Proof)),
-		data_root => ar_util:encode(maps:get(data_root, Proof)),
+	big_serialize:jsonify(#{
+		chunk => big_util:encode(maps:get(chunk, Proof)),
+		data_path => big_util:encode(maps:get(data_path, Proof)),
+		data_root => big_util:encode(maps:get(data_root, Proof)),
 		data_size => integer_to_binary(maps:get(data_size, Proof)),
 		offset => integer_to_binary(maps:get(offset, Proof))
 	}).
@@ -288,9 +288,9 @@ upload_data(TXs, DataTrees) ->
 			UploadChunks = ChunkOffsets,
 			lists:foreach(
 				fun({Chunk, Offset}) ->
-					DataPath = ar_merkle:generate_path(DataRoot, Offset - 1, DataTree),
+					DataPath = big_merkle:generate_path(DataRoot, Offset - 1, DataTree),
 					{ok, {{<<"200">>, _}, _, _, _, _}} =
-						ar_test_node:post_chunk(peer1, encode_chunk(#{
+						big_test_node:post_chunk(peer1, encode_chunk(#{
 							data_root => DataRoot,
 							chunk => Chunk,
 							data_path => DataPath,
@@ -306,12 +306,12 @@ upload_data(TXs, DataTrees) ->
 
 assert_present_txs(GoodTXIDs) ->
 	?debugFmt("Waiting until these txids are stored: ~p.",
-			[[ar_util:encode(TXID) || TXID <- GoodTXIDs]]),
-	true = ar_util:do_until(
+			[[big_util:encode(TXID) || TXID <- GoodTXIDs]]),
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(TXID) ->
-					is_record(ar_storage:read_tx(TXID), tx)
+					is_record(big_storage:read_tx(TXID), tx)
 				end,
 				GoodTXIDs
 			)
@@ -321,23 +321,23 @@ assert_present_txs(GoodTXIDs) ->
 	),
 	lists:foreach(
 		fun(TXID) ->
-			?assertMatch({ok, {_, _}}, ar_storage:get_tx_confirmation_data(TXID))
+			?assertMatch({ok, {_, _}}, big_storage:get_tx_confirmation_data(TXID))
 		end,
 		GoodTXIDs
 	).
 
 assert_removed_txs(BadTXIDs) ->
 	?debugFmt("Waiting until these txids are removed: ~p.",
-			[[ar_util:encode(TXID) || TXID <- BadTXIDs]]),
-	true = ar_util:do_until(
+			[[big_util:encode(TXID) || TXID <- BadTXIDs]]),
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(TXID) ->
-					{error, not_found} == ar_data_sync:get_tx_data(TXID)
-							%% Do not use ar_storage:read_tx because the
+					{error, not_found} == big_data_sync:get_tx_data(TXID)
+							%% Do not use big_storage:read_tx because the
 							%% transaction is temporarily kept in the disk cache,
 							%% even when blacklisted.
-							andalso ar_kv:get(tx_db, TXID) == not_found
+							andalso big_kv:get(tx_db, TXID) == not_found
 				end,
 				BadTXIDs
 			)
@@ -348,17 +348,17 @@ assert_removed_txs(BadTXIDs) ->
 	%% We have to keep the confirmation data even for blacklisted transactions.
 	lists:foreach(
 		fun(TXID) ->
-			?assertMatch({ok, {_, _}}, ar_storage:get_tx_confirmation_data(TXID))
+			?assertMatch({ok, {_, _}}, big_storage:get_tx_confirmation_data(TXID))
 		end,
 		BadTXIDs
 	).
 
 assert_present_offsets(GoodOffsets) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(Offset) ->
-					case ar_test_node:get_chunk(main, Offset) of
+					case big_test_node:get_chunk(main, Offset) of
 						{ok, {{<<"200">>, _}, _, _, _, _}} ->
 							true;
 						_ ->
@@ -374,11 +374,11 @@ assert_present_offsets(GoodOffsets) ->
 	).
 
 assert_removed_offsets(BadOffsets) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(Offset) ->
-					case ar_test_node:get_chunk(main, Offset) of
+					case big_test_node:get_chunk(main, Offset) of
 						{ok, {{<<"404">>, _}, _, _, _, _}} ->
 							true;
 						_ ->
@@ -394,18 +394,18 @@ assert_removed_offsets(BadOffsets) ->
 	).
 
 assert_does_not_accept_offsets(BadOffsets) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(Offset) ->
-					case ar_test_node:get_chunk(main, Offset) of
+					case big_test_node:get_chunk(main, Offset) of
 						{ok, {{<<"404">>, _}, _, _, _, _}} ->
 							{ok, {{<<"200">>, _}, _, EncodedProof, _, _}} =
-								ar_test_node:get_chunk(peer1, Offset),
+								big_test_node:get_chunk(peer1, Offset),
 							Proof = decode_chunk(EncodedProof),
 							DataPath = maps:get(data_path, Proof),
-							{ok, DataRoot} = ar_merkle:extract_root(DataPath),
-							RelativeOffset = ar_merkle:extract_note(DataPath),
+							{ok, DataRoot} = big_merkle:extract_root(DataPath),
+							RelativeOffset = big_merkle:extract_note(DataPath),
 							Proof2 = Proof#{
 								offset => RelativeOffset - 1,
 								data_root => DataRoot,
@@ -413,9 +413,9 @@ assert_does_not_accept_offsets(BadOffsets) ->
 							},
 							EncodedProof2 = encode_chunk(Proof2),
 							%% The node returns 200 but does not store the chunk.
-							case ar_test_node:post_chunk(main, EncodedProof2) of
+							case big_test_node:post_chunk(main, EncodedProof2) of
 								{ok, {{<<"200">>, _}, _, _, _, _}} ->
-									case ar_test_node:get_chunk(main, Offset) of
+									case big_test_node:get_chunk(main, Offset) of
 										{ok, {{<<"404">>, _}, _, _, _, _}} ->
 											true;
 										_ ->
@@ -436,14 +436,14 @@ assert_does_not_accept_offsets(BadOffsets) ->
 	).
 
 decode_chunk(EncodedProof) ->
-	ar_serialize:json_map_to_poa_map(
+	big_serialize:json_map_to_poa_map(
 		jiffy:decode(EncodedProof, [return_maps])
 	).
 
 teardown() ->
-	{ok, Config} = application:get_env(arweave, config),
-	ok = ar_test_node:remote_call(peer1, cowboy, stop_listener, [ar_tx_blacklist_test_listener]),
-	application:set_env(arweave, config, Config#config{
+	{ok, Config} = application:get_env(bigfile, config),
+	ok = big_test_node:remote_call(peer1, cowboy, stop_listener, [big_tx_blacklist_test_listener]),
+	application:set_env(bigfile, config, Config#config{
 		transaction_blacklist_files = [],
 		transaction_blacklist_urls = [],
 		transaction_whitelist_files = []

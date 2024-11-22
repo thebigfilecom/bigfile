@@ -1,4 +1,4 @@
--module(ar_test_node).
+-module(big_test_node).
 
 %% The new, more flexible, and more user-friendly interface.
 -export([get_config/1,set_config/2, wait_until_joined/0, restart/0, restart/1,
@@ -33,9 +33,9 @@
 
 		mock_functions/1, test_with_mocked_functions/2, test_with_mocked_functions/3]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %% May occasionally take quite long on a slow CI server, expecially in tests
@@ -104,7 +104,7 @@ peer_name(Node) ->
 	).
 
 peer_port(Node) ->
-	{ok, Config} = ar_test_node:remote_call(Node, application, get_env, [arweave, config]),
+	{ok, Config} = big_test_node:remote_call(Node, application, get_env, [bigfile, config]),
 	Config#config.port.
 
 stop_peers() ->
@@ -129,27 +129,27 @@ peer_ip(Node) ->
 	{127, 0, 0, 1, peer_port(Node)}.
 
 wait_until_joined(Node) ->
-	remote_call(Node, ar_test_node, wait_until_joined, []).
+	remote_call(Node, big_test_node, wait_until_joined, []).
 
 %% @doc Wait until the node joins the network (initializes the state).
 wait_until_joined() ->
-	ar_util:do_until(
-		fun() -> ar_node:is_joined() end,
+	big_util:do_until(
+		fun() -> big_node:is_joined() end,
 		100,
 		60 * 1000
 	 ).
 
 get_config(Node) ->
-	remote_call(Node, application, get_env, [arweave, config]).
+	remote_call(Node, application, get_env, [bigfile, config]).
 
 set_config(Node, Config) ->
-	remote_call(Node, application, set_env, [arweave, config, Config]).
+	remote_call(Node, application, set_env, [bigfile, config, Config]).
 
 %% @doc Start a node with the given genesis block and configuration.
 start_node(B0, Config) ->
 	start_node(B0, Config, true).
 start_node(B0, Config, WaitUntilSync) ->
-	{ok, BaseConfig} = application:get_env(arweave, config),
+	{ok, BaseConfig} = application:get_env(bigfile, config),
 	clean_up_and_stop(),
 	write_genesis_files(BaseConfig#config.data_dir, B0),
 	Config2 = BaseConfig#config{
@@ -173,7 +173,7 @@ start_node(B0, Config, WaitUntilSync) ->
 		mine = Config#config.mine,
 		storage_modules = Config#config.storage_modules
 	},
-	ok = application:set_env(arweave, config, Config2),
+	ok = application:set_env(bigfile, config, Config2),
 	ar:start_dependencies(),
 	wait_until_joined(),
 	case WaitUntilSync of
@@ -190,7 +190,7 @@ start_node(B0, Config, WaitUntilSync) ->
 start_coordinated(MiningNodeCount) when MiningNodeCount >= 1, MiningNodeCount =< ?MAX_MINERS ->
 	%% Set weave larger than what we'll cover with the 3 nodes so that every node can find
 	%% a solution.
-	[B0] = ar_weave:init([], get_difficulty_for_invalid_hash(), ?PARTITION_SIZE * 5),
+	[B0] = big_weave:init([], get_difficulty_for_invalid_hash(), ?PARTITION_SIZE * 5),
 	ExitPeer = peer_ip(peer1),
 	ValidatorPeer = peer_ip(main),
 	MinerNodes = lists:sublist([peer2, peer3, peer4], MiningNodeCount),
@@ -208,8 +208,8 @@ start_coordinated(MiningNodeCount) when MiningNodeCount >= 1, MiningNodeCount =<
 		cm_api_secret = not_set
 	},
 
-	remote_call(peer1, ar_test_node, start_node, [B0, ExitNodeConfig]), %% exit node
-	remote_call(main, ar_test_node, start_node, [B0, ValidatorNodeConfig]), %% validator node
+	remote_call(peer1, big_test_node, start_node, [B0, ExitNodeConfig]), %% exit node
+	remote_call(main, big_test_node, start_node, [B0, ValidatorNodeConfig]), %% validator node
 	
 	lists:foreach(
 		fun(I) ->
@@ -223,7 +223,7 @@ start_coordinated(MiningNodeCount) when MiningNodeCount >= 1, MiningNodeCount =<
 				local_peers = MinerPeerIPs ++ [ExitPeer],
 				storage_modules = get_cm_storage_modules(RewardAddr, I, MiningNodeCount)
 			},
-			remote_call(MinerNode, ar_test_node, start_node, [B0, MinerConfig])
+			remote_call(MinerNode, big_test_node, start_node, [B0, MinerConfig])
 		end,
 		lists:seq(1, MiningNodeCount)
 	),
@@ -231,7 +231,7 @@ start_coordinated(MiningNodeCount) when MiningNodeCount >= 1, MiningNodeCount =<
 	MinerNodes ++ [peer1, main].
 
 base_cm_config(Peers) ->
-	RewardAddr = ar_wallet:to_address(remote_call(peer1, ar_wallet, new_keyfile, [])),
+	RewardAddr = big_wallet:to_address(remote_call(peer1, big_wallet, new_keyfile, [])),
 	#config{
 		start_from_latest_state = true,
 		auto_join = true,
@@ -250,22 +250,22 @@ base_cm_config(Peers) ->
 	}.
 
 mine() ->
-	gen_server:cast(ar_node_worker, mine).
+	gen_server:cast(big_node_worker, mine).
 
 %% @doc Start mining on the given node. The node will be mining until it finds a block.
 mine(Node) ->
-	remote_call(Node, ar_test_node, mine, []).
+	remote_call(Node, big_test_node, mine, []).
 
 %% @doc Fetch and decode a binary-encoded block by hash H from the HTTP API of the
 %% given node. Return {ok, B} | {error, Reason}.
 http_get_block(H, Node) ->
-	{ok, Config} = remote_call(Node, application, get_env, [arweave, config]),
+	{ok, Config} = remote_call(Node, application, get_env, [bigfile, config]),
 	Port = Config#config.port,
 	Peer = {127, 0, 0, 1, Port},
-	case ar_http:req(#{ peer => Peer, method => get,
-			path => "/block2/hash/" ++ binary_to_list(ar_util:encode(H)) }) of
+	case big_http:req(#{ peer => Peer, method => get,
+			path => "/block2/hash/" ++ binary_to_list(big_util:encode(H)) }) of
 		{ok, {{<<"200">>, _}, _, BlockBin, _, _}} ->
-			ar_serialize:binary_to_block(BlockBin);
+			big_serialize:binary_to_block(BlockBin);
 		{error, Reason} ->
 			{error, Reason};
 		{ok, {{StatusCode, _}, _, Body, _, _}} ->
@@ -273,7 +273,7 @@ http_get_block(H, Node) ->
 	end.
 
 get_blocks(Node) ->
-	remote_call(Node, ar_node, get_blocks, []).
+	remote_call(Node, big_node, get_blocks, []).
 
 invalid_solution() ->
 	<<0:256>>.
@@ -283,7 +283,7 @@ valid_solution() ->
 
 mock_to_force_invalid_h1() ->
 	{
-		ar_block, compute_h1,
+		big_block, compute_h1,
 		fun(_H0, _Nonce, _Chunk1) ->
 			{invalid_solution(), invalid_solution()}
 		end
@@ -320,47 +320,47 @@ write_genesis_files(DataDir, B0) ->
 	BH = B0#block.indep_hash,
 	BlockDir = filename:join(DataDir, ?BLOCK_DIR),
 	ok = filelib:ensure_dir(BlockDir ++ "/"),
-	BlockFilepath = filename:join(BlockDir, binary_to_list(ar_util:encode(BH)) ++ ".bin"),
-	ok = file:write_file(BlockFilepath, ar_serialize:block_to_binary(B0)),
+	BlockFilepath = filename:join(BlockDir, binary_to_list(big_util:encode(BH)) ++ ".bin"),
+	ok = file:write_file(BlockFilepath, big_serialize:block_to_binary(B0)),
 	TXDir = filename:join(DataDir, ?TX_DIR),
 	ok = filelib:ensure_dir(TXDir ++ "/"),
 	lists:foreach(
 		fun(TX) ->
 			TXID = TX#tx.id,
-			TXFilepath = filename:join(TXDir, binary_to_list(ar_util:encode(TXID)) ++ ".json"),
-			TXJSON = ar_serialize:jsonify(ar_serialize:tx_to_json_struct(TX)),
+			TXFilepath = filename:join(TXDir, binary_to_list(big_util:encode(TXID)) ++ ".json"),
+			TXJSON = big_serialize:jsonify(big_serialize:tx_to_json_struct(TX)),
 			ok = file:write_file(TXFilepath, TXJSON)
 		end,
 		B0#block.txs
 	),
-	ar_kv:create_ets(),
-	ar_kv:start_link(),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "reward_history_db"), reward_history_db),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "block_time_history_db"),
+	big_kv:create_ets(),
+	big_kv:start_link(),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "reward_history_db"), reward_history_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "block_time_history_db"),
 			block_time_history_db),
-	ok = ar_kv:open(filename:join(?ROCKS_DB_DIR, "block_index_db"), block_index_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "block_index_db"), block_index_db),
 	H = B0#block.indep_hash,
 	WeaveSize = B0#block.weave_size,
 	TXRoot = B0#block.tx_root,
-	ok = ar_kv:put(block_index_db, << 0:256 >>, term_to_binary({H, WeaveSize, TXRoot, <<>>})),
-	ok = ar_kv:put(reward_history_db, H, term_to_binary(hd(B0#block.reward_history))),
-	case ar_fork:height_2_7() of
+	ok = big_kv:put(block_index_db, << 0:256 >>, term_to_binary({H, WeaveSize, TXRoot, <<>>})),
+	ok = big_kv:put(reward_history_db, H, term_to_binary(hd(B0#block.reward_history))),
+	case big_fork:height_2_7() of
 		0 ->
-			ok = ar_kv:put(block_time_history_db, H,
+			ok = big_kv:put(block_time_history_db, H,
 					term_to_binary(hd(B0#block.block_time_history)));
 		_ ->
 			ok
 	end,
-	gen_server:stop(ar_kv),
-	ets:delete(ar_kv),
+	gen_server:stop(big_kv),
+	ets:delete(big_kv),
 	WalletListDir = filename:join(DataDir, ?WALLET_LIST_DIR),
 	ok = filelib:ensure_dir(WalletListDir ++ "/"),
 	RootHash = B0#block.wallet_list,
 	WalletListFilepath =
-		filename:join(WalletListDir, binary_to_list(ar_util:encode(RootHash)) ++ ".json"),
+		filename:join(WalletListDir, binary_to_list(big_util:encode(RootHash)) ++ ".json"),
 	WalletListJSON =
-		ar_serialize:jsonify(
-			ar_serialize:wallet_list_to_json_struct(B0#block.reward_addr, false,
+		big_serialize:jsonify(
+			big_serialize:wallet_list_to_json_struct(B0#block.reward_addr, false,
 					B0#block.account_tree)
 		),
 	ok = file:write_file(WalletListFilepath, WalletListJSON).
@@ -372,18 +372,18 @@ wait_until_syncs_data(Left, Right, WeaveSize, _Packing)
 			(WeaveSize - Left < ?DATA_CHUNK_SIZE) ->
 	ok;
 wait_until_syncs_data(Left, Right, WeaveSize, Packing) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			case Packing of
 				any ->
-					case ar_sync_record:is_recorded(Left + 1, ar_data_sync) of
+					case big_sync_record:is_recorded(Left + 1, big_data_sync) of
 						false ->
 							false;
 						_ ->
 							true
 					end;
 				_ ->
-					case ar_sync_record:is_recorded(Left + 1, {ar_data_sync, Packing}) of
+					case big_sync_record:is_recorded(Left + 1, {big_data_sync, Packing}) of
 						{{true, _}, _} ->
 							true;
 						_ ->
@@ -417,7 +417,7 @@ remote_call(Node, Module, Function, Args, Timeout) ->
 			apply(Module, Function, Args);
 		false ->
 			Key = rpc:async_call(NodeName, Module, Function, Args),
-			Result = ar_util:do_until(
+			Result = big_util:do_until(
 				fun() ->
 					case rpc:nb_yield(Key) of
 						timeout ->
@@ -446,18 +446,18 @@ remote_call(Node, Module, Function, Args, Timeout) ->
 
 %% @doc Start a fresh node.
 start() ->
-	[B0] = ar_weave:init(),
-	start(B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
-			element(2, application:get_env(arweave, config))).
+	[B0] = big_weave:init(),
+	start(B0, big_wallet:to_address(big_wallet:new_keyfile()),
+			element(2, application:get_env(bigfile, config))).
 
 %% @doc Start a fresh node with the given genesis block.
 start(B0) ->
-	start(B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
-			element(2, application:get_env(arweave, config))).
+	start(B0, big_wallet:to_address(big_wallet:new_keyfile()),
+			element(2, application:get_env(bigfile, config))).
 
 %% @doc Start a fresh node with the given genesis block and mining address.
 start(B0, RewardAddr) ->
-	start(B0, RewardAddr, element(2, application:get_env(arweave, config))).
+	start(B0, RewardAddr, element(2, application:get_env(bigfile, config))).
 
 %% @doc Start a fresh node with the given genesis block, mining address, and config.
 start(B0, RewardAddr, Config) ->
@@ -474,7 +474,7 @@ start(B0, RewardAddr, Config) ->
 start(B0, RewardAddr, Config, StorageModules) ->
 	clean_up_and_stop(),
 	write_genesis_files(Config#config.data_dir, B0),
-	ok = application:set_env(arweave, config, Config#config{
+	ok = application:set_env(bigfile, config, Config#config{
 		start_from_latest_state = true,
 		auto_join = true,
 		peers = [],
@@ -534,18 +534,18 @@ get_tx_price(Node, DataSize) ->
 get_tx_price(Node, DataSize, Target) ->
 	Peer = peer_ip(Node),
 	Path = "/price/" ++ integer_to_list(DataSize) ++ "/"
-			++ binary_to_list(ar_util:encode(Target)),
+			++ binary_to_list(big_util:encode(Target)),
 	{ok, {{<<"200">>, _}, _, Reply, _, _}} =
-		ar_http:req(#{
+		big_http:req(#{
 			method => get,
 			peer => Peer,
 			path => Path
 		}),
 	Fee = binary_to_integer(Reply),
 	Path2 = "/price2/" ++ integer_to_list(DataSize) ++ "/"
-			++ binary_to_list(ar_util:encode(Target)),
+			++ binary_to_list(big_util:encode(Target)),
 	{ok, {{<<"200">>, _}, _, Reply2, _, _}} =
-		ar_http:req(#{
+		big_http:req(#{
 			method => get,
 			peer => Peer,
 			path => Path2
@@ -566,9 +566,9 @@ get_optimistic_tx_price(Node, DataSize) ->
 %% node.
 get_optimistic_tx_price(Node, DataSize, Target) ->
 	Path = "/optimistic_price/" ++ integer_to_list(DataSize) ++ "/"
-			++ binary_to_list(ar_util:encode(Target)),
+			++ binary_to_list(big_util:encode(Target)),
 	{ok, {{<<"200">>, _}, _, Reply, _, _}} =
-		ar_http:req(#{
+		big_http:req(#{
 			method => get,
 			peer => peer_ip(Node),
 			path => Path
@@ -578,30 +578,30 @@ get_optimistic_tx_price(Node, DataSize, Target) ->
 %% @doc Return a signed format=2 transaction with the minimum required fee fetched from
 %% GET /price/0 on the peer1 node.
 sign_tx(Wallet) ->
-	sign_tx(peer1, Wallet, #{ format => 2 }, fun ar_tx:sign/2).
+	sign_tx(peer1, Wallet, #{ format => 2 }, fun big_tx:sign/2).
 
 %% @doc Return a signed format=2 transaction with properties from the given Args map.
 %% If the fee is not in Args, fetch it from GET /price/{data_size}
 %% or GET /price/{data_size}/{target} (if the target is specified) on the peer1 node.
 sign_tx(Wallet, Args) ->
-	sign_tx(peer1, Wallet, insert_root(Args#{ format => 2 }), fun ar_tx:sign/2).
+	sign_tx(peer1, Wallet, insert_root(Args#{ format => 2 }), fun big_tx:sign/2).
 
 %% @doc Like sign_tx/2, but use the given Node to fetch the fee estimation and
 %% block anchor from.
 sign_tx(Node, Wallet, Args) ->
-	sign_tx(Node, Wallet, insert_root(Args#{ format => 2 }), fun ar_tx:sign/2).
+	sign_tx(Node, Wallet, insert_root(Args#{ format => 2 }), fun big_tx:sign/2).
 
 %% @doc Like sign_tx/1 but return a format=1 transaction.
 sign_v1_tx(Wallet) ->
-	sign_tx(peer1, Wallet, #{}, fun ar_tx:sign_v1/2).
+	sign_tx(peer1, Wallet, #{}, fun big_tx:sign_v1/2).
 
 %% @doc Like sign_tx/2 but return a format=1 transaction.
 sign_v1_tx(Wallet, TXParams) ->
-	sign_tx(peer1, Wallet, TXParams, fun ar_tx:sign_v1/2).
+	sign_tx(peer1, Wallet, TXParams, fun big_tx:sign_v1/2).
 
 %% @doc Like sign_tx/3 but return a format=1 transaction.
 sign_v1_tx(Node, Wallet, Args) ->
-	sign_tx(Node, Wallet, Args, fun ar_tx:sign_v1/2).
+	sign_tx(Node, Wallet, Args, fun big_tx:sign_v1/2).
 
 %%%===================================================================
 %%% Legacy private functions.
@@ -612,7 +612,7 @@ insert_root(Params) ->
 		{<<>>, _} ->
 			Params;
 		{Data, <<>>} ->
-			TX = ar_tx:generate_chunk_tree(#tx{ data = Data }),
+			TX = big_tx:generate_chunk_tree(#tx{ data = Data }),
 			Params#{ data_root => TX#tx.data_root };
 		_ ->
 			Params
@@ -639,7 +639,7 @@ sign_tx(Node, Wallet, Args, SignFun) ->
 				AssignedFee
 		end,
 	SignFun(
-		(ar_tx:new())#tx{
+		(big_tx:new())#tx{
 			owner = Pub,
 			reward = Fee2,
 			data = Data,
@@ -656,13 +656,13 @@ sign_tx(Node, Wallet, Args, SignFun) ->
 	).
 
 stop() ->
-	{ok, Config} = application:get_env(arweave, config),
-	application:stop(arweave),
+	{ok, Config} = application:get_env(bigfile, config),
+	application:stop(bigfile),
 	ar:stop_dependencies(),
 	Config.
 
 stop(Node) ->
-	remote_call(Node, ar_test_node, stop, []).
+	remote_call(Node, big_test_node, stop, []).
 
 rejoin_on(#{ node := Node, join_on := JoinOnNode }) ->
 	join_on(#{ node => Node, join_on => JoinOnNode }, true).
@@ -671,21 +671,21 @@ join_on(#{ node := Node, join_on := JoinOnNode }) ->
 	join_on(#{ node => Node, join_on => JoinOnNode }, false).
 
 join_on(#{ node := Node, join_on := JoinOnNode }, Rejoin) ->
-	remote_call(Node, ar_test_node, join, [JoinOnNode, Rejoin], 20000).
+	remote_call(Node, big_test_node, join, [JoinOnNode, Rejoin], 20000).
 
 join(JoinOnNode, Rejoin) ->
 	Peer = peer_ip(JoinOnNode),
-	{ok, Config} = application:get_env(arweave, config),
+	{ok, Config} = application:get_env(bigfile, config),
 	case Rejoin of
 		true ->
 			stop();
 		false ->
 			clean_up_and_stop()
 	end,
-	RewardAddr = ar_wallet:to_address(ar_wallet:new_keyfile()),
+	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
 	StorageModules = [{20 * 1024 * 1024, N,
 			get_default_storage_module_packing(RewardAddr, N)} || N <- lists:seq(0, 4)],
-	ok = application:set_env(arweave, config, Config#config{
+	ok = application:set_env(bigfile, config, Config#config{
 		start_from_latest_state = false,
 		mining_addr = RewardAddr,
 		storage_modules = StorageModules,
@@ -693,10 +693,10 @@ join(JoinOnNode, Rejoin) ->
 		peers = [Peer]
 	}),
 	ar:start_dependencies(),
-	whereis(ar_node_worker).
+	whereis(big_node_worker).
 
 get_default_storage_module_packing(RewardAddr, Index) ->
-	case ar_fork:height_2_8() of
+	case big_fork:height_2_8() of
 		infinity ->
 			{spora_2_6, RewardAddr};
 		0 ->
@@ -712,57 +712,57 @@ get_default_storage_module_packing(RewardAddr, Index) ->
 
 connect_to_peer(Node) ->
 	%% Unblock connections possibly blocked in the prior test code.
-	ar_http:unblock_peer_connections(),
-	remote_call(Node, ar_http, unblock_peer_connections, []),
+	big_http:unblock_peer_connections(),
+	remote_call(Node, big_http, unblock_peer_connections, []),
 	Peer = peer_ip(Node),
 	Self = self_node(),
 	%% Make requests to the nodes to make them discover each other.
 	{ok, {{<<"200">>, <<"OK">>}, _, _, _, _}} =
-		ar_http:req(#{
+		big_http:req(#{
 			method => get,
 			peer => Peer,
 			path => "/info",
 			headers => p2p_headers(Self)
 		}),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
-			Peers = remote_call(Node, ar_peers, get_peers, [lifetime]),
+			Peers = remote_call(Node, big_peers, get_peers, [lifetime]),
 			lists:member(peer_ip(Self), Peers)
 		end,
 		200,
 		5000
 	),
 	{ok, {{<<"200">>, <<"OK">>}, _, _, _, _}} =
-		ar_http:req(#{
+		big_http:req(#{
 			method => get,
 			peer => peer_ip(Self),
 			path => "/info",
 			headers => p2p_headers(Node)
 		}),
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
-			lists:member(Peer, ar_peers:get_peers(lifetime))
+			lists:member(Peer, big_peers:get_peers(lifetime))
 		end,
 		200,
 		5000
 	).
 
 disconnect_from(Node) ->
-	ar_http:block_peer_connections(),
-	remote_call(Node, ar_http, block_peer_connections, []).
+	big_http:block_peer_connections(),
+	remote_call(Node, big_http, block_peer_connections, []).
 
 wait_until_syncs_genesis_data(Node) ->
-	ok = remote_call(Node, ar_test_node, wait_until_syncs_genesis_data, [], 60000).
+	ok = remote_call(Node, big_test_node, wait_until_syncs_genesis_data, [], 60000).
 
 wait_until_syncs_genesis_data() ->
-	{ok, Config} = application:get_env(arweave, config),
-	WeaveSize = (ar_node:get_current_block())#block.weave_size,
+	{ok, Config} = application:get_env(bigfile, config),
+	WeaveSize = (big_node:get_current_block())#block.weave_size,
 	[wait_until_syncs_data(N * Size, (N + 1) * Size, WeaveSize, any)
 			|| {Size, N, _Packing} <- Config#config.storage_modules],
 	%% Once the data is stored in the disk pool, make the storage modules
 	%% copy the missing data over from each other. This procedure is executed on startup
 	%% but the disk pool did not have any data at the time.
-	[gen_server:cast(list_to_atom("ar_data_sync_" ++ ar_storage_module:label(Module)),
+	[gen_server:cast(list_to_atom("big_data_sync_" ++ big_storage_module:label(Module)),
 			sync_data) || Module <- Config#config.storage_modules],
 	[wait_until_syncs_data(N * Size, (N + 1) * Size, WeaveSize, Packing)
 			|| {Size, N, Packing} <- Config#config.storage_modules],
@@ -773,9 +773,9 @@ wait_until_height(Node, TargetHeight) ->
 			?WAIT_UNTIL_BLOCK_HEIGHT_TIMEOUT + 500).
 
 wait_until_height(TargetHeight) ->
-	{ok, BI} = ar_util:do_until(
+	{ok, BI} = big_util:do_until(
 		fun() ->
-			case ar_node:get_blocks() of
+			case big_node:get_blocks() of
 				BI when length(BI) - 1 == TargetHeight ->
 					{ok, BI};
 				_ ->
@@ -796,9 +796,9 @@ wait_until_block_index(Node, BI) ->
 	remote_call(Node, ?MODULE, wait_until_block_index, [BI]).
 
 wait_until_block_index(BI) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
-			case ar_node:get_blocks() of
+			case big_node:get_blocks() of
 				BI ->
 					ok;
 				_ ->
@@ -824,7 +824,7 @@ safe_remote_call(Node, Module, Function, Args) ->
     end.
 
 wait_until_node_is_ready(NodeName) ->
-    ar_util:do_until(
+    big_util:do_until(
         fun() ->
             case net_adm:ping(NodeName) of
                 pong ->
@@ -850,9 +850,9 @@ wait_until_receives_txs(Node, TXs) ->
 					?WAIT_UNTIL_RECEIVES_TXS_TIMEOUT + 500).
 
 wait_until_receives_txs(TXs) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
-			MinedTXIDs = ar_node:get_ready_for_mining_txs(),
+			MinedTXIDs = big_node:get_ready_for_mining_txs(),
 			case lists:all(fun(TX) -> lists:member(TX#tx.id, MinedTXIDs) end, TXs) of
 				true ->
 					ok;
@@ -874,7 +874,7 @@ post_tx_to_peer(Node, TX) ->
 	post_tx_to_peer(Node, TX, true).
 
 post_tx_to_peer(Node, TX, Wait) ->
-	Reply = post_tx_json(Node, ar_serialize:jsonify(ar_serialize:tx_to_json_struct(TX))),
+	Reply = post_tx_json(Node, big_serialize:jsonify(big_serialize:tx_to_json_struct(TX))),
 	case Reply of
 		{ok, {{<<"200">>, _}, _, <<"OK">>, _, _}} ->
 			case Wait of
@@ -894,15 +894,15 @@ post_tx_to_peer(Node, TX, Wait) ->
 			?debugFmt(
 				"Failed to post transaction. TX: ~s. TX format: ~B. TX fee: ~B. TX size: ~B. "
 				"TX last_tx: ~s. Error(s): ~p. Reply: ~p.~n",
-				[ar_util:encode(TX#tx.id), TX#tx.format, TX#tx.reward, TX#tx.data_size,
-					ar_util:encode(TX#tx.last_tx),
-					remote_call(Node, ar_tx_db, get_error_codes, [TX#tx.id]), ErrorInfo]),
+				[big_util:encode(TX#tx.id), TX#tx.format, TX#tx.reward, TX#tx.data_size,
+					big_util:encode(TX#tx.last_tx),
+					remote_call(Node, big_tx_db, get_error_codes, [TX#tx.id]), ErrorInfo]),
 			noop
 	end,
 	Reply.
 
 post_tx_json(Node, JSON) ->
-	ar_http:req(#{
+	big_http:req(#{
 		method => post,
 		peer => peer_ip(Node),
 		path => "/tx",
@@ -911,23 +911,23 @@ post_tx_json(Node, JSON) ->
 
 get_tx_anchor(Node) ->
 	{ok, {{<<"200">>, _}, _, Reply, _, _}} =
-		ar_http:req(#{
+		big_http:req(#{
 			method => get,
 			peer => peer_ip(Node),
 			path => "/tx_anchor"
 		}),
-	ar_util:decode(Reply).
+	big_util:decode(Reply).
 
 get_tx_confirmations(Node, TXID) ->
 	Response =
-		ar_http:req(#{
+		big_http:req(#{
 			method => get,
 			peer => peer_ip(Node),
-			path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/status"
+			path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/status"
 		}),
 	case Response of
 		{ok, {{<<"200">>, _}, _, Reply, _, _}} ->
-			{Status} = ar_serialize:dejsonify(Reply),
+			{Status} = big_serialize:dejsonify(Reply),
 			lists:keyfind(<<"number_of_confirmations">>, 1, Status);
 		{ok, {{<<"404">>, _}, _, _, _, _}} ->
 			-1
@@ -990,11 +990,11 @@ test_with_mocked_functions(Functions, TestFun, Timeout) ->
 	}.
 
 post_and_mine(#{ miner := Node, await_on := AwaitOnNode }, TXs) ->
-	CurrentHeight = remote_call(Node, ar_node, get_height, []),
+	CurrentHeight = remote_call(Node, big_node, get_height, []),
 	lists:foreach(fun(TX) -> assert_post_tx_to_peer(Node, TX) end, TXs),
 	mine(Node),
 	[{H, _, _} | _] = wait_until_height(AwaitOnNode, CurrentHeight + 1),
-	remote_call(AwaitOnNode, ar_test_node, read_block_when_stored, [H, true], 20000).
+	remote_call(AwaitOnNode, big_test_node, read_block_when_stored, [H, true], 20000).
 
 post_block(B, ExpectedResult) when not is_list(ExpectedResult) ->
 	post_block(B, [ExpectedResult], peer_ip(main));
@@ -1006,8 +1006,8 @@ post_block(B, ExpectedResults, Peer) ->
 	await_post_block(B, ExpectedResults, Peer).
 
 send_new_block(Peer, B) ->
-	ar_http_iface_client:send_block_binary(Peer, B#block.indep_hash,
-			ar_serialize:block_to_binary(B)).
+	big_http_iface_client:send_block_binary(Peer, B#block.indep_hash,
+			big_serialize:block_to_binary(B)).
 
 await_post_block(B, ExpectedResults) ->
 	await_post_block(B, ExpectedResults, peer_ip(main)).
@@ -1059,27 +1059,27 @@ await_post_block(#block{ indep_hash = H } = B, ExpectedResults, Peer) ->
 	end.
 
 sign_block(#block{ cumulative_diff = CDiff } = B, PrevB, Key) ->
-	SignedH = ar_block:generate_signed_hash(B),
+	SignedH = big_block:generate_signed_hash(B),
 	PrevCDiff = PrevB#block.cumulative_diff,
-	Signature = ar_wallet:sign(Key, << (ar_serialize:encode_int(CDiff, 16))/binary,
-		(ar_serialize:encode_int(PrevCDiff, 16))/binary,
+	Signature = big_wallet:sign(Key, << (big_serialize:encode_int(CDiff, 16))/binary,
+		(big_serialize:encode_int(PrevCDiff, 16))/binary,
 		(B#block.previous_solution_hash)/binary, SignedH/binary >>),
-	H = ar_block:indep_hash2(SignedH, Signature),
+	H = big_block:indep_hash2(SignedH, Signature),
 	B#block{ indep_hash = H, signature = Signature }.
 
 read_block_when_stored(H) ->
 	read_block_when_stored(H, false).
 
 read_block_when_stored(H, IncludeTXs) ->
-	{ok, B} = ar_util:do_until(
+	{ok, B} = big_util:do_until(
 		fun() ->
-			case ar_storage:read_block(H) of
+			case big_storage:read_block(H) of
 				unavailable ->
 					unavailable;
 				B2 ->
-					ar_util:do_until(
+					big_util:do_until(
 						fun() ->
-							TXs = ar_storage:read_tx(B2#block.txs),
+							TXs = big_storage:read_tx(B2#block.txs),
 							case lists:any(fun(TX) -> TX == unavailable end, TXs) of
 								true ->
 									false;
@@ -1103,7 +1103,7 @@ read_block_when_stored(H, IncludeTXs) ->
 	B.
 
 get_chunk(Node, Offset) ->
-	ar_http:req(#{
+	big_http:req(#{
 		method => get,
 		peer => peer_ip(Node),
 		path => "/chunk/" ++ integer_to_list(Offset),
@@ -1111,7 +1111,7 @@ get_chunk(Node, Offset) ->
 	}).
 
 get_chunk_proof(Node, Offset) ->
-	ar_http:req(#{
+	big_http:req(#{
 		method => get,
 		peer => peer_ip(Node),
 		path => "/chunk_proof/" ++ integer_to_list(Offset),
@@ -1120,7 +1120,7 @@ get_chunk_proof(Node, Offset) ->
 
 post_chunk(Node, Proof) ->
 	Peer = peer_ip(Node),
-	ar_http:req(#{
+	big_http:req(#{
 		method => post,
 		peer => Peer,
 		path => "/chunk",
@@ -1132,19 +1132,19 @@ random_v1_data(Size) ->
 	<< (crypto:strong_rand_bytes(Size - 1))/binary, <<"a">>/binary >>.
 
 assert_get_tx_data(Node, TXID, ExpectedData) ->
-	?debugFmt("Polling for data of ~s.", [ar_util:encode(TXID)]),
+	?debugFmt("Polling for data of ~s.", [big_util:encode(TXID)]),
 	Peer = peer_ip(Node),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
-			case ar_http:req(#{ method => get, peer => Peer,
-					path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/data" }) of
+			case big_http:req(#{ method => get, peer => Peer,
+					path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/data" }) of
 				{ok, {{<<"200">>, _}, _, ExpectedData, _, _}} ->
 					true;
 				{ok, {{<<"200">>, _}, _, <<>>, _, _}} ->
 					false;
 				_UnexpectedResponse ->
 					?debugFmt("Got unexpected tx data response. TXID: ~s. Peer: ~s.~n",
-							[ar_util:encode(TXID), ar_util:format_peer(Peer)]),
+							[big_util:encode(TXID), big_util:format_peer(Peer)]),
 					false
 			end
 		end,
@@ -1152,8 +1152,8 @@ assert_get_tx_data(Node, TXID, ExpectedData) ->
 		120 * 1000
 	),
 	{ok, {{<<"200">>, _}, _, OffsetJSON, _, _}}
-			= ar_http:req(#{ method => get, peer => Peer,
-					path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/offset" }),
+			= big_http:req(#{ method => get, peer => Peer,
+					path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/offset" }),
 	Map = jiffy:decode(OffsetJSON, [return_maps]),
 	Offset = binary_to_integer(maps:get(<<"offset">>, Map)),
 	Size = binary_to_integer(maps:get(<<"size">>, Map)),
@@ -1164,34 +1164,34 @@ get_tx_data_in_chunks(Offset, Size, Peer) ->
 	get_tx_data_in_chunks(Offset, Offset - Size, Peer, []).
 
 get_tx_data_in_chunks(Offset, Start, _Peer, Bin) when Offset =< Start ->
-	ar_util:encode(iolist_to_binary(Bin));
+	big_util:encode(iolist_to_binary(Bin));
 get_tx_data_in_chunks(Offset, Start, Peer, Bin) ->
 	{ok, {{<<"200">>, _}, _, JSON, _, _}}
-			= ar_http:req(#{ method => get, peer => Peer,
+			= big_http:req(#{ method => get, peer => Peer,
 					path => "/chunk/" ++ integer_to_list(Offset) }),
 	Map = jiffy:decode(JSON, [return_maps]),
-	Chunk = ar_util:decode(maps:get(<<"chunk">>, Map)),
+	Chunk = big_util:decode(maps:get(<<"chunk">>, Map)),
 	get_tx_data_in_chunks(Offset - byte_size(Chunk), Start, Peer, [Chunk | Bin]).
 
 get_tx_data_in_chunks_traverse_forward(Offset, Size, Peer) ->
 	get_tx_data_in_chunks_traverse_forward(Offset, Offset - Size, Peer, []).
 
 get_tx_data_in_chunks_traverse_forward(Offset, Start, _Peer, Bin) when Offset =< Start ->
-	ar_util:encode(iolist_to_binary(lists:reverse(Bin)));
+	big_util:encode(iolist_to_binary(lists:reverse(Bin)));
 get_tx_data_in_chunks_traverse_forward(Offset, Start, Peer, Bin) ->
 	{ok, {{<<"200">>, _}, _, JSON, _, _}}
-			= ar_http:req(#{ method => get, peer => Peer,
+			= big_http:req(#{ method => get, peer => Peer,
 					path => "/chunk/" ++ integer_to_list(Start + 1) }),
 	Map = jiffy:decode(JSON, [return_maps]),
-	Chunk = ar_util:decode(maps:get(<<"chunk">>, Map)),
+	Chunk = big_util:decode(maps:get(<<"chunk">>, Map)),
 	get_tx_data_in_chunks_traverse_forward(Offset, Start + byte_size(Chunk), Peer,
 			[Chunk | Bin]).
 
 assert_data_not_found(Node, TXID) ->
 	Peer = peer_ip(Node),
 	?assertMatch({ok, {{<<"404">>, _}, _, _Binary, _, _}},
-			ar_http:req(#{ method => get, peer => Peer,
-					path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/data" })).
+			big_http:req(#{ method => get, peer => Peer,
+					path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/data" })).
 
 get_node_namespace() ->
 	lists:nth(2, split_node_name()). % Retrieve the element between the '-' and '@'

@@ -1,18 +1,18 @@
--module(ar_vdf_server_tests).
+-module(big_vdf_server_tests).
 
 -export([init/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_mining.hrl").
--include_lib("arweave/include/ar_vdf.hrl").
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_consensus.hrl").
+-include_lib("bigfile/include/big_mining.hrl").
+-include_lib("bigfile/include/big_vdf.hrl").
 
--import(ar_test_node, [assert_wait_until_height/2, post_block/2, send_new_block/2]).
+-import(big_test_node, [assert_wait_until_height/2, post_block/2, send_new_block/2]).
 
-%% we have to wait to let the ar_events get processed whenever we apply a VDF step
+%% we have to wait to let the big_events get processed whenever we apply a VDF step
 -define(WAIT_TIME, 1000).
 
 %% -------------------------------------------------------------------------------------------------
@@ -21,32 +21,32 @@
 
 setup() ->
 	ets:new(computed_output, [named_table, set, public]),
-	{ok, Config} = application:get_env(arweave, config),
-	{ok, PeerConfig} = ar_test_node:remote_call(peer1, application, get_env, [arweave, config]),
+	{ok, Config} = application:get_env(bigfile, config),
+	{ok, PeerConfig} = big_test_node:remote_call(peer1, application, get_env, [bigfile, config]),
     {Config, PeerConfig}.
 
 cleanup({Config, PeerConfig}) ->
-	application:set_env(arweave, config, Config),
-	ar_test_node:remote_call(peer1, application, set_env, [arweave, config, PeerConfig]),
+	application:set_env(bigfile, config, Config),
+	big_test_node:remote_call(peer1, application, set_env, [bigfile, config, PeerConfig]),
 	ets:delete(computed_output).
 
 setup_external_update() ->
-	{ok, Config} = application:get_env(arweave, config),
-	[B0] = ar_weave:init(),
+	{ok, Config} = application:get_env(bigfile, config),
+	[B0] = big_weave:init(),
 	%% Start the testnode with a configured VDF server so that it doesn't compute its own VDF -
 	%% this is necessary so that we can test the behavior of apply_external_update without any
 	%% auto-computed VDF steps getting in the way.
-	ar_test_node:start(
-		B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
+	big_test_node:start(
+		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_server_trusted_peers = [ 
-			ar_util:format_peer(vdf_server_1()),
-			ar_util:format_peer(vdf_server_2()) ],
+			big_util:format_peer(vdf_server_1()),
+			big_util:format_peer(vdf_server_2()) ],
 			mine = true}),
 	ets:new(computed_output, [named_table, ordered_set, public]),
 	ets:new(add_task, [named_table, bag, public]),
 	Pid = spawn(
 		fun() ->
-			ok = ar_events:subscribe(nonce_limiter),
+			ok = big_events:subscribe(nonce_limiter),
 			computed_output()
 		end
 	),
@@ -56,7 +56,7 @@ setup_external_update() ->
 
 cleanup_external_update({Pid, Config}) ->
 	exit(Pid, kill),
-	ok = application:set_env(arweave, config, Config),
+	ok = application:set_env(bigfile, config, Config),
 	ets:delete(add_task),
 	ets:delete(computed_output).
 
@@ -113,17 +113,17 @@ external_update_test_() ->
 		fun setup_external_update/0,
      	fun cleanup_external_update/1,
 		[
-			ar_test_node:test_with_mocked_functions([mock_add_task()],
+			big_test_node:test_with_mocked_functions([mock_add_task()],
 				fun test_session_overlap/0, 120),
-			ar_test_node:test_with_mocked_functions([mock_add_task()],
+			big_test_node:test_with_mocked_functions([mock_add_task()],
 				fun test_client_ahead/0, 120),
-			ar_test_node:test_with_mocked_functions([mock_add_task()],
+			big_test_node:test_with_mocked_functions([mock_add_task()],
 				fun test_skip_ahead/0, 120),
-			ar_test_node:test_with_mocked_functions([mock_add_task()],
+			big_test_node:test_with_mocked_functions([mock_add_task()],
 				fun test_2_servers_switching/0, 120),
-			ar_test_node:test_with_mocked_functions([mock_add_task()],
+			big_test_node:test_with_mocked_functions([mock_add_task()],
 				fun test_backtrack/0, 120),
-			ar_test_node:test_with_mocked_functions([mock_add_task()],
+			big_test_node:test_with_mocked_functions([mock_add_task()],
 				fun test_2_servers_backtrack/0, 120)
 		]
     }.
@@ -142,7 +142,7 @@ mining_session_test_() ->
 		fun setup_external_update/0,
      	fun cleanup_external_update/1,
 	[
-		ar_test_node:test_with_mocked_functions([mock_add_task()],
+		big_test_node:test_with_mocked_functions([mock_add_task()],
 			fun test_mining_session/0, 120)
 	]
     }.
@@ -155,42 +155,42 @@ mining_session_test_() ->
 %% vdf_server_push_test_
 %%
 test_vdf_server_push_fast_block() ->
-	VDFPort = ar_test_node:get_unused_port(),
-	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	VDFPort = big_test_node:get_unused_port(),
+	{_, Pub} = big_wallet:new(),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(10000), <<>>}]),
 
 	%% Let peer1 get ahead of main in the VDF chain
-	ar_test_node:start_peer(peer1, B0),
-	ar_test_node:remote_call(peer1, ar_http, block_peer_connections, []),
+	big_test_node:start_peer(peer1, B0),
+	big_test_node:remote_call(peer1, big_http, block_peer_connections, []),
 	timer:sleep(3000),
 
-	{ok, Config} = application:get_env(arweave, config),
-	ar_test_node:start(
-		B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
+	{ok, Config} = application:get_env(bigfile, config),
+	big_test_node:start(
+		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_client_peers = [ "127.0.0.1:" ++ integer_to_list(VDFPort) ]}),
 
 	%% Setup a server to listen for VDF pushes
-	Routes = [{"/[...]", ar_vdf_server_tests, []}],
+	Routes = [{"/[...]", big_vdf_server_tests, []}],
 	{ok, _} = cowboy:start_clear(
-		ar_vdf_server_test_listener,
+		big_vdf_server_test_listener,
 		[{port, VDFPort}],
 		#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 	),
 
 	%% Mine a block that will be ahead of main in the VDF chain
-	ar_test_node:mine(peer1),
+	big_test_node:mine(peer1),
 	BI = assert_wait_until_height(peer1, 1),
-	B1 = ar_test_node:remote_call(peer1, ar_storage, read_block, [hd(BI)]),
+	B1 = big_test_node:remote_call(peer1, big_storage, read_block, [hd(BI)]),
 
 	%% Post the block to main which will cause it to validate VDF for the block under
 	%% the B0 session and then begin using the B1 VDF session going forward
-	ok = ar_events:subscribe(block),
+	ok = big_events:subscribe(block),
 	post_block(B1, valid),
 	timer:sleep(3000),
 
 	Seed0 = B0#block.nonce_limiter_info#nonce_limiter_info.next_seed,
 	Seed1 = B1#block.nonce_limiter_info#nonce_limiter_info.next_seed,
-	StepNumber1 = ar_block:vdf_step_number(B1),
+	StepNumber1 = big_block:vdf_step_number(B1),
 
 	[{Seed0, _, LatestStepNumber0}] = ets:lookup(computed_output, Seed0),
 	[{Seed1, FirstStepNumber1, _}] = ets:lookup(computed_output, Seed1),
@@ -199,44 +199,44 @@ test_vdf_server_push_fast_block() ->
 	?assertEqual(StepNumber1, LatestStepNumber0,
 		"VDF server did not post the full Session0 when starting Session1"),
 
-	cowboy:stop_listener(ar_vdf_server_test_listener).
+	cowboy:stop_listener(big_vdf_server_test_listener).
 
 test_vdf_server_push_slow_block() ->
-	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	{_, Pub} = big_wallet:new(),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(10000), <<>>}]),
 
-	{ok, Config} = application:get_env(arweave, config),
-	ar_test_node:start(
-		B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
+	{ok, Config} = application:get_env(bigfile, config),
+	big_test_node:start(
+		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_client_peers = [ "127.0.0.1:1986" ]}),
 	timer:sleep(3000),
 
 	%% Let peer1 get ahead of main in the VDF chain
-	ar_test_node:start_peer(peer1, B0),
-	ar_test_node:remote_call(peer1, ar_http, block_peer_connections, []),
+	big_test_node:start_peer(peer1, B0),
+	big_test_node:remote_call(peer1, big_http, block_peer_connections, []),
 
 	%% Setup a server to listen for VDF pushes
-	Routes = [{"/[...]", ar_vdf_server_tests, []}],
+	Routes = [{"/[...]", big_vdf_server_tests, []}],
 	{ok, _} = cowboy:start_clear(
-		ar_vdf_server_test_listener,
+		big_vdf_server_test_listener,
 		[{port, 1986}],
 		#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 	),
 
 	%% Mine a block that will be ahead of main in the VDF chain
-	ar_test_node:mine(peer1),
+	big_test_node:mine(peer1),
 	BI = assert_wait_until_height(peer1, 1),
-	B1 = ar_test_node:remote_call(peer1, ar_storage, read_block, [hd(BI)]),
+	B1 = big_test_node:remote_call(peer1, big_storage, read_block, [hd(BI)]),
 
 	%% Post the block to main which will cause it to validate VDF for the block under
 	%% the B0 session and then begin using the B1 VDF session going forward
-	ok = ar_events:subscribe(block),
+	ok = big_events:subscribe(block),
 	post_block(B1, valid),
 	timer:sleep(3000),
 
 	Seed0 = B0#block.nonce_limiter_info#nonce_limiter_info.next_seed,
 	Seed1 = B1#block.nonce_limiter_info#nonce_limiter_info.next_seed,
-	StepNumber1 = ar_block:vdf_step_number(B1),
+	StepNumber1 = big_block:vdf_step_number(B1),
 
 	[{Seed0, _, LatestStepNumber0}] = ets:lookup(computed_output, Seed0),
 	[{Seed1, FirstStepNumber1, LatestStepNumber1}] = ets:lookup(computed_output, Seed1),
@@ -259,179 +259,179 @@ test_vdf_server_push_slow_block() ->
 		"Session0 should not have progressed"),
 	?assert(NewLatestStepNumber1 > LatestStepNumber1, "Session1 should have progressed"),
 
-	cowboy:stop_listener(ar_vdf_server_test_listener).
+	cowboy:stop_listener(big_vdf_server_test_listener).
 
 %%
 %% vdf_client_test_
 %%
 test_vdf_client_fast_block() ->
-	{ok, Config} = application:get_env(arweave, config),
-	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	{ok, Config} = application:get_env(bigfile, config),
+	{_, Pub} = big_wallet:new(),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(10000), <<>>}]),
 
-	PeerAddress = ar_wallet:to_address(ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, [])),
+	PeerAddress = big_wallet:to_address(big_test_node:remote_call(peer1, big_wallet, new_keyfile, [])),
 
 	%% Let peer1 get ahead of main in the VDF chain
-	ar_test_node:start_peer(peer1, B0),
-	ar_test_node:remote_call(peer1, ar_http, block_peer_connections, []),
+	big_test_node:start_peer(peer1, B0),
+	big_test_node:remote_call(peer1, big_http, block_peer_connections, []),
 	timer:sleep(20000),
 
 	%% Mine a block that will be ahead of main in the VDF chain
-	ar_test_node:mine(peer1),
+	big_test_node:mine(peer1),
 	BI = assert_wait_until_height(peer1, 1),
-	B1 = ar_test_node:remote_call(peer1, ar_storage, read_block, [hd(BI)]),
-	ar_test_node:stop(peer1),
+	B1 = big_test_node:remote_call(peer1, big_storage, read_block, [hd(BI)]),
+	big_test_node:stop(peer1),
 
 	%% Restart peer1 as a VDF client
-	{ok, PeerConfig} = ar_test_node:remote_call(peer1, application, get_env, [arweave, config]),
-	ar_test_node:start_peer(peer1, 
+	{ok, PeerConfig} = big_test_node:remote_call(peer1, application, get_env, [bigfile, config]),
+	big_test_node:start_peer(peer1, 
 		B0, PeerAddress,
 		PeerConfig#config{ nonce_limiter_server_trusted_peers = [ 
-			ar_util:format_peer(ar_test_node:peer_ip(main)) ] }),
+			big_util:format_peer(big_test_node:peer_ip(main)) ] }),
 	%% Start main as a VDF server
-	ar_test_node:start(
-		B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
+	big_test_node:start(
+		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_client_peers = [ 
-			ar_util:format_peer(ar_test_node:peer_ip(peer1)) ]}),
-	ar_test_node:connect_to_peer(peer1),
+			big_util:format_peer(big_test_node:peer_ip(peer1)) ]}),
+	big_test_node:connect_to_peer(peer1),
 
 	%% Post the block to the VDF client. It won't be able to validate it since the VDF server
 	%% isn't aware of the new VDF session yet.
-	send_new_block(ar_test_node:peer_ip(peer1), B1),
+	send_new_block(big_test_node:peer_ip(peer1), B1),
 	timer:sleep(10000),
 	?assertEqual(1,
-		length(ar_test_node:remote_call(peer1, ar_node, get_blocks, [])),
+		length(big_test_node:remote_call(peer1, big_node, get_blocks, [])),
 		"VDF client shouldn't be able to validate the block until the VDF server posts a "
 		"new VDF session"),
 
 	%% After the VDF server receives the block, it should push the old and new VDF sessions
 	%% to the VDF client allowing it to validate teh block.
-	send_new_block(ar_test_node:peer_ip(main), B1),
+	send_new_block(big_test_node:peer_ip(main), B1),
 	%% If all is right, the VDF server should push the old and new VDF sessions allowing
 	%% the VDF clietn to finally validate the block.
 	BI = assert_wait_until_height(peer1, 1).
 
 test_vdf_client_fast_block_pull_interface() ->
-  {ok, Config} = application:get_env(arweave, config),
-	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+  {ok, Config} = application:get_env(bigfile, config),
+	{_, Pub} = big_wallet:new(),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(10000), <<>>}]),
 
-	PeerAddress = ar_wallet:to_address(ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, [])),
+	PeerAddress = big_wallet:to_address(big_test_node:remote_call(peer1, big_wallet, new_keyfile, [])),
 
 	%% Let peer1 get ahead of main in the VDF chain
-	ar_test_node:start_peer(peer1, B0),
-	ar_test_node:remote_call(peer1, ar_http, block_peer_connections, []),
+	big_test_node:start_peer(peer1, B0),
+	big_test_node:remote_call(peer1, big_http, block_peer_connections, []),
 	timer:sleep(20000),
 
 	%% Mine a block that will be ahead of main in the VDF chain
-	ar_test_node:mine(peer1),
+	big_test_node:mine(peer1),
 	BI = assert_wait_until_height(peer1, 1),
-	B1 = ar_test_node:remote_call(peer1, ar_storage, read_block, [hd(BI)]),
-	ar_test_node:stop(peer1),
+	B1 = big_test_node:remote_call(peer1, big_storage, read_block, [hd(BI)]),
+	big_test_node:stop(peer1),
 
 	%% Restart peer1 as a VDF client
-	{ok, PeerConfig} = ar_test_node:remote_call(peer1, application, get_env, [arweave, config]),
-	ar_test_node:start_peer(peer1, 
+	{ok, PeerConfig} = big_test_node:remote_call(peer1, application, get_env, [bigfile, config]),
+	big_test_node:start_peer(peer1, 
 		B0, PeerAddress,
 		PeerConfig#config{ nonce_limiter_server_trusted_peers = [ "127.0.0.1:" ++ integer_to_list(Config#config.port) ],
 				enable = [vdf_server_pull | PeerConfig#config.enable] }),
 	%% Start the main as a VDF server
-	ar_test_node:start(
-		B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
-		Config#config{ nonce_limiter_client_peers = [ "127.0.0.1:" ++ integer_to_list(ar_test_node:peer_port(peer1)) ]}),
-	ar_test_node:connect_to_peer(peer1),
+	big_test_node:start(
+		B0, big_wallet:to_address(big_wallet:new_keyfile()),
+		Config#config{ nonce_limiter_client_peers = [ "127.0.0.1:" ++ integer_to_list(big_test_node:peer_port(peer1)) ]}),
+	big_test_node:connect_to_peer(peer1),
 
 	%% Post the block to the VDF client. It won't be able to validate it since the VDF server
 	%% isn't aware of the new VDF session yet.
-	send_new_block(ar_test_node:peer_ip(peer1), B1),
+	send_new_block(big_test_node:peer_ip(peer1), B1),
 	timer:sleep(10000),
 	?assertEqual(1,
-		length(ar_test_node:remote_call(peer1, ar_node, get_blocks, [])),
+		length(big_test_node:remote_call(peer1, big_node, get_blocks, [])),
 		"VDF client shouldn't be able to validate the block until the VDF server posts a "
 		"new VDF session"),
 
 	%% After the VDF server receives the block, it should push the old and new VDF sessions
 	%% to the VDF client allowing it to validate teh block.
-	send_new_block(ar_test_node:peer_ip(main), B1),
+	send_new_block(big_test_node:peer_ip(main), B1),
 	%% If all is right, the VDF server should push the old and new VDF sessions allowing
 	%% the VDF clietn to finally validate the block.
 	BI = assert_wait_until_height(peer1, 1).
 
 test_vdf_client_slow_block() ->
-	{ok, Config} = application:get_env(arweave, config),
-	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	{ok, Config} = application:get_env(bigfile, config),
+	{_, Pub} = big_wallet:new(),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(10000), <<>>}]),
 
-	PeerAddress = ar_wallet:to_address(ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, [])),
+	PeerAddress = big_wallet:to_address(big_test_node:remote_call(peer1, big_wallet, new_keyfile, [])),
 
 	%% Let peer1 get ahead of main in the VDF chain
-	ar_test_node:start_peer(peer1, B0),
-	ar_test_node:remote_call(peer1, ar_http, block_peer_connections, []),
+	big_test_node:start_peer(peer1, B0),
+	big_test_node:remote_call(peer1, big_http, block_peer_connections, []),
 
 	%% Mine a block that will be ahead of main in the VDF chain
-	ar_test_node:mine(peer1),
+	big_test_node:mine(peer1),
 	BI = assert_wait_until_height(peer1, 1),
-	B1 = ar_test_node:remote_call(peer1, ar_storage, read_block, [hd(BI)]),
-	ar_test_node:stop(peer1),
+	B1 = big_test_node:remote_call(peer1, big_storage, read_block, [hd(BI)]),
+	big_test_node:stop(peer1),
 
 	%% Restart peer1 as a VDF client
-	{ok, PeerConfig} = ar_test_node:remote_call(peer1, application, get_env, [arweave, config]),
-	ar_test_node:start_peer(peer1, 
+	{ok, PeerConfig} = big_test_node:remote_call(peer1, application, get_env, [bigfile, config]),
+	big_test_node:start_peer(peer1, 
 		B0, PeerAddress,
 		PeerConfig#config{ nonce_limiter_server_trusted_peers = [
 			"127.0.0.1:" ++ integer_to_list(Config#config.port)
 		] }),
 	%% Start the main as a VDF server
-	ar_test_node:start(
-		B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
+	big_test_node:start(
+		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_client_peers = [
-			"127.0.0.1:" ++ integer_to_list(ar_test_node:peer_port(peer1))
+			"127.0.0.1:" ++ integer_to_list(big_test_node:peer_port(peer1))
 		]}),
-	ar_test_node:connect_to_peer(peer1),
+	big_test_node:connect_to_peer(peer1),
 	timer:sleep(10000),
 
 	%% Post the block to the VDF client, it should validate it "immediately" since the
 	%% VDF server is ahead of the block in the VDF chain.
-	send_new_block(ar_test_node:peer_ip(peer1), B1),
+	send_new_block(big_test_node:peer_ip(peer1), B1),
 	BI = assert_wait_until_height(peer1, 1).
 
 test_vdf_client_slow_block_pull_interface() ->
-  {ok, Config} = application:get_env(arweave, config),
-	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+  {ok, Config} = application:get_env(bigfile, config),
+	{_, Pub} = big_wallet:new(),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?AR(10000), <<>>}]),
 
-	PeerAddress = ar_wallet:to_address(ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, [])),
+	PeerAddress = big_wallet:to_address(big_test_node:remote_call(peer1, big_wallet, new_keyfile, [])),
 
 	%% Let peer1 get ahead of main in the VDF chain
-	ar_test_node:start_peer(peer1, B0),
-	ar_test_node:remote_call(peer1, ar_http, block_peer_connections, []),
+	big_test_node:start_peer(peer1, B0),
+	big_test_node:remote_call(peer1, big_http, block_peer_connections, []),
 
 	%% Mine a block that will be ahead of main in the VDF chain
-	ar_test_node:mine(peer1),
+	big_test_node:mine(peer1),
 	BI = assert_wait_until_height(peer1, 1),
-	B1 = ar_test_node:remote_call(peer1, ar_storage, read_block, [hd(BI)]),
-	ar_test_node:stop(peer1),
+	B1 = big_test_node:remote_call(peer1, big_storage, read_block, [hd(BI)]),
+	big_test_node:stop(peer1),
 
 	%% Restart peer1 as a VDF client
-	{ok, PeerConfig} = ar_test_node:remote_call(peer1, application, get_env, [arweave, config]),
-	ar_test_node:start_peer(peer1, 
+	{ok, PeerConfig} = big_test_node:remote_call(peer1, application, get_env, [bigfile, config]),
+	big_test_node:start_peer(peer1, 
 		B0, PeerAddress,
 		PeerConfig#config{ nonce_limiter_server_trusted_peers = [
 			"127.0.0.1:" ++ integer_to_list(Config#config.port) ],
 				enable = [vdf_server_pull | PeerConfig#config.enable] }),
 	%% Start the main as a VDF server
-	{ok, Config} = application:get_env(arweave, config),
-	ar_test_node:start(
-		B0, ar_wallet:to_address(ar_wallet:new_keyfile()),
+	{ok, Config} = application:get_env(bigfile, config),
+	big_test_node:start(
+		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_client_peers = [
-			"127.0.0.1:" ++ integer_to_list(ar_test_node:peer_port(peer1))
+			"127.0.0.1:" ++ integer_to_list(big_test_node:peer_port(peer1))
 		]}),
-	ar_test_node:connect_to_peer(peer1),
+	big_test_node:connect_to_peer(peer1),
 	timer:sleep(10000),
 
 	%% Post the block to the VDF client, it should validate it "immediately" since the
 	%% VDF server is ahead of the block in the VDF chain.
-	send_new_block(ar_test_node:peer_ip(peer1), B1),
+	send_new_block(big_test_node:peer_ip(peer1), B1),
 	BI = assert_wait_until_height(peer1, 1).
 
 %%
@@ -707,55 +707,55 @@ test_mining_session() ->
 	SessionKey1 = {<<"session1">>, 1, 1},
 	SessionKey2 = {<<"session2">>, 2, 1},
 	SessionKey3 = {<<"session3">>, 3, 1},
-	ar_test_node:mine(),
+	big_test_node:mine(),
 	?assertEqual(
 		ok,
 		apply_external_update(SessionKey0, [], 2, true, undefined),
 		"Partial session0, should mine"),
 	timer:sleep(?WAIT_TIME),
-	?assertEqual([SessionKey0], sets:to_list(ar_mining_server:active_sessions())),
+	?assertEqual([SessionKey0], sets:to_list(big_mining_server:active_sessions())),
 	?assertEqual([2], mined_steps()),
 	?assertEqual(
 		ok,
 		apply_external_update(SessionKey0, [3], 4, false, undefined),
 		"Full session0, should mine"),
 	timer:sleep(?WAIT_TIME),
-	?assertEqual([SessionKey0], sets:to_list(ar_mining_server:active_sessions())),
+	?assertEqual([SessionKey0], sets:to_list(big_mining_server:active_sessions())),
 	?assertEqual([4, 3], mined_steps()),
 	?assertEqual(
 		#nonce_limiter_update_response{ step_number = 4 },
 		apply_external_update(SessionKey0, [], 4, true, undefined),
 		"Repeat step, should not mine"),
 	timer:sleep(?WAIT_TIME),
-	?assertEqual([SessionKey0], sets:to_list(ar_mining_server:active_sessions())),
+	?assertEqual([SessionKey0], sets:to_list(big_mining_server:active_sessions())),
 	?assertEqual([], mined_steps()),
 	?assertEqual(
 		#nonce_limiter_update_response{ session_found = false },
 		apply_external_update(SessionKey1, [], 6, true, SessionKey0),
 		"Partial session1, should not mine"),
 	timer:sleep(?WAIT_TIME),
-	?assertEqual([SessionKey0], sets:to_list(ar_mining_server:active_sessions())),
+	?assertEqual([SessionKey0], sets:to_list(big_mining_server:active_sessions())),
 	?assertEqual([], mined_steps()),
 	?assertEqual(
 		ok,
 		apply_external_update(SessionKey1, [5], 6, false, SessionKey0),
 		"Full session1, should mine"),
 	timer:sleep(?WAIT_TIME),
-	assert_sessions_equal([SessionKey0, SessionKey1], ar_mining_server:active_sessions()),
+	assert_sessions_equal([SessionKey0, SessionKey1], big_mining_server:active_sessions()),
 	?assertEqual([6, 5], mined_steps()),
 	?assertEqual(
 		#nonce_limiter_update_response{ session_found = false },
 		apply_external_update(SessionKey3, [], 16, true, SessionKey2),
 		"Partial session3, should not mine"),
 	timer:sleep(?WAIT_TIME),
-	assert_sessions_equal([SessionKey0, SessionKey1], ar_mining_server:active_sessions()),
+	assert_sessions_equal([SessionKey0, SessionKey1], big_mining_server:active_sessions()),
 	?assertEqual([], mined_steps()),
 	?assertEqual(
 		#nonce_limiter_update_response{ session_found = false },
 		apply_external_update(SessionKey3, [15], 16, true, SessionKey2),
 		"Full session3, should not mine"),
 	timer:sleep(?WAIT_TIME),
-	assert_sessions_equal([SessionKey0, SessionKey1], ar_mining_server:active_sessions()),
+	assert_sessions_equal([SessionKey0, SessionKey1], big_mining_server:active_sessions()),
 	?assertEqual([], mined_steps()),
 	%% Current session is only updated when applying a new tip block, not when applying a VDF step
 	%% from a VDF server.
@@ -782,8 +782,8 @@ test_serialize_update_format_2() ->
 			steps = [crypto:strong_rand_bytes(32)]
 		}
 	},
-	Binary = ar_serialize:nonce_limiter_update_to_binary(2, Update),
-	?assertEqual({ok, Update}, ar_serialize:binary_to_nonce_limiter_update(2, Binary)).
+	Binary = big_serialize:nonce_limiter_update_to_binary(2, Update),
+	?assertEqual({ok, Update}, big_serialize:binary_to_nonce_limiter_update(2, Binary)).
 
 test_serialize_update_format_3() ->
 	SessionKey0 = {crypto:strong_rand_bytes(48), 0, 1},
@@ -802,8 +802,8 @@ test_serialize_update_format_3() ->
 			steps = [crypto:strong_rand_bytes(32)]
 		}
 	},
-	Binary = ar_serialize:nonce_limiter_update_to_binary(3, Update),
-	?assertEqual({ok, Update}, ar_serialize:binary_to_nonce_limiter_update(3, Binary)).
+	Binary = big_serialize:nonce_limiter_update_to_binary(3, Update),
+	?assertEqual({ok, Update}, big_serialize:binary_to_nonce_limiter_update(3, Binary)).
 
 test_serialize_update_format_4() ->
 	SessionKey0 = {crypto:strong_rand_bytes(48), 0, 1},
@@ -824,15 +824,15 @@ test_serialize_update_format_4() ->
 			steps = [crypto:strong_rand_bytes(32)]
 		}
 	},
-	Binary = ar_serialize:nonce_limiter_update_to_binary(4, Update),
-	?assertEqual({ok, Update}, ar_serialize:binary_to_nonce_limiter_update(4, Binary)).
+	Binary = big_serialize:nonce_limiter_update_to_binary(4, Update),
+	?assertEqual({ok, Update}, big_serialize:binary_to_nonce_limiter_update(4, Binary)).
 
 %% @doc test serializing and deserializing a #nonce_limiter_update_response when the client
 %% is running the same node version as the server.
 test_serialize_response() ->
 	ResponseA = #nonce_limiter_update_response{},
-	BinaryA = ar_serialize:nonce_limiter_update_response_to_binary(ResponseA),
-	?assertEqual({ok, ResponseA}, ar_serialize:binary_to_nonce_limiter_update_response(BinaryA)),
+	BinaryA = big_serialize:nonce_limiter_update_response_to_binary(ResponseA),
+	?assertEqual({ok, ResponseA}, big_serialize:binary_to_nonce_limiter_update_response(BinaryA)),
 
 	ResponseB = #nonce_limiter_update_response{
 		session_found = false,
@@ -840,8 +840,8 @@ test_serialize_response() ->
 		postpone = 255,
 		format = 2
 	},
-	BinaryB = ar_serialize:nonce_limiter_update_response_to_binary(ResponseB),
-	?assertEqual({ok, ResponseB}, ar_serialize:binary_to_nonce_limiter_update_response(BinaryB)).
+	BinaryB = big_serialize:nonce_limiter_update_response_to_binary(ResponseB),
+	?assertEqual({ok, ResponseB}, big_serialize:binary_to_nonce_limiter_update_response(BinaryB)).
 
 %% @doc test serializing and deserializing a #nonce_limiter_update_response when the client
 %% is running an older node version than the server.
@@ -853,7 +853,7 @@ test_serialize_response_compatibility() ->
 		postpone = 0,
 		format = 1
 	},
-	?assertEqual({ok, ResponseA}, ar_serialize:binary_to_nonce_limiter_update_response(BinaryA)),
+	?assertEqual({ok, ResponseA}, big_serialize:binary_to_nonce_limiter_update_response(BinaryA)),
 
 	BinaryB = << 1:8, 2:8, 511:16, 120:8 >>,
 	ResponseB = #nonce_limiter_update_response{
@@ -862,24 +862,24 @@ test_serialize_response_compatibility() ->
 		postpone = 120,
 		format = 1
 	},
-	?assertEqual({ok, ResponseB}, ar_serialize:binary_to_nonce_limiter_update_response(BinaryB)).
+	?assertEqual({ok, ResponseB}, big_serialize:binary_to_nonce_limiter_update_response(BinaryB)).
 
 %% -------------------------------------------------------------------------------------------------
 %% Helper Functions
 %% -------------------------------------------------------------------------------------------------
 
 init(Req, State) ->
-	SplitPath = ar_http_iface_server:split_path(cowboy_req:path(Req)),
+	SplitPath = big_http_iface_server:split_path(cowboy_req:path(Req)),
 	handle(SplitPath, Req, State).
 
 handle([<<"vdf">>], Req, State) ->
-	{ok, Body, _} = ar_http_req:body(Req, ?MAX_BODY_SIZE),
-	case ar_serialize:binary_to_nonce_limiter_update(2, Body) of
+	{ok, Body, _} = big_http_req:body(Req, ?MAX_BODY_SIZE),
+	case big_serialize:binary_to_nonce_limiter_update(2, Body) of
 		{ok, Update} ->
 			handle_update(Update, Req, State);
 		{error, _} ->
 			Response = #nonce_limiter_update_response{ format = 2 },
-			Bin = ar_serialize:nonce_limiter_update_response_to_binary(Response),
+			Bin = big_serialize:nonce_limiter_update_response_to_binary(Response),
 			{ok, cowboy_req:reply(202, #{}, Bin, Req), State}
 	end.
 
@@ -910,7 +910,7 @@ handle_update(Update, Req, State) ->
 			case IsPartial of
 				true ->
 					Response = #nonce_limiter_update_response{ session_found = false },
-					Bin = ar_serialize:nonce_limiter_update_response_to_binary(Response),
+					Bin = big_serialize:nonce_limiter_update_response_to_binary(Response),
 					{ok, cowboy_req:reply(202, #{}, Bin, Req), State};
 				false ->
 					ets:insert(computed_output, {Seed, StepNumber, StepNumber}),
@@ -965,15 +965,15 @@ apply_external_update(SessionKey, ExistingSteps, StepNumber, IsPartial, PrevSess
 		is_partial = IsPartial,
 		session = Session
 	},
-	ar_nonce_limiter:apply_external_update(Update, Peer).
+	big_nonce_limiter:apply_external_update(Update, Peer).
 
 get_current_session_key() ->
-	{CurrentSessionKey, _} = ar_nonce_limiter:get_current_session(),
+	{CurrentSessionKey, _} = big_nonce_limiter:get_current_session(),
 	CurrentSessionKey.
 
 mock_add_task() ->
 	{
-		ar_mining_worker, add_task, 
+		big_mining_worker, add_task, 
 		fun(Worker, TaskType, Candidate) -> 
 			ets:insert(add_task, {Worker, TaskType, Candidate#mining_candidate.step_number})
 		end

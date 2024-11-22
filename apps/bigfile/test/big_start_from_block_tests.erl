@@ -1,6 +1,6 @@
--module(ar_start_from_block_tests).
+-module(big_start_from_block_tests).
 
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/big_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 
@@ -10,50 +10,50 @@ start_from_block_test_() ->
 	].
 
 test_start_from_block() ->
-    [B0] = ar_weave:init([], 0), %% Set difficulty to 0 to speed up tests
-	ar_test_node:start(B0),
-    ar_test_node:start_peer(peer1, B0),
-    ar_test_node:start_peer(peer2, B0),
-    ar_test_node:connect_to_peer(peer1),
-    ar_test_node:connect_to_peer(peer2),
+    [B0] = big_weave:init([], 0), %% Set difficulty to 0 to speed up tests
+	big_test_node:start(B0),
+    big_test_node:start_peer(peer1, B0),
+    big_test_node:start_peer(peer2, B0),
+    big_test_node:connect_to_peer(peer1),
+    big_test_node:connect_to_peer(peer2),
    
     %% Mine a few blocks, shared by both peers
-    ar_test_node:mine(peer1),
-    ar_test_node:wait_until_height(peer1, 1),
-    ar_test_node:wait_until_height(peer2, 1),
-    ar_test_node:mine(peer2),
-    ar_test_node:wait_until_height(peer1, 2),
-    ar_test_node:wait_until_height(peer2, 2),
-    ar_test_node:mine(peer1),
-    ar_test_node:wait_until_height(peer1, 3),
-    ar_test_node:wait_until_height(peer2, 3),
+    big_test_node:mine(peer1),
+    big_test_node:wait_until_height(peer1, 1),
+    big_test_node:wait_until_height(peer2, 1),
+    big_test_node:mine(peer2),
+    big_test_node:wait_until_height(peer1, 2),
+    big_test_node:wait_until_height(peer2, 2),
+    big_test_node:mine(peer1),
+    big_test_node:wait_until_height(peer1, 3),
+    big_test_node:wait_until_height(peer2, 3),
 
     %% Disconnect peers, and have peer1 mine 1 block, and peer2 mine 3
-    ar_test_node:disconnect_from(peer1),
-    ar_test_node:disconnect_from(peer2),
+    big_test_node:disconnect_from(peer1),
+    big_test_node:disconnect_from(peer2),
 
-    ar_test_node:mine(peer1),
-    ar_test_node:wait_until_height(peer1, 4),
+    big_test_node:mine(peer1),
+    big_test_node:wait_until_height(peer1, 4),
 
-    ar_test_node:mine(peer2),
-    ar_test_node:wait_until_height(peer2, 4),
-    ar_test_node:mine(peer2),
-    ar_test_node:wait_until_height(peer2, 5),
-    ar_test_node:mine(peer2),
-    ar_test_node:wait_until_height(peer2, 6),
+    big_test_node:mine(peer2),
+    big_test_node:wait_until_height(peer2, 4),
+    big_test_node:mine(peer2),
+    big_test_node:wait_until_height(peer2, 5),
+    big_test_node:mine(peer2),
+    big_test_node:wait_until_height(peer2, 6),
 
     %% Reconnect the peers. This will orphan peer1's block
-    ar_test_node:connect_to_peer(peer1),
-    ar_test_node:connect_to_peer(peer2),
+    big_test_node:connect_to_peer(peer1),
+    big_test_node:connect_to_peer(peer2),
 
-    ar_test_node:wait_until_height(peer1, 6),
-    ar_test_node:wait_until_height(peer2, 6),
-    ar_test_node:wait_until_height(6),
+    big_test_node:wait_until_height(peer1, 6),
+    big_test_node:wait_until_height(peer2, 6),
+    big_test_node:wait_until_height(6),
 
-    ar_test_node:disconnect_from(peer1),
-    ar_test_node:disconnect_from(peer2),
+    big_test_node:disconnect_from(peer1),
+    big_test_node:disconnect_from(peer2),
 
-    MainBI = ar_node:get_blocks(),
+    MainBI = big_node:get_blocks(),
 
     StartFrom = get_block_hash(4, MainBI),
     StartMinus1 = get_block_hash(3, MainBI),
@@ -73,32 +73,32 @@ test_start_from_block() ->
     assert_start_from(main, peer1, 3),
 
     %% Restart peer2 off of peer1
-    ar_test_node:start_peer(peer2, B0),
-    ar_test_node:remote_call(peer2, ar_test_node, connect_to_peer, [peer1]),
-    ar_test_node:wait_until_height(peer2, 3),
+    big_test_node:start_peer(peer2, B0),
+    big_test_node:remote_call(peer2, big_test_node, connect_to_peer, [peer1]),
+    big_test_node:wait_until_height(peer2, 3),
 
     assert_start_from(main, peer1, 3),
     assert_start_from(main, peer2, 3),
 
     %% disconnect peer2 and mine a block on peer1
-    ar_test_node:remote_call(peer2, ar_test_node, disonnect_from, [peer1]),
-    ar_test_node:mine(peer1),
-    ar_test_node:wait_until_height(peer1, 4),
+    big_test_node:remote_call(peer2, big_test_node, disonnect_from, [peer1]),
+    big_test_node:mine(peer1),
+    big_test_node:wait_until_height(peer1, 4),
 
     %% Confirm legacy block index still matches
     assert_start_from(main, peer1, 3),
 
     %% Restart peer2 off of peer1
-    ar_test_node:start_peer(peer2, B0),
-    ar_test_node:remote_call(peer2, ar_test_node, connect_to_peer, [peer1]),
-    ar_test_node:wait_until_height(peer2, 4),
+    big_test_node:start_peer(peer2, B0),
+    big_test_node:remote_call(peer2, big_test_node, connect_to_peer, [peer1]),
+    big_test_node:wait_until_height(peer2, 4),
 
     assert_start_from(peer1, peer2, 4),
 
     %% Mine a block on peer2
-    ar_test_node:mine(peer2),
-    ar_test_node:wait_until_height(peer2, 5),
-    ar_test_node:wait_until_height(peer1, 5),
+    big_test_node:mine(peer2),
+    big_test_node:wait_until_height(peer2, 5),
+    big_test_node:wait_until_height(peer1, 5),
 
     assert_start_from(peer2, peer1, 5),
 
@@ -110,11 +110,11 @@ test_start_from_block() ->
 
 
 restart_from_block(Peer, BH) ->
-    {ok, Config} = ar_test_node:get_config(Peer),
-    ok = ar_test_node:set_config(Peer, Config#config{
+    {ok, Config} = big_test_node:get_config(Peer),
+    ok = big_test_node:set_config(Peer, Config#config{
         start_from_latest_state = false,
         start_from_block = BH }),
-    ar_test_node:restart(Peer).
+    big_test_node:restart(Peer).
 
 assert_start_from(ExpectedPeer, Peer, Height) ->
     ?LOG_ERROR([{event, assert_start_from}, {expected_peer, ExpectedPeer}, {peer, Peer}, {height, Height}]),
@@ -135,7 +135,7 @@ assert_block_index(Peer, Height, ExpectedBI) ->
 
 assert_reward_history(ExpectedPeer, Peer, H) ->
     RewardHistory = get_reward_history(Peer, H),
-    {B, _} = ar_test_node:remote_call(ExpectedPeer, ar_block_cache, get_block_and_status, [block_cache, H]),
+    {B, _} = big_test_node:remote_call(ExpectedPeer, big_block_cache, get_block_and_status, [block_cache, H]),
     ExpectedRewardHistory = B#block.reward_history,
 
     ?assertEqual(ExpectedRewardHistory, RewardHistory).
@@ -145,18 +145,18 @@ get_block_hash(Height, BI) ->
     H.
 
 get_block_index(Peer) ->
-    ar_test_node:remote_call(Peer, ar_node, get_blocks, []).
+    big_test_node:remote_call(Peer, big_node, get_blocks, []).
 
 get_reward_history(Peer, H) ->
-    PeerIP = ar_test_node:peer_ip(Peer),
-    case ar_http:req(#{
+    PeerIP = big_test_node:peer_ip(Peer),
+    case big_http:req(#{
         peer => PeerIP,
         method => get,
-        path => "/reward_history/" ++ binary_to_list(ar_util:encode(H)),
+        path => "/reward_history/" ++ binary_to_list(big_util:encode(H)),
         timeout => 30000
     }) of
         {ok, {{<<"200">>, _}, _, Body, _, _}} ->
-            case ar_serialize:binary_to_reward_history(Body) of
+            case big_serialize:binary_to_reward_history(Body) of
                 {ok, RewardHistory} ->
                     RewardHistory;
                 {error, Error} ->
