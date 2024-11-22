@@ -5,7 +5,7 @@
 
 -include_lib("bigfile/include/big.hrl").
 -include_lib("bigfile/include/big_config.hrl").
--include_lib("bigfie/include/big_peers.hrl").
+-include_lib("bigfile/include/big_peers.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
