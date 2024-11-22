@@ -212,7 +212,7 @@ get_balance(MaybeRSAPub) when byte_size(MaybeRSAPub) == 512 ->
 	%% A legacy feature where we may search the public key instead of address.
 	big_wallets:get_balance(big_wallet:to_rsa_address(MaybeRSAPub));
 get_balance(Addr) ->
-	_wallets:get_balance(Addr).
+	big_wallets:get_balance(Addr).
 
 %% @doc Get the last tx id associated with a given wallet address.
 %% Should the wallet not have made a tx the empty binary will be returned.
