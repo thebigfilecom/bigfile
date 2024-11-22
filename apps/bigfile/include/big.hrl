@@ -91,8 +91,8 @@
 %% The total supply of tokens in the Genesis block.
 -define(GENESIS_TOKENS, 55000000).
 
-%% Winstons per AR.
--define(WINSTON_PER_AR, 1000000000000).
+%% Winstons per BIG.
+-define(WINSTON_PER_BIG, 1000000000000).
 
 %% The number of bytes in a gibibyte.
 -define(MiB, (1024 * 1024)).
@@ -602,7 +602,7 @@
 	%% ?RESET_KRYDER_PLUS_LATCH_THRESHOLD (redenominated according to the denomination
 	%% used at the time).
 	kryder_plus_rate_multiplier_latch = 0,
-	%% The code for the denomination of AR in base units.
+	%% The code for the denomination of BIG in base units.
 	%% 1 is the default which corresponds to the original denomination of 1^12 base units.
 	%% Every time the available supply falls below ?REDENOMINATION_THRESHOLD,
 	%% the denomination is multiplied by 1000, the code is incremented.
@@ -710,7 +710,7 @@
 	%% The fee in Winstons.
 	reward = 0,
 
-	%% The code for the denomination of AR in base units.
+	%% The code for the denomination of BIG in base units.
 	%%
 	%% 1 corresponds to the original denomination of 1^12 base units.
 	%% Every time the available supply falls below ?REDENOMINATION_THRESHOLD,
@@ -734,8 +734,8 @@
 	signature_type = ?DEFAULT_KEY_TYPE
 }).
 
-%% A macro to convert AR into Winstons.
--define(AR(AR), (?WINSTON_PER_AR * AR)).
+%% A macro to convert BIG into Winstons.
+-define(BIG(BIG), (?WINSTON_PER_BIG * BIG)).
 
 %% A macro to return whether a term is a block record.
 -define(IS_BLOCK(X), (is_record(X, block))).
