@@ -1,7 +1,7 @@
 -ifndef(BIG_P3_HRL).
 -define(BIG_P3_HRL, true).
 
--include_lib("ar.hrl").
+-include_lib("big.hrl").
 
 -define(P3_RATE_TYPES, [
 		<<"request">>
