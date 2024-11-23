@@ -59,7 +59,7 @@ for more information on running your own VDF server.
 
   **Notes:** 
   1. This process has only been tested on a fresh install of MacOS Ventura running on a Mac Mini M2. It may or may not work on other configurations.
-  2. We have not validated mining or packing on MacOS, but as of May, 2024 the M2 provides the fastest known VDF implementation and so makes a good candidate for [VDF Servers](https://docs.arweave.org/developers/mining/vdf).
+  2. We have not validated mining or packing on MacOS, but as of May, 2024 the M2 provides the fastest known VDF implementation and so makes a good candidate for [VDF Servers](https://docs.arweave.org/developers/mining/vdf)..
 
 </details>
 </br>
