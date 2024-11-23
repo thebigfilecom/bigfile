@@ -28,7 +28,7 @@ let
       # Set up a trap to call the cleanup function when the script is terminated
       trap cleanup INT TERM
       ${command} ${peers} ${vdf-peers} ${vdf-server-peers} &
-      ARWEAVE_ERL_PID=$! # capture PID of the background process
+      BIGFILE_ERL_PID=$! # capture PID of the background process
       i=0
       until [[ "$(${pkgs.procps}/bin/ps -C beam &> /dev/null)" -eq 0 || "$i" -ge "200" ]]
       do
@@ -40,7 +40,7 @@ let
         exit 0
       fi
       echo "beam process started..."
-      wait $ARWEAVE_ERL_PID || true
+      wait $BIGFILE_ERL_PID || true
       counter=0
       until [[ "$(ps -C beam &> /dev/null)" -ne 0 ]] || [[ $counter -ge 30 ]]
       do
