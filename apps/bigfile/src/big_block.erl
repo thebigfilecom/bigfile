@@ -286,13 +286,9 @@ validate_proof_size(PoA) ->
 
 %% @doc Compute the block identifier (also referred to as "independent hash").
 indep_hash(B) ->
-	case B#block.height >= big_fork:height_2_6() of
-		true ->
-			H = big_block:generate_signed_hash(B),
-			indep_hash2(H, B#block.signature);
-		false ->
-			BDS = big_block:generate_block_data_segment(B),
-			indep_hash(BDS, B)
+    %% Her blok için doğrudan signed hash hesapla
+    H = big_block:generate_signed_hash(B),
+    H.
 	end.
 
 %% @doc Compute the hash signed by the block producer.
