@@ -2,7 +2,7 @@
 [{<<"accept">>,{pkg,<<"accept">>,<<"0.3.5">>},2},
  {<<"b64fast">>,
   {git,"https://github.com/thebigfilecom/b64fast.git",
-       {ref,"58f0502e49bf73b29d95c6d02460d1fb8d2a5273"}},
+       {ref,"2d99ff5b19c56bf8d3b1a4ea10bc0e2268bf2517"}},
   0},
  {<<"cowboy">>,{pkg,<<"cowboy">>,<<"2.10.0">>},0},
  {<<"cowlib">>,{pkg,<<"cowlib">>,<<"2.12.1">>},1},
