@@ -460,9 +460,9 @@ validate_block(difficulty, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap}) ->
 	end;
 
 validate_block(usd_to_big_rate, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap}) ->
-	{USDToARRate, ScheduledUSDToARRate} = big_pricing:recalculate_usd_to_big_rate(OldB),
-	case NewB#block.usd_to_big_rate == USDToARRate
-			andalso NewB#block.scheduled_usd_to_big_rate == ScheduledUSDToARRate of
+	{USDToBIGRate, ScheduledUSDToBIGRate} = big_pricing:recalculate_usd_to_big_rate(OldB),
+	case NewB#block.usd_to_big_rate == USDToBIGRate
+			andalso NewB#block.scheduled_usd_to_big_rate == ScheduledUSDToBIGRate of
 		false ->
 			{invalid, invalid_usd_to_big_rate};
 		true ->

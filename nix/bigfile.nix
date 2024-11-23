@@ -464,13 +464,13 @@ let
       cp -r ./config $out
       ln -s ${meck}/lib/erlang/lib/meck-${meck.version} $out/test/rel/bigfile/lib/
 
-      ARWEAVE_LIB_PATH=$(basename $(echo $out/test/rel/bigfile/lib/bigfile-*))
+      BIGFILE_LIB_PATH=$(basename $(echo $out/test/rel/bigfile/lib/bigfile-*))
       JIFFY_LIB_PATH=$(basename $(echo $out/test/rel/bigfile/lib/jiffy-*))
 
       rm -f $out/test/rel/bigfile/lib/bigfile-*
       rm -f $out/test/rel/bigfile/lib/jiffy-*
 
-      ln -s $out/test/lib/bigfile $out/test/rel/bigfile/lib/$ARWEAVE_LIB_PATH
+      ln -s $out/test/lib/bigfile $out/test/rel/bigfile/lib/$BIGFILE_LIB_PATH
       ln -s $out/test/lib/jiffy $out/test/rel/bigfile/lib/$JIFFY_LIB_PATH
     '';
   };

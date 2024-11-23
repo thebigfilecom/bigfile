@@ -4,11 +4,11 @@
 
 -export([body/2, read_body_chunk/3, body_read_time/1]).
 
--define(AR_HTTP_REQ_BODY, '_big_http_req_body').
--define(AR_HTTP_REQ_BODY_READ_TIME, '_big_http_req_body_read_time').
+-define(BIG_HTTP_REQ_BODY, '_big_http_req_body').
+-define(BIG_HTTP_REQ_BODY_READ_TIME, '_big_http_req_body_read_time').
 
 body(Req, SizeLimit) ->
-	case maps:get(?AR_HTTP_REQ_BODY, Req, not_set) of
+	case maps:get(?BIG_HTTP_REQ_BODY, Req, not_set) of
 		not_set ->
 			Opts = #{
 				acc => [],
@@ -22,7 +22,7 @@ body(Req, SizeLimit) ->
 
 %% @doc The elapsed time (in native units) to read the request body via `read_complete_body()`
 body_read_time(Req) ->
-	maps:get(?AR_HTTP_REQ_BODY_READ_TIME, Req, undefined).
+	maps:get(?BIG_HTTP_REQ_BODY_READ_TIME, Req, undefined).
 
 read_body_chunk(Req, Size, Timeout) ->
 	case cowboy_req:read_body(Req, #{ length => Size, period => Timeout }) of
@@ -58,5 +58,5 @@ read_complete_body(ok, #{ acc := Acc, start_time := StartTime }, Req) ->
 
 with_body_req_fields(Req, Body, BodyReadTime) ->
 	Req#{
-		?AR_HTTP_REQ_BODY => Body,
-		?AR_HTTP_REQ_BODY_READ_TIME => BodyReadTime }.
+		?BIG_HTTP_REQ_BODY => Body,
+		?BIG_HTTP_REQ_BODY_READ_TIME => BodyReadTime }.

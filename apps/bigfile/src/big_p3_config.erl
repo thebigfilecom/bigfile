@@ -208,7 +208,7 @@ parse_rates(BadToken, _RatesConfig) ->
 %% {
 %%   "payment_methods": {
 %%     "bigfile": {
-%%       "AR": {
+%%       "BIG": {
 %%         "address": "89tR0-C1m3_sCWCoVCChg4gFYKdiH5_ZDyZpdJ2DDRw",
 %%         "minimum_balance": -1000,
 %% 	       "confirmations": 2
@@ -222,7 +222,7 @@ parse_rates(BadToken, _RatesConfig) ->
 %%       "rates": {
 %%         "description": "Price per request",
 %%         "bigfile": {
-%%           "AR" {
+%%           "BIG" {
 %%             "price": 1000,
 %%             "address": "89tR0-C1m3_sCWCoVCChg4gFYKdiH5_ZDyZpdJ2DDRw"
 %%           }

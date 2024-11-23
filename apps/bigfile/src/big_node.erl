@@ -172,7 +172,7 @@ is_joined() ->
 			false
 	end.
 
-%% @doc Get the currently estimated USD to AR exchange rate.
+%% @doc Get the currently estimated USD to BIG exchange rate.
 get_current_usd_to_big_rate() ->
 	[{_, Rate}] = ets:lookup(node_state, usd_to_big_rate),
 	Rate.
