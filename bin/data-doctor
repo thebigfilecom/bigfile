@@ -7,5 +7,5 @@ SCRIPT_DIR="$(dirname "$0")"
 # Sets $BIGFILE and $BIGFILE_* variables
 source $SCRIPT_DIR/bigfile.env
 
-$BIGFILE foreground $BIGFILE_OPTS -run ar_data_doctor main ${@:1}
+$BIGFILE foreground $BIGFILE_OPTS -run big_data_doctor main ${@:1}
 

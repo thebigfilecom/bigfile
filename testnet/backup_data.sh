@@ -24,7 +24,7 @@ set -x
 mkdir -p $BACKUP_DIR
 cp -rf /bigfile-data/data_sync_state $BACKUP_DIR
 cp -rf /bigfile-data/header_sync_state $BACKUP_DIR
-cp -rf /bigfile-data/ar_tx_blacklist $BACKUP_DIR
+cp -rf /bigfile-data/big_tx_blacklist $BACKUP_DIR
 cp -rf /bigfile-data/disk_cache $BACKUP_DIR
 cp -rf /bigfile-data/rocksdb $BACKUP_DIR
 cp -rf /bigfile-data/txs $BACKUP_DIR

@@ -263,10 +263,10 @@ end).
 -define(NEW_WEAVE_USD_TO_BIG_RATE, ?INITIAL_USD_TO_BIG_PRE_FORK_2_5).
 
 %% Initial $/AR exchange rate. Used until the fork 2.4.
--define(INITIAL_USD_PER_AR(Height), fun() ->
+-define(INITIAL_USD_PER_BIG(Height), fun() ->
 	Forks = {
-		ar_fork:height_1_9(),
-		ar_fork:height_2_2()
+		big_fork:height_1_9(),
+		big_fork:height_2_2()
 	},
 	case Forks of
 		{Fork_1_9, _Fork_2_2} when Height < Fork_1_9 ->

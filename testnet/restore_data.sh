@@ -23,7 +23,7 @@ fi
 DIRECTORIES=(
 	"data_sync_state"
 	"header_sync_state"
-    "ar_tx_blacklist"
+    "big_tx_blacklist"
     "disk_cache"
     "rocksdb"
     "txs"

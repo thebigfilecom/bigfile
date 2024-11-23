@@ -43,7 +43,7 @@
 -define(FORK_1_6, 0).
 -else.
 %%% FORK INDEX
-%%% @deprecated Fork heights from 1.7 on are defined in the ar_fork module.
+%%% @deprecated Fork heights from 1.7 on are defined in the big_fork module.
 -define(FORK_1_6, 95000).
 -endif.
 
@@ -666,11 +666,11 @@
 
 	%% Used internally, not gossiped. Convenient for validating potentially non-unique
 	%% merkle proofs assigned to the different signatures of the same solution
-	%% (see validate_poa_against_cached_poa in ar_block_pre_validator.erl).
+	%% (see validate_poa_against_cached_poa in big_block_pre_validator.erl).
 	poa_cache,
 	%% Used internally, not gossiped. Convenient for validating potentially non-unique
 	%% merkle proofs assigned to the different signatures of the same solution
-	%% (see validate_poa_against_cached_poa in ar_block_pre_validator.erl).
+	%% (see validate_poa_against_cached_poa in big_block_pre_validator.erl).
 	poa2_cache,
 
 	%% Used internally, not gossiped.
