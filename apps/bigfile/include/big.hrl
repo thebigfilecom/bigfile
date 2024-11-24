@@ -519,11 +519,11 @@
 	size_tagged_txs = unset,
 	%% The first proof of access.
 	poa = #poa{},
-	%% The estimated USD to AR conversion rate used in the pricing calculations.
+	%% The estimated USD to BIG conversion rate used in the pricing calculations.
 	%% A tuple {Dividend, Divisor}.
 	%% Used until the transition to the new fee calculation method is complete.
 	usd_to_big_rate,
-	%% The estimated USD to AR conversion rate scheduled to be used a bit later, used to
+	%% The estimated USD to BIG conversion rate scheduled to be used a bit later, used to
 	%% compute the necessary fee for the currently signed txs. A tuple {Dividend, Divisor}.
 	%% Used until the transition to the new fee calculation method is complete.
 	scheduled_usd_to_big_rate,
