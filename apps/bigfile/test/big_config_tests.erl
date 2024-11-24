@@ -15,7 +15,7 @@ validate_test_() ->
 	].
 
 test_parse_config() ->
-	ExpectedMiningAddr = big_util:decode(<<"SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ">>),
+	ExpectedMiningAddr = big_util:decode(<<"YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ">>),
 	{ok, ParsedConfig} = big_config:parse(config_fixture()),
 	ExpectedBlockHash = big_util:decode(
 			<<"">>),

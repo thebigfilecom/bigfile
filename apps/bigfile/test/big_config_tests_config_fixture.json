@@ -10,16 +10,16 @@
   "log_dir": "/root/bigfile/log_dir/",
   "storage_modules": [
     "0,unpacked",
-    "2,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ",
-    "2,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ.1",
-    "2,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ.32",
+    "2,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ",
+    "2,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ.1",
+    "2,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ.32",
     "100,unpacked",
-    "1,unpacked,repack_in_place,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ",
-    "1,unpacked,repack_in_place,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ.2",
+    "1,unpacked,repack_in_place,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ",
+    "1,unpacked,repack_in_place,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ.2",
     "0,1,unpacked",
-    "14,1000000000000,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ",
-    "1,1,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ,repack_in_place,unpacked",
-    "1,1,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ.1,repack_in_place,unpacked"
+    "14,1000000000000,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ",
+    "1,1,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ,repack_in_place,unpacked",
+    "1,1,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ.1,repack_in_place,unpacked"
   ],
   "repack_batch_size": 200,
   "polling": 10,
@@ -27,7 +27,7 @@
   "no_auto_join": true,
   "join_workers": 9,
   "diff": 42,
-  "mining_addr": "SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ",
+  "mining_addr": "YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ",
   "hashing_threads": 8,
   "data_cache_size_limit": 10000,
   "packing_cache_size_limit": 20000,
@@ -99,10 +99,10 @@
   "defragmentation_trigger_threshold": 1000,
   "defragment_modules": [
     "0,unpacked",
-    "2,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ",
+    "2,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ",
     "100,unpacked",
     "0,1,unpacked",
-    "14,1000000000000,SFYqoMqaDJbcnFb3UmLO1GBU3cuA0UOqp90I0AMoStQ"
+    "14,1000000000000,YBRctWP-nZ_Kk9QeVnKNB6Y8nor_TJG-5paVs_dLpmQ"
   ],
   "block_throttle_by_ip_interval": 5000,
   "block_throttle_by_solution_interval": 12000
