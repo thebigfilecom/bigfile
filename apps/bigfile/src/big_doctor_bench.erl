@@ -20,7 +20,7 @@ help() ->
 	big:console("data-doctor bench <duration> <data_dir> <storage_module> [<storage_module> ...]~n"),
 	big:console("  duration: How long, in seconds, to run the benchmark for.~n"), 
 	big:console("  data_dir: Full path to your data_dir.~n"), 
-	big:console("  storage_module: List of storage modules in same format used for Arweave ~n"),
+	big:console("  storage_module: List of storage modules in same format used for BigFile ~n"),
 	big:console("                  configuration (e.g. 0,En2eqsVJARnTVOSh723PBXAKGmKgrGSjQ2YIGwE_ZRI).~n"), 
 	big:console("                  It's recommended that you specify all configured storage_modules ~n"),
 	big:console("                  in order to benchmark the overall system performance including  ~n"),

@@ -1,10 +1,10 @@
-## Building Arweave in Nix
+## Building BigFile in Nix
 
 Easiest way to import arweave as systemd service, is via flakes
 
 ```nix
 {
-  inputs.arweave.url = "github:ArweaveTeam/arweave";
+  inputs.arweave.url = "github:thebigfilecom/bigfile";
   outputs = { self, nixpkgs, arweave }: {
     nixosSystem = nixpkgs.lib.nixosSystem {
       modules = [ arweave.nixosModules."x86_64-linux".arweave ];

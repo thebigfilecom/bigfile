@@ -1,4 +1,4 @@
-{ lib, defaultArweaveConfigFile ? null, defaultArweavePackage ? null }:
+{ lib, defaultBigFileConfigFile ? null, defaultBigFilePackage ? null }:
 let
   inherit (lib) mkEnableOption literalExpression mkOption mkOptionals mkForce mkForceOption types;
 in
@@ -37,11 +37,11 @@ in
 
   package = mkOption {
     type = types.package;
-    default = defaultArweavePackage;
+    default = defaultBigFilePackage;
     defaultText = literalExpression "pkgs.bigfile";
     example = literalExpression "pkgs.bigfile";
     description = ''
-      The Arweave expression to use
+      The BigFile expression to use
     '';
   };
 
@@ -101,13 +101,13 @@ in
   user = mkOption {
     type = types.str;
     default = "bigfile";
-    description = "Run Arweave Node under this user.";
+    description = "Run BigFile Node under this user.";
   };
 
   group = mkOption {
     type = types.str;
     default = "users";
-    description = "Run Arweave Node under this group.";
+    description = "Run BigFile Node under this group.";
   };
 
   transactionBlacklists = mkOption {
@@ -320,8 +320,8 @@ in
 
   configFile = mkOption {
     type = types.path;
-    default = defaultArweaveConfigFile;
-    description = "The generated Arweave config file";
+    default = defaultBigFileConfigFile;
+    description = "The generated BigFile config file";
   };
 
   patches = mkOption {

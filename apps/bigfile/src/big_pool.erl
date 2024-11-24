@@ -2,7 +2,7 @@
 %%%
 %%% The key actors are a pool client, a pool proxy, and a pool server. The pool client may be
 %%% a standalone mining node or an exit peer in a coordinated mining setup. The other CM peers
-%%% communicate with the pool via the exit peer. The proxy is NOT an Arweave node.
+%%% communicate with the pool via the exit peer. The proxy is NOT an BigFile node.
 %%%
 %%% Communication Scheme
 %%%

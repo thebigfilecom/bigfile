@@ -13,7 +13,7 @@ let
   inherit (pkgs) stdenv lib beamPackages fetchFromGitHub fetchHex fetchurl;
 
   randomx = fetchFromGitHub {
-    owner = "ArweaveTeam";
+    owner = "BigFileTeam";
     repo = "RandomX";
     rev = "913873c13a2dffb7c4188c39b4eb188f912f523e";
     sha256 = "sha256-obxX/b5o/RY46kCtHOhWMFX29jT5y8oigzVLwZRFHgQ=";
@@ -49,7 +49,7 @@ let
     buildInputs = [ pkgs.getconf ];
     configurePhase = "true";
     src = fetchFromGitHub {
-      owner = "ArweaveTeam";
+      owner = "BigFileTeam";
       repo = name;
       rev = version;
       sha256 = "sha256-hSqQsLEg1d/WdvwZxYlFbTS8wXdAfkDVddVJT+69nz8=";
@@ -119,7 +119,7 @@ let
     hardeningDisable = [ "all" ];
 
     src = fetchFromGitHub {
-      owner = "ArweaveTeam";
+      owner = "BigFileTeam";
       repo = name;
       rev = "82792758e61be7d303a11290f859a7b3b20eaf95";
       sha256 = "R7kbdMh5wOIN/aA7KFrICjlFAym3OJs9sYWrfdU06GM=";
@@ -369,7 +369,7 @@ let
 
   bigfileVersion = "2.7.4";
 
-  mkArweaveApp = { installPhase, profile, releaseType }:
+  mkBigFileApp = { installPhase, profile, releaseType }:
     beamPackages.rebar3Relx {
       inherit profile releaseType;
       pname = "bigfile-${profile}";
@@ -456,7 +456,7 @@ let
       '';
     };
 
-  bigfileTestProfile = mkArweaveApp {
+  bigfileTestProfile = mkBigFileApp {
     profile = "test";
     releaseType = "release";
     installPhase = ''
@@ -474,7 +474,7 @@ let
       ln -s $out/test/lib/jiffy $out/test/rel/bigfile/lib/$JIFFY_LIB_PATH
     '';
   };
-  bigfileProdProfile = mkArweaveApp {
+  bigfileProdProfile = mkBigFileApp {
     profile = "prod";
     releaseType = "release";
     installPhase = ''

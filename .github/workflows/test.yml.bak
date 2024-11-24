@@ -1,4 +1,4 @@
-name: "Arweave Tests"
+name: "BigFile Tests"
 on:
   workflow_dispatch:
   push:

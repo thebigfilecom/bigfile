@@ -1,5 +1,5 @@
 %%%
-%%% @doc Arweave server entrypoint and basic utilities.
+%%% @doc BigFile server entrypoint and basic utilities.
 %%%
 -module(big).
 
@@ -661,7 +661,7 @@ parse_cli_args([Arg | _Rest], _O) ->
 	io:format("~nUnknown argument: ~s.~n", [Arg]),
 	show_help().
 
-%% @doc Start an Arweave node on this BEAM.
+%% @doc Start an BigFile node on this BEAM.
 start() ->
 	start(?DEFAULT_HTTP_IFACE_PORT).
 start(Port) when is_integer(Port) ->
@@ -752,7 +752,7 @@ start(normal, _Args) ->
 	%% Start other apps which we depend on.
 	set_mining_address(Config),
 	big_chunk_storage:run_defragmentation(),
-	%% Start Arweave.
+	%% Start BigFile.
 	big_sup:start_link().
 
 set_mining_address(#config{ mining_addr = not_set } = C) ->

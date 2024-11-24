@@ -219,10 +219,10 @@ get_trusted_peers() ->
 	{ok, Config} = application:get_env(bigfile, config),
 	case Config#config.peers of
 		[] ->
-			ArweavePeers = [
+			BigFilePeers = [
 				"127.0.0.1:1984"
 			],
-			resolve_peers(ArweavePeers);
+			resolve_peers(BigFilePeers);
 		Peers ->
 			Peers
 	end.

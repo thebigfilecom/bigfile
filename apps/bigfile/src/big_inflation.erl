@@ -1,5 +1,5 @@
 %%% @doc Module responsible for managing and testing the inflation schedule of 
-%%% the Arweave main network.
+%%% the BigFile main network.
 -module(big_inflation).
 
 -export([calculate/1, blocks_per_year/1]).

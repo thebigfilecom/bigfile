@@ -7,7 +7,7 @@
 
 %% 2.5 exports.
 -export([get_tx_fee/4, get_miner_reward_and_endowment_pool/1,
-		usd_to_big_rate/1, usd_to_ar/3, recalculate_usd_to_big_rate/1,
+		usd_to_big_rate/1, usd_to_big/3, recalculate_usd_to_big_rate/1,
 		get_storage_cost/4, get_expected_min_decline_rate/6]).
 
 %% For tests.
@@ -415,7 +415,7 @@ get_total_supply(Denomination) ->
 get_storage_cost(DataSize, Timestamp, Rate, Height) ->
 	Size = ?TX_SIZE_BASE + DataSize,
 	PerpetualGBStorageCost =
-		usd_to_ar(
+		usd_to_big(
 			get_perpetual_gb_cost_at_timestamp(Timestamp, Height),
 			Rate,
 			Height
@@ -439,7 +439,7 @@ get_miner_reward_and_endowment_pool(Args) ->
 	{PoolFeeShare, MinerFeeShare} = distribute_transaction_fees(TXs, Height),
 	BaseReward = Inflation + MinerFeeShare,
 	StorageCostPerGBPerBlock =
-		usd_to_ar(
+		usd_to_big(
 			get_gb_cost_per_block_at_timestamp(Timestamp, Height),
 			Rate,
 			Height
@@ -467,9 +467,9 @@ usd_to_big_rate(#block{ height = PrevHeight } = PrevB) ->
 	end.
 
 %% @doc Return the amount of BIG the given number of USD is worth.
-usd_to_ar(USD, Rate, Height) when is_number(USD) ->
-	usd_to_ar({USD, 1}, Rate, Height);
-usd_to_ar({Dividend, Divisor}, Rate, Height) ->
+usd_to_big(USD, Rate, Height) when is_number(USD) ->
+	usd_to_big({USD, 1}, Rate, Height);
+usd_to_big({Dividend, Divisor}, Rate, Height) ->
 	InitialInflation = trunc(big_inflation:calculate(?INITIAL_USD_TO_BIG_HEIGHT(Height)())),
 	CurrentInflation = trunc(big_inflation:calculate(Height)),
 	{InitialRateDividend, InitialRateDivisor} = Rate,
@@ -507,9 +507,9 @@ recalculate_usd_to_big_rate(#block{ height = PrevHeight } = B) ->
 get_expected_min_decline_rate(Timestamp, Period, Amount, Size, Rate, Height) ->
 	{USDDiv1, USDDivisor1} = get_gb_cost_per_year_at_timestamp(Timestamp, Height),
 	%% Multiply by 2 to account for hashing costs.
-	Sum1 = 2 * usd_to_ar({USDDiv1, USDDivisor1}, Rate, Height),
+	Sum1 = 2 * usd_to_big({USDDiv1, USDDivisor1}, Rate, Height),
 	{USDDiv2, USDDivisor2} = get_gb_cost_per_year_at_timestamp(Timestamp + Period, Height),
-	Sum2 = 2 * usd_to_ar({USDDiv2, USDDivisor2}, Rate, Height),
+	Sum2 = 2 * usd_to_big({USDDiv2, USDDivisor2}, Rate, Height),
 	%% Sum1 / -logRate - Sum2 / -logRate = Amount
 	%% => -logRate = (Sum1 - Sum2) / Amount
 	%% => 1 / Rate = exp((Sum1 - Sum2) / Amount)

@@ -55,8 +55,8 @@ in
 
   options.services.bigfile = import ./options.nix {
     inherit lib;
-    defaultArweaveConfigFile = generatedConfigFile;
-    defaultArweavePackage = bigfilePkg;
+    defaultBigFileConfigFile = generatedConfigFile;
+    defaultBigFilePackage = bigfilePkg;
   };
 
   config = lib.mkIf cfg.enable {
