@@ -24,10 +24,10 @@
 
 %% The current release number of the arweave client software.
 %% @deprecated Not used apart from being included in the /info response.
--define(CLIENT_VERSION, 5).
+-define(CLIENT_VERSION, 1).
 
 %% The current build number -- incremented for every release.
--define(RELEASE_NUMBER, 74).
+-define(RELEASE_NUMBER, 1).
 
 -define(DEFAULT_REQUEST_HEADERS,
 	[
