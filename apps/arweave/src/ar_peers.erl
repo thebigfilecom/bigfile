@@ -202,7 +202,7 @@ get_peer_performances(Peers) ->
 		#{},
 		Peers).
 
--if(?NETWORK_NAME == "arweave.N.1").
+-if(?NETWORK_NAME == "BigFile.V.1").
 resolve_peers([]) ->
 	[];
 resolve_peers([RawPeer | Peers]) ->
@@ -220,11 +220,7 @@ get_trusted_peers() ->
 	case Config#config.peers of
 		[] ->
 			ArweavePeers = [
-				"sfo-1.na-west-1.arweave.xyz",
-				"ams-1.eu-central-1.arweave.xyz",
-				"fra-1.eu-central-2.arweave.xyz",
-				"blr-1.ap-central-1.arweave.xyz",
-				"sgp-1.ap-central-2.arweave.xyz"
+				"127.0.0.1:1984"
 			],
 			resolve_peers(ArweavePeers);
 		Peers ->
