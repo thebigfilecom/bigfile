@@ -3,7 +3,6 @@
     "port": 1984,
     "mine": true,
     "peers": [],
-    "block_gossip_peers": [],
     "local_peers": [],
     "sync_from_local_peers_only": false,
     "data_dir": "./data_dir",
@@ -25,17 +24,17 @@
     "data_cache_size_limit": null,
     "tx_validators": null,
     "post_tx_timeout": 20,
-    "max_propagators": 16,
+    "max_emitters": 16,
     "tx_propagation_parallelization": null,
     "sync_jobs": 100,
     "header_sync_jobs": 1,
     "disk_pool_jobs": 20,
-    "upload_key": null,
+    "load_key": null,
     "disk_space": null,
     "disk_space_check_frequency": 30000,
     "storage_modules": [
       {
-        "size": 3600000000000,
+        "size": 250000000000,
         "offset": 0,
         "type": "spora_2_6",
         "address": "Omu7lCpu-qK5T0ckpMSYKXZ-_SeQFaQ3Ba8_29OWtoI"
@@ -77,7 +76,7 @@
       "post_tx": 20
     },
     "disk_cache_size": 5120,
-    "packing_ratio": null,
+    "packing_rate": null,
     "max_nonce_limiter_validation_thread_count": 2,
     "max_nonce_limiter_last_step_validation_thread_count": 3,
     "nonce_limiter_server_trusted_peers": [],
