@@ -5,7 +5,6 @@
     "peers": [],
     "data_dir": "/root/bigfile/data_dir",
     "log_dir": "/root/bigfile/logs_dir",
-    "metrics_dir": "/root/bigfile/metrics_dir",
     "polling": 2,
     "block_pollers": 10,
     "auto_join": true,
