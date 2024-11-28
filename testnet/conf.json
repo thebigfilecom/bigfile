@@ -30,8 +30,6 @@
     "requests_per_minute_limit_by_ip": {},
     "max_propagation_peers": 16,
     "max_block_propagation_peers": 1000,
-    "ipfs_pin": false,
-    "webhooks": [],
     "max_connections": 1024,
     "max_gateway_connections": 128,
     "max_poa_option_depth": 500,
