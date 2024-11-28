@@ -7,7 +7,6 @@
     "log_dir": "/root/bigfile/logs_dir",
     "polling": 2,
     "block_pollers": 10,
-    "auto_join": true,
     "join_workers": 10,
     "diff": 6,
     "mining_addr": "Omu7lCpu-qK5T0ckpMSYKXZ-_SeQFaQ3Ba8_29OWtoI",
