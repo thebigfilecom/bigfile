@@ -219,9 +219,7 @@ get_trusted_peers() ->
 	{ok, Config} = application:get_env(arweave, config),
 	case Config#config.peers of
 		[] ->
-			ArweavePeers = [
-				"127.0.0.1:1984"
-			],
+			ArweavePeers = [],
 			resolve_peers(ArweavePeers);
 		Peers ->
 			Peers
