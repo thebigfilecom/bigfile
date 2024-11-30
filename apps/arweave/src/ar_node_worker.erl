@@ -1652,18 +1652,27 @@ priority(_) ->
 	{os:system_time(second), 1}.
 
 read_hash_list_2_0_for_1_0_blocks() ->
-	Fork_2_0 = ar_fork:height_2_0(),
-	case Fork_2_0 > 0 of
-		true ->
-			File = filename:join(["data", "hash_list_1_0"]),
-			{ok, Binary} = file:read_file(File),
-			HL = lists:map(fun ar_util:decode/1, jiffy:decode(Binary)),
-			Fork_2_0 = length(HL),
-			HL;
-		false ->
-			[]
-	end.
-
+		Fork_2_0 = ar_fork:height_2_0(),
+		case Fork_2_0 > 0 of
+			true ->
+				File = filename:join(["data", "hash_list_1_0"]),
+				case file:read_file(File) of
+					{ok, Binary} ->
+						case jiffy:decode(Binary) of
+							Decoded when is_list(Decoded) ->
+								lists:map(fun ar_util:decode/1, Decoded);
+							_ ->
+								io:format("Invalid format in hash list file.~n"),
+								[]
+						end;
+					{error, Reason} ->
+						io:format("Failed to read hash list file: ~p~n", [Reason]),
+						[]
+				end;
+			false ->
+				[]
+		end.
+	
 start_from_state([#block{} = GenesisB]) ->
 	RewardHistory = GenesisB#block.reward_history,
 	BlockTimeHistory = GenesisB#block.block_time_history,
