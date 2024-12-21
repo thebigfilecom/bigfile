@@ -1,0 +1,23 @@
+{
+    "storage_modules": [
+        "0,322122547200,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
+    ],
+    "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
+    "peers": [], 
+    "debug": true,
+    "mine": true,
+    "enable": [
+        "remove_orphaned_storage_module_data",
+        "randomx_large_pages",
+        "pack_served_chunks"
+    ],
+    "data_dir": "/arweave-data",
+    "requests_per_minute_limit": 9000,
+    "mining_cache_size_mb": 3200,
+    "port": 1984,
+    "init": true,
+    "start_from_block_index": false,
+    "start_from_latest_state": false 
+}
+
+
