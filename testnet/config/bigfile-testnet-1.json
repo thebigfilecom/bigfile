@@ -15,7 +15,8 @@
     "requests_per_minute_limit": 9000,
     "mining_cache_size_mb": 3200,
     "port": 1984,
-    "init": true 
+    "init": true,
+    "start_from_block_index": true 
 }
 
 
