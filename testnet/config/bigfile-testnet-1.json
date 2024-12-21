@@ -16,7 +16,8 @@
     "mining_cache_size_mb": 3200,
     "port": 1984,
     "init": true,
-    "start_from_block_index": true 
+    "start_from_block_index": false,
+    "start_from_latest_state": false 
 }
 
 
