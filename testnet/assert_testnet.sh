@@ -3,7 +3,7 @@
 ARWEAVE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 ALL_NODES+=(
-testnet-1
+bigfile-testnet-1
 )
 
 # Get the current hostname
