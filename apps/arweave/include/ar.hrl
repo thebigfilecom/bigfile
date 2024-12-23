@@ -70,11 +70,11 @@
 -define(DEFAULT_DIFF, 6).
 
 -ifndef(TARGET_BLOCK_TIME).
--define(TARGET_BLOCK_TIME, 120).
+-define(TARGET_BLOCK_TIME, 60).
 -endif.
 
 -ifndef(RETARGET_BLOCKS).
--define(RETARGET_BLOCKS, 10).
+-define(RETARGET_BLOCKS, 5).
 -endif.
 
 %% We only do retarget if the time it took to mine ?RETARGET_BLOCKS is more than
@@ -360,7 +360,7 @@
 -ifdef(DEBUG).
 -define(INITIAL_VDF_DIFFICULTY, 2).
 -else.
--define(INITIAL_VDF_DIFFICULTY, 600_000).
+-define(INITIAL_VDF_DIFFICULTY, 300_000).
 -endif.
 
 %% @doc A chunk with the proofs of its presence in the weave at a particular offset.
