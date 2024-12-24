@@ -18,7 +18,7 @@ A JSON array containing the network information for the current node.
 
 ```javascript
 {
-  "network": "BigFile.V.1",
+  "network": "bigfilev1",
   "version": "3",
   "height": "2956",
   "blocks": "3495",
