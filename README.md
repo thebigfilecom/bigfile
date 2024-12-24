@@ -68,8 +68,8 @@ for more information on running your own VDF server.
 **Download the repo:**
 
 ```sh
-$ git clone --recursive https://github.com/ArweaveTeam/arweave.git
-$ cd arweave
+$ git clone --recursive https://github.com/thebigfilecom/bigfile.git
+$ cd bigfile
 ```
 
 Increase the [open file
@@ -160,7 +160,7 @@ Make sure to have the build requirements installed.
 Clone the repo and initialize the Git submodules:
 
 ```sh
-$ git clone --recursive https://github.com/ArweaveTeam/arweave.git
+$ git clone --recursive https://github.com/thebigfilecom/bigfile.git
 ```
 
 ## Running the tests
@@ -198,10 +198,10 @@ You can find documentation regarding our HTTP interface [here](http_iface_docs.m
 
 If you have questions or comments about Arweave you can get in touch by
 finding us on [Twitter](https://twitter.com/ArweaveTeam/), [Reddit](https://www.reddit.com/r/arweave), [Discord](https://discord.gg/DjAFMJc) or by
-emailing us at team@arweave.org.
+emailing us at team@thebigfile.com.
 
 
-For more information about the Arweave project visit [https://www.arweave.org](https://www.arweave.org/)
+For more information about the Arweave project visit [https://thebigfile.com](https://thebigfile.com/)
 or have a look at our [yellow paper](https://yellow-paper.arweave.dev).
 
 # License

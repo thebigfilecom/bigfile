@@ -1,0 +1,6 @@
+{
+    "webhooks": [],
+    "semaphores": {
+      "post_tx": 100
+    }
+  }
