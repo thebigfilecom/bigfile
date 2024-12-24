@@ -1,0 +1,20 @@
+{
+    "network_name": "BigFile.V.1",
+    "start_from_block_index": true,
+    "mine": true,
+    "port": 1984,
+    "data_dir": "/root/bigfile/data_dir",
+    "metrics_dir": "/root/bigfile/metrics",
+    "mining": {
+      "enabled": true,
+      "threads": 8
+    },
+    "peers": [],
+    "block_polling": {
+      "enabled": true,
+      "polling_interval": 10
+    },
+    "storage": {
+      "storage_module": "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
+    }
+  }
