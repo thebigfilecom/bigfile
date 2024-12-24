@@ -888,7 +888,7 @@ validate_init(Config) ->
 	case Config#config.init of
 		true ->
 			case ?NETWORK_NAME of
-				"bigfilev1" ->
+				"bigfile" ->
 					io:format("~nCannot start a new network with the mainnet name! "
 							"Use ./bin/start-localnet ... when running from sources "
 							"or compile via ./rebar3 as localnet tar and use "

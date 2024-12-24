@@ -362,7 +362,7 @@ add_block(B, State) ->
 		false ->
 			{ok, State};
 		true ->
-			case B#block.height == 0 andalso ?NETWORK_NAME == "bigfilev1" of
+			case B#block.height == 0 andalso ?NETWORK_NAME == "bigfile" of
 				true ->
 					ok;
 				false ->
