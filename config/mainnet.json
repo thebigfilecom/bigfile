@@ -1,33 +1,6 @@
 {
     "webhooks": [],
     "semaphores": {
-      "post_tx": 100,
-      "get_chunk": 100,
-      "get_and_pack_chunk": 100,
-      "get_tx_data": 100,
-      "post_chunk": 100,
-      "get_block_index": 100,
-      "get_wallet_list": 100,
-      "get_sync_record": 100
-    },
-    "mining": {
-      "hashing_threads": 8,
-      "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
-    },
-    "storage": {
-      "storage_modules": [
-        "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
-      ]
-    },
-    "peers": [
-      "http://thebigfile.info:1984"
-    ],
-    "sync": {
-      "max_connections": 1024,
-      "sync_jobs": 100,
-      "header_sync_jobs": 1
-    },
-    "mining_pool": {
-      "enabled": false
+      "post_tx": 100
     }
   }
