@@ -10,16 +10,16 @@
 %% The mainnet name. Does not change at the hard forks.
 -ifndef(NETWORK_NAME).
 	-ifdef(DEBUG).
-		-define(NETWORK_NAME, "BigFile.V1").
+		-define(NETWORK_NAME, "BigFileV1").
 	-else.
-		-define(NETWORK_NAME, "BigFile.V1").
+		-define(NETWORK_NAME, "BigFileV1").
 	-endif.
 -endif.
 
 %% When a request is received without specifing the X-Network header, this network name
 %% is assumed.
 -ifndef(DEFAULT_NETWORK_NAME).
-	-define(DEFAULT_NETWORK_NAME, "BigFile.V1").
+	-define(DEFAULT_NETWORK_NAME, "BigFileV1").
 -endif.
 
 %% The current release number of the arweave client software.
