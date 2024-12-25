@@ -202,7 +202,7 @@ get_peer_performances(Peers) ->
 		#{},
 		Peers).
 
--if(?NETWORK_NAME == "BigFileV1").
+-if(?NETWORK_NAME == "BigFile.V1").
 resolve_peers([]) ->
 	[];
 resolve_peers([RawPeer | Peers]) ->
