@@ -10,16 +10,16 @@
 %% The mainnet name. Does not change at the hard forks.
 -ifndef(NETWORK_NAME).
 	-ifdef(DEBUG).
-		-define(NETWORK_NAME, "bigfile.localtest").
+		-define(NETWORK_NAME, "BigFileV1").
 	-else.
-		-define(NETWORK_NAME, "BigFile.V.1").
+		-define(NETWORK_NAME, "BigFileV1").
 	-endif.
 -endif.
 
 %% When a request is received without specifing the X-Network header, this network name
 %% is assumed.
 -ifndef(DEFAULT_NETWORK_NAME).
-	-define(DEFAULT_NETWORK_NAME, "BigFile.V.1").
+	-define(DEFAULT_NETWORK_NAME, "BigFileV1").
 -endif.
 
 %% The current release number of the arweave client software.
@@ -70,11 +70,11 @@
 -define(DEFAULT_DIFF, 6).
 
 -ifndef(TARGET_BLOCK_TIME).
--define(TARGET_BLOCK_TIME, 60).
+-define(TARGET_BLOCK_TIME, 120).
 -endif.
 
 -ifndef(RETARGET_BLOCKS).
--define(RETARGET_BLOCKS, 5).
+-define(RETARGET_BLOCKS, 10).
 -endif.
 
 %% We only do retarget if the time it took to mine ?RETARGET_BLOCKS is more than
@@ -360,7 +360,7 @@
 -ifdef(DEBUG).
 -define(INITIAL_VDF_DIFFICULTY, 2).
 -else.
--define(INITIAL_VDF_DIFFICULTY, 300_000).
+-define(INITIAL_VDF_DIFFICULTY, 600_000).
 -endif.
 
 %% @doc A chunk with the proofs of its presence in the weave at a particular offset.
