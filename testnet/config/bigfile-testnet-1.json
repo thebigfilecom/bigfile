@@ -6,66 +6,101 @@
     "block_gossip_peers": [],
     "local_peers": [],
     "sync_from_local_peers_only": false,
-    "data_dir": "/arweave-data",
-    "log_dir": "/arweave-data/logs",
-    "metrics_dir": "/arweave-data/metrics",
+    
+    "data_dir": "/data_dir",
+    "log_dir": "/data_dir/logs",
+    
     "polling": 2,
     "block_pollers": 10,
     "auto_join": false,
     "join_workers": 10,
-    "diff": 4,
-    "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
-    "max_miners": 6,
-    "io_threads": 10,
-    "stage_one_hashing_threads": 5,
-    "stage_two_hashing_threads": 7,
-    "hashing_threads": 9,
-    "mining_server_chunk_cache_size_limit": 2000,
-    "packing_cache_size_limit": 2000,
-    "data_cache_size_limit": 2000,
-    "disk_pool_jobs": 20,
-    "disk_space": 10737418240,
-    "disk_space_check_frequency": 30000,
-    "storage_modules": [
-        {
-            "id": "default",
-            "start_height": 0,
-            "provider": "spora_2_6",
-            "validator": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
-        }
-    ],
-    "start_from_block_index": true,
-    "internal_api_secret": "testnet",
-    "enable": [
-        "peer_discovery",
-        "sync_jobs",
-        "tx_propagation"
-    ],
-    "disable": [],
-    "max_connections": 2048,
-    "max_gateway_connections": 512,
-    "disk_pool_data_root_expiration_time": 3600,
-    "max_disk_pool_buffer_mb": 8,
-    "max_disk_pool_data_root_buffer_mb": 20000,
-    "randomx_bulk_hashing_iterations": 8,
-    "genesis_difficulty": 4,
-    "semaphores": {
-        "arql": 20,
-        "gateway_arql": "infinity",
-        "get_and_pack_chunk": 2,
-        "get_block_index": 2,
-        "get_chunk": 200,
-        "get_sync_record": 20,
-        "get_tx_data": 2,
-        "get_wallet_list": 2,
-        "post_chunk": 200,
-        "post_tx": 40
+    
+    "mining": {
+        "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
+        "max_miners": 8,
+        "io_threads": 8,
+        "stage_one_hashing_threads": 6,
+        "stage_two_hashing_threads": 8,
+        "hashing_threads": 8,
+        "gpu_mine_target": true,
+        "cuda_gpu_enabled": true
     },
-    "disk_cache_size": 10240,
-    "debug": true,
-    "repair_rocksdb": [],
-    "run_defragmentation": false,
-    "defragmentation_trigger_threshold": 1500000000,
-    "block_throttle_by_ip_interval": 1000,
-    "block_throttle_by_solution_interval": 2000
+    
+    "storage": {
+        "mining_server_chunk_cache_size_limit": 4000,
+        "packing_cache_size_limit": 4000,
+        "data_cache_size_limit": 4000,
+        "disk_pool_jobs": 40,
+        "disk_space": 21474836480,
+        "disk_space_check_frequency": 30000,
+        "storage_modules": [
+            {
+                "id": "default",
+                "start_height": 0,
+                "provider": "spora_2_6",
+                "validator": "YOUR_WALLET_ADDRESS"
+            }
+        ]
+    },
+    
+    "network": {
+        "enable": [
+            "peer_discovery",
+            "sync_jobs",
+            "tx_propagation"
+        ],
+        "disable": [],
+        "max_connections": 4096,
+        "max_gateway_connections": 1024,
+        "genesis_difficulty": 8
+    },
+    
+    "mempool": {
+        "disk_pool_data_root_expiration_time": 7200,
+        "max_disk_pool_buffer_mb": 16,
+        "max_disk_pool_data_root_buffer_mb": 40000,
+        "randomx_bulk_hashing_iterations": 16
+    },
+    
+    "semaphores": {
+        "arql": 40,
+        "gateway_arql": "infinity",
+        "get_and_pack_chunk": 4,
+        "get_block_index": 4,
+        "get_chunk": 400,
+        "get_sync_record": 40,
+        "get_tx_data": 4,
+        "get_wallet_list": 4,
+        "post_chunk": 400,
+        "post_tx": 80
+    },
+    
+    "performance": {
+        "disk_cache_size": 20480,
+        "block_throttle": {
+            "by_ip_interval": 1000,
+            "by_solution_interval": 2000
+        }
+    },
+    
+    "gateway": {
+        "enabled": true,
+        "port": 3000,
+        "cache": {
+            "enabled": true,
+            "ttl": 3600,
+            "max_size": 10000
+        }
+    },
+    
+    "logging": {
+        "debug": true,
+        "level": "info",
+        "console": true,
+        "file": true,
+        "rotation": {
+            "max_size": "1GB",
+            "max_files": 10
+        }
+    }
 }
