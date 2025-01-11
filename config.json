@@ -1,9 +1,9 @@
 {
-    "data_dir": "/root/bigfile/data_dir/",
+    "data_dir": "/root/bigfile/data_dir",
+    "log_dir": "/root/bigfile/log",
     "peers": [],
     "port": 1984,
-    "mine": true,
-    "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
+    "mine": false,
     "max_connections": 25000,
     "sync_jobs": 100,
     "header_sync_jobs": 1,
@@ -18,12 +18,6 @@
     ],
     "start_from_latest_state": false,
     "no_auto_join": true,
-    "storage_modules": [
-        "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM.1"
-    ],
-    "hashing_threads": 8,
-    "mining_cache_size_mb": 1000,
     "init": true,
-    "internal_api_secret": "test123_bigfile_secret_16chars",
-    "disk_space_check_frequency": 30
+    "internal_api_secret": "test123_bigfile_secret_16chars"
 }
