@@ -14,7 +14,8 @@
     "debug": true,
     "enable": [
         "randomx_jit",
-        "randomx_hardware_aes"
+        "randomx_hardware_aes",
+        "randomx_bulk_hashing"
     ],
     "start_from_latest_state": false,
     "no_auto_join": true,
@@ -22,5 +23,11 @@
     "mining_cache_size_mb": 2048,
     "init": true,
     "internal_api_secret": "test123_bigfile_secret_16chars",
-    "disk_space_check_frequency": 30
+    "disk_space_check_frequency": 30,
+    "randomx": {
+        "bulk_hashing_iterations": 128,
+        "jit": true,
+        "large_pages": false,
+        "hardware_aes": true
+    }
 }
