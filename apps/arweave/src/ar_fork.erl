@@ -57,7 +57,7 @@ height_2_2() ->
 	0.
 -else.
 height_2_2() ->
-	552180. % Targeting 2020-10-21 13:00 UTC
+	0. % Targeting 2020-10-21 13:00 UTC
 -endif.
 
 -ifdef(FORKS_RESET).
