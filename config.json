@@ -25,10 +25,8 @@
     "mining_cache_size_mb": 1000,
     "init": true,
     "internal_api_secret": "test123_bigfile_secret_16chars",
-    "enable_wallet_list": true,
     "transaction_blacklist_url": false,
     "transaction_blacklist_files": [],
     "transaction_whitelist_files": [],
-    "disk_space": 10000000000,
     "disk_space_check_frequency": 30
 }
