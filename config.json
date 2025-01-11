@@ -24,7 +24,7 @@
     "hashing_threads": 8,
     "mining_cache_size_mb": 1000,
     "init": true,
-    "internal_api_secret": "test123",
+    "internal_api_secret": "test123_bigfile_secret_16chars",
     "enable_wallet_list": true,
     "transaction_blacklist_url": false,
     "transaction_blacklist_files": [],
