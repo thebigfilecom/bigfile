@@ -17,11 +17,12 @@
         "randomx_hardware_aes",
         "randomx_bulk_hashing"
     ],
-    "start_from_latest_state": false,
+    "start_from_block_index": true,
     "no_auto_join": true,
     "hashing_threads": 8,
     "mining_cache_size_mb": 2048,
     "init": true,
+    "disable_nonce_limiter": true,
     "internal_api_secret": "test123_bigfile_secret_16chars",
     "disk_space_check_frequency": 30,
     "semaphores": {
