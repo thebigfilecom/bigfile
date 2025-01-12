@@ -24,11 +24,14 @@
     "init": true,
     "internal_api_secret": "test123_bigfile_secret_16chars",
     "disk_space_check_frequency": 30,
-    "network_name": "bigfilev1",
-    "nonce_limiter_max_parallelization": 100,
-    "nonce_limiter_max_checkpoints": 1000,
-    "nonce_limiter_reset_interval": 600000,
-    "block_time": 120,
-    "block_time_history_length": 100,
-    "reward_history_length": 100
+    "semaphores": {
+        "get_chunk": 100,
+        "get_and_pack_chunk": 100,
+        "get_tx_data": 100,
+        "post_chunk": 100,
+        "post_tx": 100,
+        "get_block_index": 100,
+        "get_wallet_list": 100,
+        "get_sync_record": 100
+    }
 }
