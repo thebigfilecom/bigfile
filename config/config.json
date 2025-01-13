@@ -14,11 +14,7 @@
     "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
     "hashing_threads": 8,
     "storage_modules": [
-        {
-            "height": 3600000000000,
-            "reward_history_length": 0,
-            "spora_2_6": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
-        }
+        "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
     ],
     "max_disk_pool_buffer_mb": 1,
     "semaphores": {
