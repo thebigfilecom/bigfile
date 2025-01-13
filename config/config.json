@@ -12,7 +12,6 @@
     "join_workers": 10,
     "diff": 6,
     "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
-    "max_miners": 0,
     "io_threads": 10,
     "stage_one_hashing_threads": 5,
     "stage_two_hashing_threads": 7,
