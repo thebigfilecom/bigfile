@@ -6,10 +6,11 @@
     "block_gossip_peers": [],
     "local_peers": [],
     "data_dir": "/root/bigfile/data_dir",
-    "log_dir": "/root/bigfile/data_dir/logs",
+    "log_dir": "logs",
+    "metrics_dir": "metrics",
     "polling": 2,
     "block_pollers": 10,
-    "auto_join": true,
+    // "auto_join": true,  // Bu satırı kaldırıyoruz
     "join_workers": 10,
     "diff": 6,
     "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
