@@ -1,5 +1,5 @@
 {
-    "init": false,
+    "init": true,
     "port": 1984,
     "mine": true,
     "peers": [],
@@ -19,7 +19,7 @@
     "io_threads": 10,
     "stage_one_hashing_threads": 5,
     "stage_two_hashing_threads": 7,
-    "hashing_threads": 9,
+    "hashing_threads": 8,
     "mining_server_chunk_cache_size_limit": null,
     "packing_cache_size_limit": null,
     "data_cache_size_limit": null,
