@@ -5,7 +5,6 @@
     "peers": [],
     "block_gossip_peers": [],
     "local_peers": [],
-    "sync_from_local_peers_only": false,
     "data_dir": "/root/bigfile/data_dir",
     "log_dir": "logs",
     "metrics_dir": "metrics",
