@@ -25,8 +25,8 @@
  {<<"quantile_estimator">>,{pkg,<<"quantile_estimator">>,<<"0.2.1">>},1},
  {<<"ranch">>,{pkg,<<"ranch">>,<<"1.8.0">>},1},
  {<<"rocksdb">>,
-  {git,"https://github.com/ArweaveTeam/erlang-rocksdb.git",
-       {ref,"f580865c0bc18b0302a6190d7fa85e68ec0762e0"}},
+  {git,"https://github.com/thebigfilecom/erlang-rocksdb.git",
+       {ref,"999028ddee9dc0aab4d1a9b0dec6cb37fd54b84d"}},
   0}]}.
 [
 {pkg_hash,[
