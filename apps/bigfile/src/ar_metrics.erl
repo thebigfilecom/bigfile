@@ -1,6 +1,6 @@
 -module(ar_metrics).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 -export([register/0, get_status_class/1]).
 

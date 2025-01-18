@@ -4,7 +4,7 @@
 
 -export([calculate/1, blocks_per_year/1]).
 
--include_lib("arweave/include/ar_inflation.hrl").
+-include_lib("bigfile/include/ar_inflation.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 

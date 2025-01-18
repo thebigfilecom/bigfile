@@ -1,6 +1,6 @@
 -module(ar_mempool_tests).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 

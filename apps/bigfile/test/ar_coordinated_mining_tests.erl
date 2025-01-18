@@ -1,9 +1,9 @@
 -module(ar_coordinated_mining_tests).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_mining.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_mining.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -import(ar_test_node, [http_get_block/2]).

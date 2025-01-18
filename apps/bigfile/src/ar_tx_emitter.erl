@@ -6,8 +6,8 @@
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 
 %% Remove identifiers of recently emitted transactions from the cache after this long.
 -define(CLEANUP_RECENTLY_EMITTED_TIMEOUT, 60 * 60 * 1000).

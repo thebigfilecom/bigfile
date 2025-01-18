@@ -1,7 +1,7 @@
 -ifndef(AR_INFLATION_HRL).
 -define(AR_INFLATION_HRL, true).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 %% An approximation of the natural logarithm of 2,
 %% expressed as a decimal fraction, with the precision of math:log.

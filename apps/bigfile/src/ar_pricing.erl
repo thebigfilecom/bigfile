@@ -13,10 +13,10 @@
 %% For tests.
 -export([get_v2_price_per_gib_minute/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_inflation.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_inflation.hrl").
+-include_lib("bigfile/include/ar_pricing.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 

@@ -1,6 +1,6 @@
 -module(ar_mempool).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 -export([reset/0, load_from_disk/0, add_tx/2, drop_txs/1, drop_txs/3,
 		get_map/0, get_all_txids/0, take_chunk/2, get_tx/1, has_tx/1, 

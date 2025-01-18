@@ -7,8 +7,8 @@
 		chunk_binary/2, chunks_to_size_tagged_chunks/1, sized_chunks_to_sized_chunk_ids/1,
 		get_addresses/1, get_weave_size_increase/2, utility/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_pricing.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %% Prioritize format=1 transactions with data size bigger than this

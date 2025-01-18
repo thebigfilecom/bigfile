@@ -33,10 +33,10 @@
 		partial_solution_response_to_json_struct/1,
 		pool_cm_jobs_to_json_struct/1, json_map_to_pool_cm_jobs/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_vdf.hrl").
--include_lib("arweave/include/ar_mining.hrl").
--include_lib("arweave/include/ar_pool.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_vdf.hrl").
+-include_lib("bigfile/include/ar_mining.hrl").
+-include_lib("bigfile/include/ar_pool.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 

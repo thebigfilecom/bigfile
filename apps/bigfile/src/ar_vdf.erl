@@ -4,8 +4,8 @@
 		debug_sha_verify_no_reset/6, debug_sha_verify/8, debug_sha2/3,
 		step_number_to_salt_number/1, checkpoint_buffer_to_checkpoints/1]).
 
--include_lib("arweave/include/ar_vdf.hrl").
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar_vdf.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 step_number_to_salt_number(0) ->
 	0;

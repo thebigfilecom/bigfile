@@ -2,9 +2,9 @@
 
 -behaviour(gen_server).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_p3.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_p3.hrl").
 
 -export([
 	get_or_create_account/3, get_account/1, get_transaction/2, get_balance/1, get_balance/2,

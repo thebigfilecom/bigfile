@@ -2,7 +2,7 @@
 
 -export([validate/1]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 %%%===================================================================
 %%% Public interface.

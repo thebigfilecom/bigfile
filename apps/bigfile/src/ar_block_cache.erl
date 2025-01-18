@@ -10,7 +10,7 @@
 		get_by_solution_hash/5, is_known_solution_hash/2,
 		get_siblings/2, get_fork_blocks/2, update_timestamp/3]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %% The expiration time in seconds for every "alternative" block (a block with non-unique

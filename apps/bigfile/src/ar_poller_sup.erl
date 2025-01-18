@@ -6,8 +6,8 @@
 
 -export([init/1]).
 
--include_lib("arweave/include/ar_sup.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_sup.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 
 %%%===================================================================
 %%% Public API.

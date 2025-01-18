@@ -4,8 +4,8 @@
 		locked_rewards_blocks/1, reward_history_blocks/1, target_block_time/1,
 		legacy_reward_history_blocks/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_pricing.hrl").
 
 -ifndef(TESTNET_REWARD_HISTORY_BLOCKS).
 -define(TESTNET_REWARD_HISTORY_BLOCKS, ?REWARD_HISTORY_BLOCKS).

@@ -19,13 +19,13 @@
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 -export([enqueue_intervals/3, remove_expired_disk_pool_data_roots/0]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_poa.hrl").
--include_lib("arweave/include/ar_data_discovery.hrl").
--include_lib("arweave/include/ar_data_sync.hrl").
--include_lib("arweave/include/ar_sync_buckets.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_poa.hrl").
+-include_lib("bigfile/include/ar_data_discovery.hrl").
+-include_lib("bigfile/include/ar_data_sync.hrl").
+-include_lib("bigfile/include/ar_sync_buckets.hrl").
 
 -ifdef(DEBUG).
 -define(COLLECT_SYNC_INTERVALS_FREQUENCY_MS, 5000).

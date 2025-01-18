@@ -2,9 +2,9 @@
 
 -export([fetch/4]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_data_discovery.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_data_discovery.hrl").
 
 %%%===================================================================
 %%% Public interface.

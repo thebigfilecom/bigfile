@@ -9,7 +9,7 @@
 		get_total_reward_for_address/2, get_reward_history_totals/1,
 		apply_rewards/2, apply_reward/4, log_reward_history/3]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 reward_history_length(Height) ->
 	min(

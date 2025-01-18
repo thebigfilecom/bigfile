@@ -7,7 +7,7 @@
 
 -export([verify_tx/1, verify_tx/2, verify_block_txs/1, pick_txs_to_mine/1]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 %% @doc Verify that a transaction against the given mempool, wallet list, recent
 %% weave txs, current block height, current difficulty, and current time.

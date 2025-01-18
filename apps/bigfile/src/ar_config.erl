@@ -4,10 +4,10 @@
 		pull_from_remote_vdf_server/0, compute_own_vdf/0, is_vdf_server/0,
 		is_public_vdf_server/0, parse/1, parse_storage_module/1, log_config/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_p3.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_p3.hrl").
 
 %%%===================================================================
 %%% Public interface.

@@ -8,11 +8,11 @@
 
 -export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_data_sync.hrl").
--include_lib("arweave/include/ar_peers.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_data_sync.hrl").
+-include_lib("bigfile/include/ar_peers.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -define(REBALANCE_FREQUENCY_MS, 10*1000).

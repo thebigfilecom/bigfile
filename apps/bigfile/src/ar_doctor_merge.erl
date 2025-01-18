@@ -2,10 +2,10 @@
 
 -export([main/1, help/0]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_chunk_storage.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_chunk_storage.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
 
 main(Args) ->
 	merge(Args).

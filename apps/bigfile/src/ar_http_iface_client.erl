@@ -21,12 +21,12 @@
 	 post_cm_partition_table_to_pool/2]).
 -export([get_block_shadow/2, get_block_shadow/3, get_block_shadow/4]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_data_sync.hrl").
--include_lib("arweave/include/ar_data_discovery.hrl").
--include_lib("arweave/include/ar_mining.hrl").
--include_lib("arweave/include/ar_wallets.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_data_sync.hrl").
+-include_lib("bigfile/include/ar_data_discovery.hrl").
+-include_lib("bigfile/include/ar_mining.hrl").
+-include_lib("bigfile/include/ar_wallets.hrl").
 
 %% @doc Send a JSON-encoded transaction to the given Peer.
 send_tx_json(Peer, TXID, Bin) ->

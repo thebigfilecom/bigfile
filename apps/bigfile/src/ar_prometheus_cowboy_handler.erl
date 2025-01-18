@@ -7,7 +7,7 @@
 
 -export([init/2, terminate/3]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 %% ===================================================================
 %% cowboy_handler callbacks

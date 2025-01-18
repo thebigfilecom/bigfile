@@ -12,9 +12,9 @@
 		tests/0, tests/1, tests/2, shell/0, stop_shell/0,
 		docs/0, shutdown/1, console/1, console/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -913,10 +913,10 @@ docs() ->
 	Mods =
 		lists:filter(
 			fun(File) -> filename:extension(File) == ".erl" end,
-			element(2, file:list_dir("apps/arweave/src"))
+			element(2, file:list_dir("apps/bigfile/src"))
 		),
 	edoc:files(
-		["apps/arweave/src/" ++ Mod || Mod <- Mods],
+		["apps/bigfile/src/" ++ Mod || Mod <- Mods],
 		[
 			{dir, "source_code_docs"},
 			{hidden, true},

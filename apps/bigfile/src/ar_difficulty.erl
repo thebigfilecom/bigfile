@@ -4,8 +4,8 @@
 			diff_pair/1, poa1_diff_multiplier/1, poa1_diff/2, scale_diff/3,
 			min_difficulty/1, switch_to_randomx_fork_diff/1, sub_diff/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
 
 %%%===================================================================
 %%% Public interface.

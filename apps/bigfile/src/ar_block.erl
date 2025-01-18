@@ -22,11 +22,11 @@
 		get_sub_chunk_size/1, get_nonces_per_chunk/1, get_nonces_per_recall_range/1,
 		get_sub_chunk_index/2]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_block.hrl").
--include_lib("arweave/include/ar_vdf.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_pricing.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_block.hrl").
+-include_lib("bigfile/include/ar_vdf.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %%%===================================================================

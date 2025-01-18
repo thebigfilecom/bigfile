@@ -4,7 +4,7 @@
 
 -export([execute/2]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 execute(Req, Env) ->
 	case cowboy_req:header(<<"x-network">>, Req, <<?DEFAULT_NETWORK_NAME>>) of

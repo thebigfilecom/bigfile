@@ -4,7 +4,7 @@
 	set_history/2, get_hashes/1, sum_history/1, compute_block_interval/1,
 	validate_hashes/2, hash/1, update_history/2]).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 -ifdef(DEBUG).
 	-define(BLOCK_TIME_HISTORY_BLOCKS, 3).

@@ -2,9 +2,9 @@
 
 -behaviour(gen_server).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_p3.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_p3.hrl").
 
 -export([start_link/0, allow_request/1, reverse_charge/1, get_balance/3, get_rates_json/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).

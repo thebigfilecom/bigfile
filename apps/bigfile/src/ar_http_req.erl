@@ -1,6 +1,6 @@
 -module(ar_http_req).
 
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 -export([body/2, read_body_chunk/3, body_read_time/1]).
 

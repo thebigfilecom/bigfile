@@ -1,7 +1,7 @@
 -module(ar_http_util_tests).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("arweave/include/ar.hrl").
+-include_lib("bigfile/include/ar.hrl").
 
 get_tx_content_type_test() ->
 	?assertEqual(

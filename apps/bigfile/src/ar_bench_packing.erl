@@ -2,8 +2,8 @@
 
 -export([run_benchmark_from_cli/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
 -include_lib("kernel/include/file.hrl").
 
 -record(test_config, {

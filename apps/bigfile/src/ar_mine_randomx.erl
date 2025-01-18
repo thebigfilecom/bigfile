@@ -10,9 +10,9 @@
 %% Also, some of these functions are used in ar_mine_randomx_tests.
 -export([jit/0, large_pages/0, hardware_aes/0, init_fast2/5, init_light2/4]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 
 %%%===================================================================
 %%% Public interface.

@@ -2,7 +2,7 @@
 
 -export([run_benchmark/0]).
 
--include_lib("arweave/include/ar_vdf.hrl").
+-include_lib("bigfile/include/ar_vdf.hrl").
 
 run_benchmark() ->
 	Input = crypto:strong_rand_bytes(32),

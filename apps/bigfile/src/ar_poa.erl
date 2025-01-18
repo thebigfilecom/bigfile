@@ -6,10 +6,10 @@
 		 validate_pre_fork_2_5/4, validate/1, validate_paths/4, validate_paths/7,
 		 get_padded_offset/2]).
 
--include_lib("arweave/include/ar_poa.hrl").
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
+-include_lib("bigfile/include/ar_poa.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_pricing.hrl").
 
 %%%===================================================================
 %%% Public interface.

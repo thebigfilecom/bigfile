@@ -2,8 +2,8 @@
 
 -behaviour(supervisor).
 
--include_lib("arweave/include/ar_sup.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_sup.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 
 -export([start_link/0]).
 -export([init/1]).

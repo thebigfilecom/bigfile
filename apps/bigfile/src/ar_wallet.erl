@@ -7,8 +7,8 @@
 		base64_address_with_optional_checksum_to_decoded_address_safe/1, wallet_filepath/1,
 		get_or_create_wallet/1]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 
 -include_lib("public_key/include/public_key.hrl").
 

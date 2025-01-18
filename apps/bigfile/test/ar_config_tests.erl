@@ -1,7 +1,7 @@
 -module(ar_config_tests).
 
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 parse_test_() ->
@@ -136,7 +136,7 @@ test_parse_config() ->
 
 config_fixture() ->
 	{ok, Cwd} = file:get_cwd(),
-	Path = filename:join(Cwd, "./apps/arweave/test/ar_config_tests_config_fixture.json"),
+	Path = filename:join(Cwd, "./apps/bigfile/test/ar_config_tests_config_fixture.json"),
 	{ok, FileData} = file:read_file(Path),
 	FileData.
 

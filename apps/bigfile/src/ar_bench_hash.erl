@@ -2,8 +2,8 @@
 
 -export([run_benchmark_from_cli/1, run_benchmark/1]).
 
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 
 run_benchmark_from_cli(Args) ->
 	RandomX = get_flag_value(Args, "randomx", "512"),
