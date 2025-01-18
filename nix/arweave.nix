@@ -421,15 +421,15 @@ let
       ];
 
       postConfigure = ''
-        rm -rf apps/arweave/lib/RandomX
-        mkdir -p apps/arweave/lib/RandomX
-        cp -rf ${randomx}/* apps/arweave/lib/RandomX
+        rm -rf apps/bigfile/lib/RandomX
+        mkdir -p apps/bigfile/lib/RandomX
+        cp -rf ${randomx}/* apps/bigfile/lib/RandomX
         cp -rf ${jiffy}/lib/erlang/lib/* apps/jiffy
       '';
 
       postPatch = ''
         sed -i -e 's|-arch x86_64|-arch ${pkgs.stdenv.targetPlatform.linuxArch}|g' \
-          apps/arweave/c_src/Makefile
+          apps/bigfile/c_src/Makefile
         sed -i -e 's|{b64fast,.*|{b64fast, "0.2.2"},|g' rebar.config
         sed -i -e 's|{meck, "0.8.13"}||g' rebar.config
       '';
@@ -439,20 +439,20 @@ let
         cp -rf ./bin/* $out/bin
         ${installPhase}
         # broken symlinks fixup
-        rm -f $out/${profile}/rel/arweave/releases/*/{sys.config,vm.args.src}
-        ln -s $out/config/{sys.config,vm.args.src} $out/${profile}/rel/arweave/releases/*/
+        rm -f $out/${profile}/rel/bigfile/releases/*/{sys.config,vm.args.src}
+        ln -s $out/config/{sys.config,vm.args.src} $out/${profile}/rel/bigfile/releases/*/
 
-        rm -f $out/${profile}/lib/arweave/{include,priv,src}
-        ln -s $out/${profile}/rel/arweave/lib/arweave-*/{include,priv,src} $out/${profile}/lib/arweave
+        rm -f $out/${profile}/lib/bigfile/{include,priv,src}
+        ln -s $out/${profile}/rel/bigfile/lib/arweave-*/{include,priv,src} $out/${profile}/lib/arweave
 
         rm -f $out/${profile}/lib/jiffy/{include,priv,src}
-        ln -s $out/${profile}/rel/arweave/lib/jiffy-*/{include,priv,src} $out/${profile}/lib/jiffy
+        ln -s $out/${profile}/rel/bigfile/lib/jiffy-*/{include,priv,src} $out/${profile}/lib/jiffy
 
-        rm -rf $out/${profile}/rel/arweave/lib/jiffy-*/priv
-        cp -rf ${jiffy}/lib/erlang/lib/jiffy-*/priv $out/${profile}/rel/arweave/lib/jiffy-*
+        rm -rf $out/${profile}/rel/bigfile/lib/jiffy-*/priv
+        cp -rf ${jiffy}/lib/erlang/lib/jiffy-*/priv $out/${profile}/rel/bigfile/lib/jiffy-*
 
-        rm -rf $out/${profile}/rel/arweave/lib/arweave-*/priv
-        cp -rf ./apps/arweave/priv $out/${profile}/rel/arweave/lib/arweave-*
+        rm -rf $out/${profile}/rel/bigfile/lib/arweave-*/priv
+        cp -rf ./apps/bigfile/priv $out/${profile}/rel/bigfile/lib/arweave-*
       '';
     };
 
@@ -462,16 +462,16 @@ let
     installPhase = ''
       mkdir -p $out; cp -rf ./_build/test $out
       cp -r ./config $out
-      ln -s ${meck}/lib/erlang/lib/meck-${meck.version} $out/test/rel/arweave/lib/
+      ln -s ${meck}/lib/erlang/lib/meck-${meck.version} $out/test/rel/bigfile/lib/
 
-      ARWEAVE_LIB_PATH=$(basename $(echo $out/test/rel/arweave/lib/arweave-*))
-      JIFFY_LIB_PATH=$(basename $(echo $out/test/rel/arweave/lib/jiffy-*))
+      ARWEAVE_LIB_PATH=$(basename $(echo $out/test/rel/bigfile/lib/arweave-*))
+      JIFFY_LIB_PATH=$(basename $(echo $out/test/rel/bigfile/lib/jiffy-*))
 
-      rm -f $out/test/rel/arweave/lib/arweave-*
-      rm -f $out/test/rel/arweave/lib/jiffy-*
+      rm -f $out/test/rel/bigfile/lib/arweave-*
+      rm -f $out/test/rel/bigfile/lib/jiffy-*
 
-      ln -s $out/test/lib/arweave $out/test/rel/arweave/lib/$ARWEAVE_LIB_PATH
-      ln -s $out/test/lib/jiffy $out/test/rel/arweave/lib/$JIFFY_LIB_PATH
+      ln -s $out/test/lib/bigfile $out/test/rel/bigfile/lib/$ARWEAVE_LIB_PATH
+      ln -s $out/test/lib/jiffy $out/test/rel/bigfile/lib/$JIFFY_LIB_PATH
     '';
   };
   arweaveProdProfile = mkArweaveApp {
@@ -500,7 +500,7 @@ let
       sed -i -e "s|PATH=|PATH=$PATH:$out/erts/bin|g" $out/bin/stop-nix
 
       cp -r ./config $out
-      ln -s $out/prod/rel/arweave/erts* $out/erts
+      ln -s $out/prod/rel/bigfile/erts* $out/erts
     '';
   };
 in

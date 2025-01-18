@@ -121,7 +121,7 @@ jobs:
           export ERL_EPMD_ADDRESS=127.0.0.1
           export TIMESTAMP_IN_MILLISECONDS=$(date +%s%3N)
           export NAMESPACE="${{ matrix.core_test_mod }}_${TIMESTAMP_IN_MILLISECONDS}"
-          export ERL_TEST_OPTS="-pa $(echo $(pwd)/_build/test/lib/*/ebin) $(pwd)/_build/test/lib/arweave/test -config $(pwd)/config/sys.config"
+          export ERL_TEST_OPTS="-pa $(echo $(pwd)/_build/test/lib/*/ebin) $(pwd)/_build/test/lib/bigfile/test -config $(pwd)/config/sys.config"
           RETRYABLE=1
           while [[ $RETRYABLE -eq 1 ]]; do
             RETRYABLE=0
