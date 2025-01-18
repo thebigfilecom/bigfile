@@ -1,9 +1,9 @@
 -module(ar_vdf_tests).
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_vdf.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_vdf.hrl").
+-include_lib("bigfile/include/ar_pricing.hrl").
 
 -define(ENCODED_PREV_OUTPUT, <<"f_z7RLug8etm3SrmRf-xPwXEL0ZQ_xHng2A5emRDQBw">>).
 -define(RESET_SEED, <<"f_z7RLug8etm3SrmRf-xPwXEL0ZQ_xHng2A5emRDQBw">>).

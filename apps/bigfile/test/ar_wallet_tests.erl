@@ -71,4 +71,4 @@ load_keyfile_test_() ->
 
 wallet_fixture_path(KeyTypeEnc) ->
 	{ok, Cwd} = file:get_cwd(),
-	filename:join(Cwd, "./apps/arweave/test/ar_wallet_tests_" ++ binary_to_list(KeyTypeEnc) ++ "_fixture.json").
+	filename:join(Cwd, "./apps/bigfile/test/ar_wallet_tests_" ++ binary_to_list(KeyTypeEnc) ++ "_fixture.json").

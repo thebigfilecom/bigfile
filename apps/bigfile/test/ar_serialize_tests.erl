@@ -1,8 +1,8 @@
 -module(ar_serialize_tests).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_mining.hrl").
--include_lib("arweave/include/ar_pool.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_mining.hrl").
+-include_lib("bigfile/include/ar_pool.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 block_to_binary_test_() ->
@@ -22,8 +22,8 @@ block_to_binary_test_() ->
 
 test_block_to_binary() ->
 	{ok, Cwd} = file:get_cwd(),
-	BlockFixtureDir = filename:join(Cwd, "./apps/arweave/test/fixtures/blocks"),
-	TXFixtureDir = filename:join(Cwd, "./apps/arweave/test/fixtures/txs"),
+	BlockFixtureDir = filename:join(Cwd, "./apps/bigfile/test/fixtures/blocks"),
+	TXFixtureDir = filename:join(Cwd, "./apps/bigfile/test/fixtures/txs"),
 	{ok, BlockFixtures} = file:list_dir(BlockFixtureDir),
 	test_block_to_binary([filename:join(BlockFixtureDir, Name)
 			|| Name <- BlockFixtures], TXFixtureDir).

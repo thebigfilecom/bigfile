@@ -1,7 +1,7 @@
 -module(ar_poller_tests).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 -import(ar_test_node, [assert_wait_until_height/2, read_block_when_stored/1]).

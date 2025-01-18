@@ -4,11 +4,11 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
--include_lib("arweave/include/ar_mining.hrl").
--include_lib("arweave/include/ar_vdf.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar_mining.hrl").
+-include_lib("bigfile/include/ar_vdf.hrl").
 
 -import(ar_test_node, [assert_wait_until_height/2, post_block/2, send_new_block/2]).
 

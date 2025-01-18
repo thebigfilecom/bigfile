@@ -1,7 +1,7 @@
 -module(ar_tx_replay_pool_tests).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_pricing.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_pricing.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 

@@ -33,9 +33,9 @@
 
 		mock_functions/1, test_with_mocked_functions/2, test_with_mocked_functions/3]).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_config.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_config.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 %% May occasionally take quite long on a slow CI server, expecially in tests

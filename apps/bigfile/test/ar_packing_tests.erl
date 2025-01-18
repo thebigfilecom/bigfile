@@ -1,7 +1,7 @@
 -module(ar_packing_tests).
 
--include_lib("arweave/include/ar.hrl").
--include_lib("arweave/include/ar_consensus.hrl").
+-include_lib("bigfile/include/ar.hrl").
+-include_lib("bigfile/include/ar_consensus.hrl").
 
 -include_lib("eunit/include/eunit.hrl").
 

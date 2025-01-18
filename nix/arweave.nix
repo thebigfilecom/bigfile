@@ -421,15 +421,15 @@ let
       ];
 
       postConfigure = ''
-        rm -rf apps/arweave/lib/RandomX
-        mkdir -p apps/arweave/lib/RandomX
-        cp -rf ${randomx}/* apps/arweave/lib/RandomX
+        rm -rf apps/bigfile/lib/RandomX
+        mkdir -p apps/bigfile/lib/RandomX
+        cp -rf ${randomx}/* apps/bigfile/lib/RandomX
         cp -rf ${jiffy}/lib/erlang/lib/* apps/jiffy
       '';
 
       postPatch = ''
         sed -i -e 's|-arch x86_64|-arch ${pkgs.stdenv.targetPlatform.linuxArch}|g' \
-          apps/arweave/c_src/Makefile
+          apps/bigfile/c_src/Makefile
         sed -i -e 's|{b64fast,.*|{b64fast, "0.2.2"},|g' rebar.config
         sed -i -e 's|{meck, "0.8.13"}||g' rebar.config
       '';
