@@ -26,7 +26,7 @@
  {<<"ranch">>,{pkg,<<"ranch">>,<<"1.8.0">>},1},
  {<<"rocksdb">>,
   {git,"https://github.com/thebigfilecom/erlang-rocksdb.git",
-       {ref,"7a216863456ff9a28c8af03c76830a41d9bf14f1"}},
+       {ref,"8faa4bd0c1e821c89408407231dc33313d6f73e9"}},
   0}]}.
 [
 {pkg_hash,[
