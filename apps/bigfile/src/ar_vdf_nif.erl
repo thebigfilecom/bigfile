@@ -15,5 +15,5 @@ vdf_parallel_sha_verify_with_reset_nif(_Salt, _PrevState, _CheckpointCount,
 	erlang:nif_error(nif_not_loaded).
 
 init_nif() ->
-	PrivDir = code:priv_dir(arweave),
+	PrivDir = code:priv_dir(bigfile),
 	ok = erlang:load_nif(filename:join([PrivDir, "vdf_arweave"]), 0).
