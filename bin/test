@@ -8,7 +8,7 @@ cd "$SCRIPT_DIR/.."
 
 export ERL_EPMD_ADDRESS=127.0.0.1
 
-ERL_TEST_OPTS="-pa `./rebar3 as test path` `./rebar3 as test path --base`/lib/arweave/test -config config/sys.config"
+ERL_TEST_OPTS="-pa `./rebar3 as test path` `./rebar3 as test path --base`/lib/bigfile/test -config config/sys.config"
 echo -e "\033[0;32m===> Running tests...\033[0m"
 
 set -x
