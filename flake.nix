@@ -30,7 +30,7 @@
       devShells = {
         # for arweave development, made to work with rebar3 builds (not nix)
         default = with pkgs; mkShellNoCC {
-          name = "arweave-dev";
+          name = "bigfile-dev";
           buildInputs = [
             bashInteractive
             cmake
