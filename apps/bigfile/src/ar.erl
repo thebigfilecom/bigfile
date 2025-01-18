@@ -833,7 +833,7 @@ stop_dependencies() ->
 	lists:foreach(fun(Dep) -> application:stop(Dep) end, Deps).
 
 start_dependencies() ->
-	{ok, Config} = application:get_env(bigfile, config),
+	{ok, Config} = application:get_env(arweave, config),
 	{ok, _} = application:ensure_all_started(bigfile, permanent),
 	ar_config:log_config(Config).
 
