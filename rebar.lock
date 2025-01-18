@@ -8,7 +8,7 @@
  {<<"cowlib">>,{pkg,<<"cowlib">>,<<"2.12.1">>},1},
  {<<"graphql">>,
   {git,"https://github.com/shopgun/graphql-erlang.git",
-       {ref,"4fd356294c2acea42a024366bc5a64661e4862d7"}},
+       {ref,"7a216863456ff9a28c8af03c76830a41d9bf14f1"}},
   0},
  {<<"gun">>,{pkg,<<"gun">>,<<"1.3.3">>},0},
  {<<"jiffy">>,
