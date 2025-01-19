@@ -2005,7 +2005,7 @@ handle_found_solution(Args, PrevB, State) ->
 					next_vdf_difficulty = NextVDFDifficulty,
 					last_step_checkpoints = LastStepCheckpoints2,
 					steps = Steps },
-			{Rate, ScheduledRate} = ar_pricing:recalculate_usd_to_ar_rate(PrevB),
+			{Rate, ScheduledRate} = ar_pricing:recalculate_usd_to_big_rate(PrevB),
 			{PricePerGiBMinute, ScheduledPricePerGiBMinute} =
 					ar_pricing:recalculate_price_per_gib_minute(PrevB),
 			Denomination = PrevB#block.denomination,

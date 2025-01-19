@@ -415,7 +415,7 @@ get_total_supply(Denomination) ->
 get_storage_cost(DataSize, Timestamp, Rate, Height) ->
 	Size = ?TX_SIZE_BASE + DataSize,
 	PerpetualGBStorageCost =
-		usd_to_ar(
+		usd_to_big(
 			get_perpetual_gb_cost_at_timestamp(Timestamp, Height),
 			Rate,
 			Height
@@ -439,7 +439,7 @@ get_miner_reward_and_endowment_pool(Args) ->
 	{PoolFeeShare, MinerFeeShare} = distribute_transaction_fees(TXs, Height),
 	BaseReward = Inflation + MinerFeeShare,
 	StorageCostPerGBPerBlock =
-		usd_to_ar(
+		usd_to_big(
 			get_gb_cost_per_block_at_timestamp(Timestamp, Height),
 			Rate,
 			Height

@@ -238,7 +238,7 @@ end).
 -define(STATIC_2_6_8_FEE_WINSTON, 858_000_000_000).
 
 %% The largest possible multiplier for a one-step increase of the USD to AR Rate.
--define(USD_TO_AR_MAX_ADJUSTMENT_UP_MULTIPLIER, {1005, 1000}).
+-define(USD_TO_BIG_MAX_ADJUSTMENT_UP_MULTIPLIER, {1005, 1000}).
 
 %% The largest possible multiplier for a one-step decrease of the USD to AR Rate.
 -define(USD_TO_BIG_MAX_ADJUSTMENT_DOWN_MULTIPLIER, {995, 1000}).
