@@ -122,7 +122,7 @@ init([]) ->
 		{false, true, _} ->
 			Config2 = Config#config{ init = false },
 			application:set_env(arweave, config, Config2),
-			InitialBalance = ?AR(?LOCALNET_BALANCE),
+			InitialBalance = ?BIG(?LOCALNET_BALANCE),
 			[B0] = ar_weave:init([{Config#config.mining_addr, InitialBalance, <<>>}],
 					ar_retarget:switch_to_linear_diff(Config#config.diff)),
 			RootHash0 = B0#block.wallet_list,
@@ -1509,17 +1509,17 @@ record_economic_metrics2(B, PrevB) ->
 	end,
 	%% 2.5 metrics:
 	prometheus_gauge:set(network_burden, Burden),
-	Burden_10_USD_AR = ar_pricing:get_storage_cost(B#block.weave_size, B#block.timestamp,
+	Burden_10_USD_BIG = ar_pricing:get_storage_cost(B#block.weave_size, B#block.timestamp,
 			{1, 10}, B#block.height),
-	prometheus_gauge:set(network_burden_10_usd_ar, Burden_10_USD_AR),
+	prometheus_gauge:set(network_burden_10_usd_big, Burden_10_USD_BIG),
 	Burden_200_Years = Burden - ar_pricing:get_storage_cost(B#block.weave_size,
-			B#block.timestamp + Period_200_Years, B#block.usd_to_ar_rate, B#block.height),
+			B#block.timestamp + Period_200_Years, B#block.usd_to_big_rate, B#block.height),
 	prometheus_gauge:set(network_burden_200_years, Burden_200_Years),
-	Burden_200_Years_10_USD_AR = Burden_10_USD_AR - ar_pricing:get_storage_cost(
+	Burden_200_Years_10_USD_BIG = Burden_10_USD_BIG - ar_pricing:get_storage_cost(
 			B#block.weave_size, B#block.timestamp + Period_200_Years, {1, 10}, B#block.height),
-	prometheus_gauge:set(network_burden_200_years_10_usd_ar, Burden_200_Years_10_USD_AR),
+	prometheus_gauge:set(network_burden_200_years_10_usd_big, Burden_200_Years_10_USD_BIG),
 	case catch ar_pricing:get_expected_min_decline_rate(B#block.timestamp,
-			Period_200_Years, B#block.reward_pool, B#block.weave_size, B#block.usd_to_ar_rate,
+			Period_200_Years, B#block.reward_pool, B#block.weave_size, B#block.usd_to_big_rate,
 			B#block.height) of
 		{'EXIT', _} ->
 			?LOG_ERROR([{event, failed_to_compute_expected_min_decline_rate}]);
@@ -1534,7 +1534,7 @@ record_economic_metrics2(B, PrevB) ->
 			?LOG_ERROR([{event, failed_to_compute_expected_min_decline_rate2}]);
 		{RateDivisor2, RateDividend2} ->
 			prometheus_gauge:set(
-					expected_minimum_200_years_storage_costs_decline_rate_10_usd_ar,
+					expected_minimum_200_years_storage_costs_decline_rate_10_usd_big,
 					ar_util:safe_divide(RateDivisor2, RateDividend2))
 	end.
 

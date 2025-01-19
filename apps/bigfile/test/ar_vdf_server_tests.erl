@@ -157,7 +157,7 @@ mining_session_test_() ->
 test_vdf_server_push_fast_block() ->
 	VDFPort = ar_test_node:get_unused_port(),
 	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	%% Let peer1 get ahead of main in the VDF chain
 	ar_test_node:start_peer(peer1, B0),
@@ -203,7 +203,7 @@ test_vdf_server_push_fast_block() ->
 
 test_vdf_server_push_slow_block() ->
 	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	{ok, Config} = application:get_env(arweave, config),
 	ar_test_node:start(
@@ -267,7 +267,7 @@ test_vdf_server_push_slow_block() ->
 test_vdf_client_fast_block() ->
 	{ok, Config} = application:get_env(arweave, config),
 	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	PeerAddress = ar_wallet:to_address(ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, [])),
 
@@ -314,7 +314,7 @@ test_vdf_client_fast_block() ->
 test_vdf_client_fast_block_pull_interface() ->
   {ok, Config} = application:get_env(arweave, config),
 	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	PeerAddress = ar_wallet:to_address(ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, [])),
 
@@ -360,7 +360,7 @@ test_vdf_client_fast_block_pull_interface() ->
 test_vdf_client_slow_block() ->
 	{ok, Config} = application:get_env(arweave, config),
 	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	PeerAddress = ar_wallet:to_address(ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, [])),
 
@@ -398,7 +398,7 @@ test_vdf_client_slow_block() ->
 test_vdf_client_slow_block_pull_interface() ->
   {ok, Config} = application:get_env(arweave, config),
 	{_, Pub} = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	PeerAddress = ar_wallet:to_address(ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, [])),
 

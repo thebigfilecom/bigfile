@@ -474,14 +474,14 @@ rejects_blocks_with_invalid_double_signing_proof_test_() ->
 test_reject_block_invalid_double_signing_proof() ->
 	Key0 = ar_wallet:new(),
 	Addr0 = ar_wallet:to_address(Key0),
-	[B0] = ar_weave:init([{Addr0, ?AR(1000), <<>>}], ar_retarget:switch_to_linear_diff(2)),
+	[B0] = ar_weave:init([{Addr0, ?BIG(1000), <<>>}], ar_retarget:switch_to_linear_diff(2)),
 	ar_test_node:start(B0),
 	ar_test_node:start_peer(peer1, B0),
 	ar_test_node:disconnect_from(peer1),
 	{ok, Config} = ar_test_node:remote_call(peer1, application, get_env, [arweave, config]),
 	ok = ar_events:subscribe(block),
 	{Key, _} = FullKey = ar_test_node:remote_call(peer1, ar_wallet, load_key, [Config#config.mining_addr]),
-	TX0 = ar_test_node:sign_tx(Key0, #{ target => ar_wallet:to_address(Key), quantity => ?AR(10) }),
+	TX0 = ar_test_node:sign_tx(Key0, #{ target => ar_wallet:to_address(Key), quantity => ?BIG(10) }),
 	ar_test_node:assert_post_tx_to_peer(peer1, TX0),
 	ar_test_node:assert_post_tx_to_peer(main, TX0),
 	ar_test_node:mine(peer1),
@@ -559,7 +559,7 @@ send_block2_test_() ->
 
 test_send_block2() ->
 	{_, Pub} = Wallet = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(100), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(100), <<>>}]),
 	MainWallet = ar_wallet:new_keyfile(),
 	MainAddress = ar_wallet:to_address(MainWallet),
 	PeerWallet = ar_test_node:remote_call(peer1, ar_wallet, new_keyfile, []),

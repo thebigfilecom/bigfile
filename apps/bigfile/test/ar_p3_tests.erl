@@ -50,7 +50,7 @@ test_valid_request() ->
 	{ok, _Account} = ar_p3_db:get_or_create_account(
 		Address,
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	{ok, _} = ar_p3_db:post_deposit(
 		Address,
@@ -90,7 +90,7 @@ test_zero_rate() ->
 	{ok, _Account} = ar_p3_db:get_or_create_account(
 		Address,
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	ZeroRateConfig = sample_p3_config(crypto:strong_rand_bytes(32), 0, 2, 0),
 	{_, {_, Transaction1}, _} = Result1 = ar_p3:handle_call({allow_request, 
@@ -123,7 +123,7 @@ test_checksum_request() ->
 	{ok, _Account} = ar_p3_db:get_or_create_account(
 		Address,
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	Config = sample_p3_config(),
 	?assertEqual(
@@ -152,7 +152,7 @@ test_bad_headers() ->
 	{ok, _Account} = ar_p3_db:get_or_create_account(
 		Address,
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	Wallet2 = {PrivKey2, PubKey2} = ar_wallet:new(),
 	Address2 = ar_wallet:to_address(Wallet2),
@@ -160,7 +160,7 @@ test_bad_headers() ->
 	{ok, _Account2} = ar_p3_db:get_or_create_account(
 		Address2,
 		PubKey2,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	Config = sample_p3_config(),
 	?assertEqual(
@@ -317,7 +317,7 @@ test_bad_config() ->
 	{ok, _Account} = ar_p3_db:get_or_create_account(
 		Address,
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	Config = sample_p3_config(),
 
@@ -391,28 +391,28 @@ test_balance_endpoint() ->
 	{ok, _Account} = ar_p3_db:get_or_create_account(
 		Address,
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 
 	BadAddress = crypto:strong_rand_bytes(8),
 	BadChecksum = crypto:strong_rand_bytes(6),
 	?assertEqual(
 		{<<"400">>, <<"Invalid address.">>},
-		get_balance(BadAddress, BadChecksum, <<"arweave">>, <<"AR">>)),
+		get_balance(BadAddress, BadChecksum, <<"arweave">>, <<"BIG">>)),
 
 	?assertEqual(
 		{<<"200">>, <<"0">>},
-		get_balance(crypto:strong_rand_bytes(32), <<"arweave">>, <<"AR">>)),
+		get_balance(crypto:strong_rand_bytes(32), <<"arweave">>, <<"BIG">>)),
 
 	TXID = crypto:strong_rand_bytes(32),
 	{ok, _} = ar_p3_db:post_deposit(Address, 10, TXID),
 	?assertEqual(
 		{<<"200">>, <<"10">>},
-		get_balance(Address, <<"arweave">>, <<"AR">>)),
+		get_balance(Address, <<"arweave">>, <<"BIG">>)),
 
 	?assertEqual(
 		{<<"200">>, <<"10">>},
-		get_balance(Address, Checksum, <<"arweave">>, <<"AR">>)),
+		get_balance(Address, Checksum, <<"arweave">>, <<"BIG">>)),
 
 	?assertEqual(
 		{<<"200">>, <<"0">>},
@@ -426,11 +426,11 @@ test_reverse_charge() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address2,
 			PubKey2,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 
 	Request = raw_request(<<"GET">>, <<"/price/1000">>),
 	{ok, Charge1} = ar_p3_db:post_charge(
@@ -471,9 +471,9 @@ e2e_deposit_before_charge() ->
 	DepositAddress = ar_wallet:to_address(Pub3),
 	OtherAddress = ar_wallet:to_address(Pub4),
 	[B0] = ar_weave:init([
-		{Sender1Address, ?AR(10000), <<>>},
-		{Sender2Address, ?AR(10000), <<>>},
-		{DepositAddress, ?AR(10000), <<>>}
+		{Sender1Address, ?BIG(10000), <<>>},
+		{Sender2Address, ?BIG(10000), <<>>},
+		{DepositAddress, ?BIG(10000), <<>>}
 	]),
 	{ok, BaseConfig} = application:get_env(arweave, config),
 	Config = BaseConfig#config{ p3 = sample_p3_config(DepositAddress, -100, 3) },
@@ -696,7 +696,7 @@ e2e_charge_before_deposit() ->
 	Address2 = ar_wallet:to_address(Pub2),
 	DepositAddress = ar_wallet:to_address(Pub3),
 	[B0] = ar_weave:init([
-		{Address1, ?AR(10000), <<>>}
+		{Address1, ?BIG(10000), <<>>}
 	]),
 	{ok, BaseConfig} = application:get_env(arweave, config),
 	Config = BaseConfig#config{ p3 = sample_p3_config(DepositAddress, -2000, 2) },
@@ -780,8 +780,8 @@ e2e_restart_p3_service() ->
 	Sender1Address = ar_wallet:to_address(Pub1),
 	DepositAddress = ar_wallet:to_address(Pub3),
 	[B0] = ar_weave:init([
-		{Sender1Address, ?AR(10000), <<>>},
-		{DepositAddress, ?AR(10000), <<>>}
+		{Sender1Address, ?BIG(10000), <<>>},
+		{DepositAddress, ?BIG(10000), <<>>}
 	]),
 	{ok, BaseConfig} = application:get_env(arweave, config),
 	Config = BaseConfig#config{ p3 = sample_p3_config(DepositAddress, -100, 1) },
@@ -791,7 +791,7 @@ e2e_restart_p3_service() ->
 	ar_test_node:disconnect_from(peer1),
 
 	%% This deposit will be too old and will not be scanned when the main node comes back up.
-	TX1 = ar_test_node:sign_tx(Wallet1, #{ target => DepositAddress, reward => ?AR(1), quantity => 100 }),
+	TX1 = ar_test_node:sign_tx(Wallet1, #{ target => DepositAddress, reward => ?BIG(1), quantity => 100 }),
 	ar_test_node:assert_post_tx_to_peer(peer1, TX1),
 
 	ar_test_node:mine(peer1),
@@ -800,7 +800,7 @@ e2e_restart_p3_service() ->
 	ar_test_node:mine(peer1),
 	assert_wait_until_height(peer1, 2),
 
-	TX2 = ar_test_node:sign_tx(Wallet1, #{ target => DepositAddress, reward => ?AR(5), quantity => 500 }),
+	TX2 = ar_test_node:sign_tx(Wallet1, #{ target => DepositAddress, reward => ?BIG(5), quantity => 500 }),
 	ar_test_node:assert_post_tx_to_peer(peer1, TX2),
 	ar_test_node:mine(peer1),
 	assert_wait_until_height(peer1, 3),
@@ -855,8 +855,8 @@ e2e_concurrent_requests() ->
 	EncodedAddress1 = ar_util:encode(Address1),
 	DepositAddress = ar_wallet:to_address(Pub3),
 	[B0] = ar_weave:init([
-		{Address1, ?AR(10000), <<>>},
-		{DepositAddress, ?AR(10000), <<>>}
+		{Address1, ?BIG(10000), <<>>},
+		{DepositAddress, ?BIG(10000), <<>>}
 	]),
 	{ok, BaseConfig} = application:get_env(arweave, config),
 	Config = BaseConfig#config{ p3 = sample_p3_config(DepositAddress, 0, 1, 100) },
@@ -955,7 +955,7 @@ concat(Elements) ->
     lists:concat(NonBinaryElements).
 
 get_balance(Address) ->
-	get_balance(Address, <<"arweave">>, <<"AR">>).
+	get_balance(Address, <<"arweave">>, <<"BIG">>).
 
 get_balance(Address, Checksum, Network, Token) ->
 	EncodedAddress = list_to_binary([ar_util:encode(Address), ":", ar_util:encode(Checksum)]),

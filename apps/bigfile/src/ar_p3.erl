@@ -84,9 +84,9 @@ handle_cast(stop, State) ->
 
 handle_info({event, node_state, {new_tip, B, _PrevB}}, State) ->
 	NumConfirmations = ar_p3_config:get_payments_value(
-							State, ?ARWEAVE_AR, #p3_payment.confirmations),
+							State, ?BIGFILE_BIG, #p3_payment.confirmations),
 	DepositAddress = ar_p3_config:get_payments_value(
-							State, ?ARWEAVE_AR, #p3_payment.address),
+							State, ?BIGFILE_BIG, #p3_payment.address),
 	case {NumConfirmations, DepositAddress} of
 		{undefined, _} -> ok;
 		{_, undefined} -> ok;
@@ -241,11 +241,11 @@ try_to_create_account(DecodedAddress) ->
 			{error, not_found};
 		TX ->
 			PublicKey = {TX#tx.signature_type, TX#tx.owner},
-			ar_p3_db:get_or_create_account(DecodedAddress, PublicKey, ?ARWEAVE_AR)
+			ar_p3_db:get_or_create_account(DecodedAddress, PublicKey, ?BIGFILE_BIG)
 	end.
 
 validate_price(Account, Req) ->
-	Price = cowboy_req:header(?P3_PRICE_HEADER, Req, ?ARWEAVE_AR),
+	Price = cowboy_req:header(?P3_PRICE_HEADER, Req, ?BIGFILE_BIG),
 	case Price == Account#p3_account.asset of
 		true ->
 			{ok, Account};
@@ -341,7 +341,7 @@ apply_deposits([TX|TXs], DepositAddress) ->
 apply_deposit(TX) ->
 	Sender = ar_wallet:to_address(TX#tx.owner, TX#tx.signature_type),
 	PublicKey = {TX#tx.signature_type, TX#tx.owner},
-	{ok, _} = ar_p3_db:get_or_create_account(Sender, PublicKey, ?ARWEAVE_AR),
+	{ok, _} = ar_p3_db:get_or_create_account(Sender, PublicKey, ?BIGFILE_BIG),
 	{ok, _} = ar_p3_db:post_deposit(Sender, TX#tx.quantity, TX#tx.id),
 	?LOG_INFO([{event, ar_p3}, {op, deposit}, {sender, Sender},
 		{target, TX#tx.target}, {quantity, TX#tx.quantity}]),

@@ -106,16 +106,16 @@ get_json(P3Config) when
 %% -------------------------------------------------------------------
 %% Parse JSON into the p3_config record
 %% -------------------------------------------------------------------
-parse_payments([{?ARWEAVE_AR, {Payment}} | Rest], PaymentsConfig) ->
+parse_payments([{?BIGFILE_BIG, {Payment}} | Rest], PaymentsConfig) ->
 	parse_payments(
 		Rest,
-		PaymentsConfig#{ ?ARWEAVE_AR => parse_payment(Payment, #p3_payment{}) });
+		PaymentsConfig#{ ?BIGFILE_BIG => parse_payment(Payment, #p3_payment{}) });
 parse_payments([], PaymentsConfig) ->
 	PaymentsConfig;
 parse_payments(BadToken, _PaymentsConfig) ->
 	erlang:error(
 		"'payments' object must be a map of assets to 'payment' objects. " ++
-		"Currently only 'arweave/AR' is supported.",
+		"Currently only 'bigfile/BIG' is supported.",
 		BadToken).
 
 parse_payment([{?P3_ADDRESS_HEADER, Address} | Rest], PaymentConfig) ->
@@ -189,17 +189,17 @@ parse_service(BadToken, _ServiceConfig) ->
 
 %% @doc Parse each token in the rates object
 %% {"rate_type": "request", "arweave": {arweave}}
-parse_rates([{?ARWEAVE_AR, Price} | Rest], RatesConfig) ->
+parse_rates([{?BIGFILE_BIG, Price} | Rest], RatesConfig) ->
 	parse_rates(
 		Rest,
-		RatesConfig#{ ?ARWEAVE_AR => to_integer(Price) });
+		RatesConfig#{ ?BIGFILE_BIG => to_integer(Price) });
 
 parse_rates([], RatesConfig) ->
 	RatesConfig;
 
 parse_rates(BadToken, _RatesConfig) ->
 	erlang:error(
-		"Unexpected 'rates' token. Only 'arweave/AR' is currenty supported.",
+		"Unexpected 'rates' token. Only 'bigfile/BIG' is currenty supported.",
 		BadToken).
 
 %% -------------------------------------------------------------------
@@ -295,7 +295,7 @@ validate_payments(PaymentsConfig) ->
 	lists:all(fun validate_payment/1, maps:to_list(PaymentsConfig)).
 
 validate_payment({Asset, PaymentConfig}) ->
-	Asset == ?ARWEAVE_AR andalso
+	Asset == ?BIGFILE_BIG andalso
 	is_record(PaymentConfig, p3_payment) andalso
 	validate_address(PaymentConfig#p3_payment.address) andalso
 	validate_minimum_balance(PaymentConfig#p3_payment.minimum_balance) andalso
@@ -351,7 +351,7 @@ validate_rates(RatesConfig) ->
 	lists:all(fun validate_rate/1, maps:to_list(RatesConfig)).
 
 validate_rate({Asset, Price}) ->
-	Asset == ?ARWEAVE_AR andalso
+	Asset == ?BIGFILE_BIG andalso
 	is_integer(Price).
 
 to_integer(Value) when is_integer(Value) ->
