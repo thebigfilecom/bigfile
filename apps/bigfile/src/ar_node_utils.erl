@@ -39,7 +39,7 @@ apply_txs(Accounts, Denomination, TXs) ->
 %% reward to the prover.
 update_accounts(B, PrevB, Accounts) ->
 	EndowmentPool = PrevB#block.reward_pool,
-	Rate = ar_pricing:usd_to_ar_rate(PrevB),
+	Rate = ar_pricing:usd_to_big_rate(PrevB),
 	PricePerGiBMinute = PrevB#block.price_per_gib_minute,
 	KryderPlusRateMultiplierLatch = PrevB#block.kryder_plus_rate_multiplier_latch,
 	KryderPlusRateMultiplier = PrevB#block.kryder_plus_rate_multiplier,
@@ -446,7 +446,7 @@ validate_block(strict_data_split_threshold,
 	case Valid of
 		true ->
 			true = NewB#block.height >= ar_fork:height_2_6(),
-			validate_block(usd_to_ar_rate, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap});
+			validate_block(usd_to_big_rate, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap});
 		false ->
 			{error, invalid_strict_data_split_threshold}
 	end;
@@ -456,15 +456,15 @@ validate_block(difficulty, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap}) ->
 		false ->
 			{invalid, invalid_difficulty};
 		true ->
-			validate_block(usd_to_ar_rate, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap})
+			validate_block(usd_to_big_rate, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap})
 	end;
 
-validate_block(usd_to_ar_rate, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap}) ->
+validate_block(usd_to_big_rate, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap}) ->
 	{USDToARRate, ScheduledUSDToARRate} = ar_pricing:recalculate_usd_to_ar_rate(OldB),
-	case NewB#block.usd_to_ar_rate == USDToARRate
-			andalso NewB#block.scheduled_usd_to_ar_rate == ScheduledUSDToARRate of
+	case NewB#block.usd_to_big_rate == USDToARRate
+			andalso NewB#block.scheduled_usd_to_big_rate == ScheduledUSDToARRate of
 		false ->
-			{invalid, invalid_usd_to_ar_rate};
+			{invalid, invalid_usd_to_big_rate};
 		true ->
 			validate_block(denomination, {NewB, OldB, Wallets, BlockAnchors, RecentTXMap})
 	end;
@@ -552,7 +552,7 @@ validate_block(price_per_gib_minute, {NewB, OldB, Wallets, BlockAnchors, RecentT
 
 validate_block(txs, {NewB = #block{ timestamp = Timestamp, height = Height, txs = TXs },
 		OldB, Wallets, BlockAnchors, RecentTXMap}) ->
-	Rate = ar_pricing:usd_to_ar_rate(OldB),
+	Rate = ar_pricing:usd_to_big_rate(OldB),
 	PricePerGiBMinute = OldB#block.price_per_gib_minute,
 	KryderPlusRateMultiplier = OldB#block.kryder_plus_rate_multiplier,
 	Denomination = OldB#block.denomination,
@@ -730,13 +730,13 @@ test_block_validation() ->
 			validate_block(difficulty, {
 					B#block{ diff = PrevB#block.diff - 1 }, PrevB, Wallets, BlockAnchors,
 					RecentTXMap})),
-	?assertEqual({invalid, invalid_usd_to_ar_rate},
-			validate_block(usd_to_ar_rate, {
-					B#block{ usd_to_ar_rate = {0, 0} }, PrevB, Wallets, BlockAnchors,
+	?assertEqual({invalid, invalid_usd_to_big_rate},
+			validate_block(usd_to_big_rate, {
+					B#block{ usd_to_big_rate = {0, 0} }, PrevB, Wallets, BlockAnchors,
 					RecentTXMap})),
-	?assertEqual({invalid, invalid_usd_to_ar_rate},
-			validate_block(usd_to_ar_rate, {
-					B#block{ scheduled_usd_to_ar_rate = {0, 0} }, PrevB, Wallets, BlockAnchors,
+	?assertEqual({invalid, invalid_usd_to_big_rate},
+			validate_block(usd_to_big_rate, {
+					B#block{ scheduled_usd_to_big_rate = {0, 0} }, PrevB, Wallets, BlockAnchors,
 					RecentTXMap})),
 	?assertEqual({invalid, invalid_txs},
 			validate_block(txs, {B#block{ txs = [#tx{ signature = <<1>> }] }, PrevB, Wallets,
@@ -793,7 +793,7 @@ test_update_accounts_rejects_same_signature_in_double_signing_proof() ->
 			double_signing_proof = DoubleSigningProof },
 	Reward = 12,
 	PrevB = #block{ reward_history = [{RewardAddr, 0, Reward, 1}, {BannedAddr, 0, 10, 1}],
-			usd_to_ar_rate = {1, 5}, reward_pool = 0 },
+			usd_to_big_rate = {1, 5}, reward_pool = 0 },
 	?assertEqual({error, invalid_double_signing_proof_same_signature},
 			update_accounts(B, PrevB, Accounts)).
 
@@ -837,7 +837,7 @@ test_update_accounts_receives_released_reward_and_prover_reward() ->
 	Reward = 13,
 	ProverReward = 5, % 1/2 of min(10, 12)
 	PrevB = #block{ reward_history = [{stub, stub, 12, 1}, {BannedAddr, 0, 10, 1},
-			{RewardAddr, 0, Reward, 1}], usd_to_ar_rate = {1, 5}, reward_pool = 0 },
+			{RewardAddr, 0, Reward, 1}], usd_to_big_rate = {1, 5}, reward_pool = 0 },
 	PrevB1 = augment_reward_history(PrevB),
 	{ok, {_EndowmentPool2, _MinerReward, _DebtSupply2,
 			_KryderPlusRateMultiplierLatch2, _KryderPlusRateMultiplier2, Accounts2}} =
@@ -870,7 +870,7 @@ test_update_accounts_does_not_let_banned_account_take_reward() ->
 	ProverReward = 3, % 1/2 of min(7, 8)
 	PrevB = #block{ reward_history = [{stub, stub, 7, 1}, {stub, stub, 8, 1},
 			{BannedAddr, 0, Reward, 1}, {BannedAddr, 0, 10, 1}],
-					usd_to_ar_rate = {1, 5}, reward_pool = 0 },
+					usd_to_big_rate = {1, 5}, reward_pool = 0 },
 	PrevB1 = augment_reward_history(PrevB),
 	{ok, {_EndowmentPool2, _MinerReward, _DebtSupply2,
 			_KryderPlusRateMultiplierLatch2, _KryderPlusRateMultiplier2, Accounts2}} =

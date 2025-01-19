@@ -52,7 +52,7 @@ block_to_binary(#block{ indep_hash = H, previous_block = PrevH, timestamp = TS,
 		wallet_list = WalletList, hash_list_merkle = HashListMerkle,
 		reward_pool = RewardPool, packing_2_5_threshold = Threshold,
 		strict_data_split_threshold = StrictChunkThreshold,
-		usd_to_ar_rate = Rate, scheduled_usd_to_ar_rate = ScheduledRate,
+		usd_to_big_rate = Rate, scheduled_usd_to_big_rate = ScheduledRate,
 		poa = #poa{ option = Option, chunk = Chunk, data_path = DataPath,
 				tx_path = TXPath }, tags = Tags, txs = TXs } = B) ->
 	Addr2 = case Addr of unclaimed -> <<>>; _ -> Addr end,
@@ -127,7 +127,7 @@ binary_to_block(<< H:48/binary, PrevHSize:8, PrevH:PrevHSize/binary,
 			wallet_list = WalletList, hash_list_merkle = HashListMerkle,
 			reward_pool = RewardPool, packing_2_5_threshold = Threshold2,
 			strict_data_split_threshold = StrictChunkThreshold2,
-			usd_to_ar_rate = Rate, scheduled_usd_to_ar_rate = ScheduledRate,
+			usd_to_big_rate = Rate, scheduled_usd_to_big_rate = ScheduledRate,
 			poa = #poa{ option = PoAOption, chunk = Chunk, data_path = DataPath,
 					tx_path = TXPath }},
 	parse_block_tags_transactions(Rest, B);
@@ -212,13 +212,13 @@ block_to_json_struct(
 	JSONElements4 =
 		case Height >= ar_fork:height_2_5() of
 			true ->
-				{RateDividend, RateDivisor} = B#block.usd_to_ar_rate,
+				{RateDividend, RateDivisor} = B#block.usd_to_big_rate,
 				{ScheduledRateDividend,
-						ScheduledRateDivisor} = B#block.scheduled_usd_to_ar_rate,
+						ScheduledRateDivisor} = B#block.scheduled_usd_to_big_rate,
 				[
-					{usd_to_ar_rate,
+					{usd_to_big_rate,
 						[integer_to_binary(RateDividend), integer_to_binary(RateDivisor)]},
-					{scheduled_usd_to_ar_rate,
+					{scheduled_usd_to_big_rate,
 						[integer_to_binary(ScheduledRateDividend),
 							integer_to_binary(ScheduledRateDivisor)]},
 					{packing_2_5_threshold,
@@ -1290,9 +1290,9 @@ json_struct_to_block({BlockStruct}) ->
 		case Height >= Fork_2_5 of
 			true ->
 				[RateDividendBinary, RateDivisorBinary] =
-					find_value(<<"usd_to_ar_rate">>, BlockStruct),
+					find_value(<<"usd_to_big_rate">>, BlockStruct),
 				[ScheduledRateDividendBinary, ScheduledRateDivisorBinary] =
-					find_value(<<"scheduled_usd_to_ar_rate">>, BlockStruct),
+					find_value(<<"scheduled_usd_to_big_rate">>, BlockStruct),
 				{{binary_to_integer(RateDividendBinary),
 						binary_to_integer(RateDivisorBinary)},
 					{binary_to_integer(ScheduledRateDividendBinary),
@@ -1343,8 +1343,8 @@ json_struct_to_block({BlockStruct}) ->
 				undefined -> #poa{};
 				POAStruct -> json_struct_to_poa(POAStruct)
 			end,
-		usd_to_ar_rate = Rate,
-		scheduled_usd_to_ar_rate = ScheduledRate,
+		usd_to_big_rate = Rate,
+		scheduled_usd_to_big_rate = ScheduledRate,
 		packing_2_5_threshold = Packing_2_5_Threshold,
 		strict_data_split_threshold = StrictDataSplitThreshold
 	}.

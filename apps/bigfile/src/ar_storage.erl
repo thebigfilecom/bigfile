@@ -597,8 +597,8 @@ migrate_block_record({block, Nonce, PrevH, TS, Last, Diff, Height, Hash, H,
 			hash_list = HL, hash_list_merkle = HLMerkle, wallet_list = WL,
 			reward_addr = RewardAddr, tags = Tags, reward_pool = RewardPool,
 			weave_size = WeaveSize, block_size = BlockSize, cumulative_diff = CDiff,
-			size_tagged_txs = SizeTaggedTXs, poa = PoA_2, usd_to_ar_rate = Rate,
-			scheduled_usd_to_ar_rate = ScheduledRate,
+			size_tagged_txs = SizeTaggedTXs, poa = PoA_2, usd_to_big_rate = Rate,
+			scheduled_usd_to_big_rate = ScheduledRate,
 			packing_2_5_threshold = Packing_2_5_Threshold,
 			strict_data_split_threshold = StrictDataSplitThreshold }.
 

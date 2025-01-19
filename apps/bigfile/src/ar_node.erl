@@ -173,8 +173,8 @@ is_joined() ->
 	end.
 
 %% @doc Get the currently estimated USD to AR exchange rate.
-get_current_usd_to_ar_rate() ->
-	[{_, Rate}] = ets:lookup(node_state, usd_to_ar_rate),
+get_current_usd_to_big_rate() ->
+	[{_, Rate}] = ets:lookup(node_state, usd_to_big_rate),
 	Rate.
 
 %% @doc Returns a list of block anchors corrsponding to the current state -

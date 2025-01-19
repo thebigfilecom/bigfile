@@ -522,11 +522,11 @@
 	%% The estimated USD to AR conversion rate used in the pricing calculations.
 	%% A tuple {Dividend, Divisor}.
 	%% Used until the transition to the new fee calculation method is complete.
-	usd_to_ar_rate,
+	usd_to_big_rate,
 	%% The estimated USD to AR conversion rate scheduled to be used a bit later, used to
 	%% compute the necessary fee for the currently signed txs. A tuple {Dividend, Divisor}.
 	%% Used until the transition to the new fee calculation method is complete.
-	scheduled_usd_to_ar_rate,
+	scheduled_usd_to_big_rate,
 	%% The offset on the weave separting the data which has to be packed for mining after the
 	%% fork 2.5 from the data which does not have to be packed yet. It is set to the
 	%% weave_size of the 50th previous block at the hard fork block and moves down at a speed
