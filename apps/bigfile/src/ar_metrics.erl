@@ -381,7 +381,7 @@ register() ->
 				"assuming the 0.5% storage costs decline rate, in Winston."}
 	]),
 	prometheus_gauge:new([
-		{name, network_burden_10_usd_ar},
+		{name, network_burden_10_usd_big},
 		{help, "The legacy (2.5) estimation of the cost of storing the current weave "
 				"assuming the 0.5% storage costs decline rate and 10 $/BIG, in Winston."}
 	]),
@@ -391,7 +391,7 @@ register() ->
 				"200 years assuming the 0.5% storage costs decline rate, in Winston."}
 	]),
 	prometheus_gauge:new([
-		{name, network_burden_200_years_10_usd_ar},
+		{name, network_burden_200_years_10_usd_big},
 		{help, "The legacy (2.5) estimation of the cost of storing the current weave for "
 				"200 years assuming the 0.5% storage costs decline rate and 10 $/BIG, "
 				"in Winston."}
@@ -402,7 +402,7 @@ register() ->
 				"the current weave for 200 years according to the legacy (2.5) estimations."}
 	]),
 	prometheus_gauge:new([
-		{name, expected_minimum_200_years_storage_costs_decline_rate_10_usd_ar},
+		{name, expected_minimum_200_years_storage_costs_decline_rate_10_usd_big},
 		{help, "The expected minimum decline rate sufficient to subsidize storage of "
 				"the current weave for 200 years according to the legacy (2.6) estimations"
 				"and assuming 10 $/BIG."}
