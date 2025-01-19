@@ -50,7 +50,7 @@ end).
 %% The fixed USD to AR rate used after the fork 2.6 until the automatic transition to the new
 %% pricing scheme is complete. We fix the rate because the network difficulty is expected
 %% fluctuate a lot around the fork.
--define(FORK_2_6_PRE_TRANSITION_USD_TO_AR_RATE, {1, 10}).
+-define(FORK_2_6_PRE_TRANSITION_USD_TO_BIG_RATE, {1, 10}).
 
 %% The number of recent blocks with the reserved (temporarily locked) mining rewards.
 -ifdef(DEBUG).
@@ -155,7 +155,7 @@ end).
 %% and INITIAL_USD_TO_AR_DIFF. The protocol uses these constants to estimate the
 %% USD to AR rate at any block based on the change in the network difficulty and inflation
 %% rewards.
--define(INITIAL_USD_TO_AR(Height), fun() ->
+-define(INITIAL_USD_TO_BIG(Height), fun() ->
 	Forks = {
 		ar_fork:height_2_4(),
 		ar_fork:height_2_5()
@@ -164,18 +164,18 @@ end).
 		{_Fork_2_4, Fork_2_5} when Height >= Fork_2_5 ->
 			{1, 65};
 		{Fork_2_4, _Fork_2_5} when Height >= Fork_2_4 ->
-			?INITIAL_USD_TO_AR_PRE_FORK_2_5
+			?INITIAL_USD_TO_BIG_PRE_FORK_2_5
 	end
 end).
 
 %% The original USD to AR conversion rate, defined as a fraction. Set up at fork 2.4.
 %% Used until the fork 2.5.
--define(INITIAL_USD_TO_AR_PRE_FORK_2_5, {1, 5}).
+-define(INITIAL_USD_TO_BIG_PRE_FORK_2_5, {1, 5}).
 
 %% The network difficulty at the time when the USD to AR exchange rate was
 %% ?INITIAL_USD_TO_AR(Height). Used to account for the change in the network
 %% difficulty when estimating the new USD to AR rate.
--define(INITIAL_USD_TO_AR_DIFF(Height), fun() ->
+-define(INITIAL_USD_TO_BIG_DIFF(Height), fun() ->
 	Forks = {
 		ar_fork:height_1_9(),
 		ar_fork:height_2_2(),
@@ -196,7 +196,7 @@ end).
 %% The network height at the time when the USD to AR exchange rate was
 %% ?INITIAL_USD_TO_AR(Height). Used to account for the change in inflation
 %% rewards when estimating the new USD to AR rate.
--define(INITIAL_USD_TO_AR_HEIGHT(Height), fun() ->
+-define(INITIAL_USD_TO_BIG_HEIGHT(Height), fun() ->
 	Forks = {
 		ar_fork:height_1_9(),
 		ar_fork:height_2_2(),
@@ -241,13 +241,13 @@ end).
 -define(USD_TO_AR_MAX_ADJUSTMENT_UP_MULTIPLIER, {1005, 1000}).
 
 %% The largest possible multiplier for a one-step decrease of the USD to AR Rate.
--define(USD_TO_AR_MAX_ADJUSTMENT_DOWN_MULTIPLIER, {995, 1000}).
+-define(USD_TO_BIG_MAX_ADJUSTMENT_DOWN_MULTIPLIER, {995, 1000}).
 
 %% Reduce the USD to AR fraction if both the dividend and the devisor become bigger than this.
 -ifdef(DEBUG).
--define(USD_TO_AR_FRACTION_REDUCTION_LIMIT, 100).
+-define(USD_TO_BIG_FRACTION_REDUCTION_LIMIT, 100).
 -else.
--define(USD_TO_AR_FRACTION_REDUCTION_LIMIT, 1000000).
+-define(USD_TO_BIG_FRACTION_REDUCTION_LIMIT, 1000000).
 -endif.
 
 %% Every transaction fee has to be at least X + X * ?MINING_REWARD_MULTIPLIER
@@ -260,10 +260,10 @@ end).
 -endif.
 
 %% The USD to AR exchange rate for a new chain, e.g. a testnet.
--define(NEW_WEAVE_USD_TO_AR_RATE, ?INITIAL_USD_TO_AR_PRE_FORK_2_5).
+-define(NEW_WEAVE_USD_TO_BIG_RATE, ?INITIAL_USD_TO_BIG_PRE_FORK_2_5).
 
 %% Initial $/AR exchange rate. Used until the fork 2.4.
--define(INITIAL_USD_PER_AR(Height), fun() ->
+-define(INITIAL_USD_PER_BIG(Height), fun() ->
 	Forks = {
 		ar_fork:height_1_9(),
 		ar_fork:height_2_2()

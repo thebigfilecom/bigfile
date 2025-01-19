@@ -768,8 +768,8 @@ test_rates_endpoint() ->
 	?assertEqual(
 		#{
 			<<"payment_methods">> => #{
-				<<"arweave">> => #{
-					<<"AR">> => #{
+				<<"bigfile">> => #{
+					<<"BIG">> => #{
 						<<"minimum_balance">> => -100,
 						<<"confirmations">> => 3,
 						<<"address">> => EncodedDepositAddress
@@ -780,8 +780,8 @@ test_rates_endpoint() ->
 				#{
 					<<"rates">> => #{
 						<<"description">> => <<"Price per request">>,
-						<<"arweave">> => #{
-							<<"AR">> => #{
+						<<"bigfile">> => #{
+							<<"BIG">> => #{
 								<<"price">> => 1000,
 								<<"address">> => EncodedDepositAddress
 							}
@@ -793,8 +793,8 @@ test_rates_endpoint() ->
 				#{
 					<<"rates">> => #{
 						<<"description">> => <<"Price per request">>,
-						<<"arweave">> => #{
-							<<"AR">> => #{
+						<<"bigfile">> => #{
+							<<"BIG">> => #{
 								<<"price">> => 100000,
 								<<"address">> => EncodedDepositAddress
 							}

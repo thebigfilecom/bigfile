@@ -92,7 +92,7 @@
 -define(GENESIS_TOKENS, 55000000).
 
 %% Winstons per AR.
--define(WINSTON_PER_AR, 1000000000000).
+-define(WINSTON_PER_BIG, 1000000000000).
 
 %% The number of bytes in a gibibyte.
 -define(MiB, (1024 * 1024)).
@@ -735,7 +735,7 @@
 }).
 
 %% A macro to convert AR into Winstons.
--define(AR(AR), (?WINSTON_PER_AR * AR)).
+-define(BIG(BIG), (?WINSTON_PER_BIG * BIG)).
 
 %% A macro to return whether a term is a block record.
 -define(IS_BLOCK(X), (is_record(X, block))).

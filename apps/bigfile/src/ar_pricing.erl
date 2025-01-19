@@ -461,9 +461,9 @@ usd_to_big_rate(#block{ height = PrevHeight } = PrevB) ->
 	Height = PrevHeight + 1,
 	case PrevHeight < Height_2_5 of
 		true ->
-			?INITIAL_USD_TO_AR(Height)();
+			?INITIAL_USD_TO_BIG(Height)();
 		false ->
-			PrevB#block.usd_to_ar_rate
+			PrevB#block.usd_to_big_rate
 	end.
 
 %% @doc Return the amount of AR the given number of USD is worth.
