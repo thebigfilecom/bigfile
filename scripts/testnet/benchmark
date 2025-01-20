@@ -6,7 +6,7 @@ SCRIPT_DIR="$(dirname "$0")"
 $SCRIPT_DIR/check-nofile
 
 # Sets $ARWEAVE and $COMMAND
-source $SCRIPT_DIR/arweave.env
+source $SCRIPT_DIR/bigfile.env
 
 echo "Moving the benchmark folder to benchmark.old..."
 rm -rf benchmark.old

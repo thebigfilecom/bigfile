@@ -6,6 +6,6 @@ SCRIPT_DIR="$(dirname "$0")"
 
 # Sets $ARWEAVE and $ARWEAVE_* variables
 SKIP_BUILD=yes
-source $SCRIPT_DIR/arweave.env
+source $SCRIPT_DIR/bigfile.env
 
 $ARWEAVE stop

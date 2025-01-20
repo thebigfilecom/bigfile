@@ -5,7 +5,7 @@ set -e
 SCRIPT_DIR="$(dirname "$0")"
 
 # Sets $ARWEAVE and $ARWEAVE_* variables
-source $SCRIPT_DIR/arweave.env
+source $SCRIPT_DIR/bigfile.env
 
 # Initialize arrays for Erlang and Arweave arguments
 ERLANG_ARGS=()
