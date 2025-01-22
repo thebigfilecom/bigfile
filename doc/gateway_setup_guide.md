@@ -26,7 +26,7 @@ For example, with `gateway.example` as the gateway's main domain name:
 
 Command line flag:
 ```
-./arweave-server gateway gateway.example
+./bigfile-server gateway gateway.example
 ```
 
 Configuration field:
@@ -43,7 +43,7 @@ For example, given the custom domain names `custom1.domain.example` and `custom2
 
 Command line flag:
 ```
-./arweave-server gateway gateway.example custom_domain custom1.domain.example custom_domain custom2.domain.example
+./bigfile-server gateway gateway.example custom_domain custom1.domain.example custom_domain custom2.domain.example
 ```
 
 Configuration field:

@@ -78,7 +78,7 @@ limits](https://docs.arweave.org/info/mining/mining-guide#preparation-file-descr
 **Run in the development mode:**
 
 ```sh
-./arweave-server \
+./bigfile-server \
 peer ams-1.eu-central-1.arweave.xyz \
 peer fra-1.eu-central-2.arweave.xyz \
 peer sgp-1.ap-central-2.arweave.xyz \

@@ -28,16 +28,16 @@ The ipfs node needs to be running as a daemon before app_ipfs is started.  Start
 $ ipfs daemon
 ```
 
-## arweave-server
+## bigfile-server
 
-When running `arweave-server` with the argument `ipfs_pin`, the server listens for incoming TXs with data and an `{"IPFS_Add", Hash}` tag, and `ipfs add`s the data to the local ipfs node.
+When running `bigfile-server` with the argument `ipfs_pin`, the server listens for incoming TXs with data and an `{"IPFS_Add", Hash}` tag, and `ipfs add`s the data to the local ipfs node.
 
 ### ipfs_pin
 
 #### in erlang shell
 
 ```erlang
-$ arweave-server peer ...
+$ bigfile-server peer ...
 
 1> app_ipfs:start_pinning().
 ok
@@ -46,7 +46,7 @@ ok
 #### with commandline argument
 
 ```
-$ arweave-server peer ... ipfs_pin
+$ bigfile-server peer ... ipfs_pin
 ```
 
 ### monitoring
