@@ -13,7 +13,7 @@ if [[ ! -f "/bigfile-build/mainnet/bin/start" ]]; then
 fi
 
 config_file="$ARWEAVE_DIR/testnet/config/$(hostname -f).json"
-SCREEN_CMD="screen -dmsL arweave /bigfile-build/mainnet/bin/start config_file $config_file"
+SCREEN_CMD="screen -dmsL arweave /bigfile-build/mainnet/bin/start config_file $config_file vdf_server_trusted_peer vdf-server-3.arweave.xyz"
 
 echo "$SCREEN_CMD"
 echo "$SCREEN_CMD" > /bigfile-build/mainnet/run.sh
