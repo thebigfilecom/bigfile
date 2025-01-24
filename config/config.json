@@ -3,8 +3,6 @@
     "port": 1984,
     "mine": true,
     "peers": [],
-    "start_from_block_index": true,
-    "start_from_latest_state": true,
     "block_gossip_peers": [],
     "local_peers": [],
     "data_dir": "/root/bigfile/data_dir",
