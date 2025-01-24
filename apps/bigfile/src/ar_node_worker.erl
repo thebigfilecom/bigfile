@@ -1651,7 +1651,6 @@ priority({cache_missing_txs, _, _}) ->
 priority(_) ->
 	{os:system_time(second), 1}.
 
-read_hash_list_2_0_for_1_0_blocks() ->
 		Fork_2_0 = ar_fork:height_2_0(),
 		case Fork_2_0 > 0 of
 			true ->
