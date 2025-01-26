@@ -7,17 +7,17 @@ if ! $ARWEAVE_DIR/testnet/assert_testnet.sh; then
 	exit 1
 fi
 
-if [[ ! -f "/arweave-build/mainnet/bin/start" ]]; then
-    echo "Arweave start script not found. Please run rebuild_mainnet.sh first."
+if [[ ! -f "/bigfile-build/mainnet/bin/start" ]]; then
+    echo "BigFile start script not found. Please run rebuild_mainnet.sh first."
 	exit 1
 fi
 
 config_file="$ARWEAVE_DIR/testnet/config/$(hostname -f).json"
-SCREEN_CMD="screen -dmsL arweave /arweave-build/mainnet/bin/start config_file $config_file vdf_server_trusted_peer vdf-server-3.arweave.xyz"
+SCREEN_CMD="screen -dmsL arweave /bigfile-build/mainnet/bin/start config_file $config_file vdf_server_trusted_peer vdf-server-3.arweave.xyz"
 
 echo "$SCREEN_CMD"
-echo "$SCREEN_CMD" > /arweave-build/mainnet/run.sh
-chmod +x /arweave-build/mainnet/run.sh
+echo "$SCREEN_CMD" > /bigfile-build/mainnet/run.sh
+chmod +x /bigfile-build/mainnet/run.sh
 
-cd /arweave-build/mainnet
+cd /bigfile-build/mainnet
 ./run.sh

@@ -39,7 +39,7 @@ webhooks_test_() ->
 
 test_webhooks() ->
 	{_, Pub} = Wallet = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 	{ok, Config} = application:get_env(arweave, config),
 	Port = ar_test_node:get_unused_port(),
 	PortBinary = integer_to_binary(Port),
@@ -196,7 +196,7 @@ create_v2_tx(Wallet) ->
 	SizedChunkIDs = ar_tx:sized_chunks_to_sized_chunk_ids(SizeTaggedChunks),
 	{DataRoot, DataTree} = ar_merkle:generate_tree(SizedChunkIDs),
 	TX = ar_test_node:sign_tx(main, Wallet,
-			#{ format => 2, data_root => DataRoot, data_size => DataSize, reward => ?AR(1) }),
+			#{ format => 2, data_root => DataRoot, data_size => DataSize, reward => ?BIG(1) }),
 	Proofs = [encode_proof(#{ data_root => DataRoot, chunk => Chunk,
 				data_path => ar_merkle:generate_path(DataRoot, Offset - 1, DataTree),
 				offset => Offset - 1, data_size => DataSize })

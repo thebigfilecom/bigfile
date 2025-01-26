@@ -84,7 +84,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: build.tar.gz
-          key: ${{ runner.os }}-build-${{ hashFiles('apps/**', 'config/**', '.github/**', 'rebar.config', 'rebar.lock', 'ar-rebar3') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('apps/**', 'config/**', '.github/**', 'rebar.config', 'rebar.lock', 'big-rebar3') }}
           restore-keys: |
             ${{ runner.os }}-build-
       - name: Extract build cache
@@ -96,7 +96,7 @@ jobs:
         if: steps.cache-build.outputs.cache-hit != 'true'
         run: |
           rm -rf _build build.tar.gz || true
-          ./ar-rebar3 test compile
+          ./big-rebar3 test compile
           chmod -R u+w ./_build
           tar --dereference -czf build.tar.gz _build
       - name: Save build cache
@@ -104,7 +104,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: build.tar.gz
-          key: ${{ runner.os }}-build-${{ hashFiles('apps/**', 'config/**', '.github/**',  'rebar.config', 'rebar.lock', 'ar-rebar3') }}
+          key: ${{ runner.os }}-build-${{ hashFiles('apps/**', 'config/**', '.github/**',  'rebar.config', 'rebar.lock', 'big-rebar3') }}
       - name: Restart epmd
         run: |
           if ! pgrep -x "epmd" > /dev/null

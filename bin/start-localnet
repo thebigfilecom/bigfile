@@ -6,7 +6,7 @@ SCRIPT_DIR="$(dirname "$0")"
 
 # Sets $ARWEAVE and $ARWEAVE_* variables
 export ARWEAVE_BUILD_TARGET="localnet"
-source $SCRIPT_DIR/arweave.env
+source $SCRIPT_DIR/bigfile.env
 
 while true; do
     echo Launching Erlang Virtual Machine...

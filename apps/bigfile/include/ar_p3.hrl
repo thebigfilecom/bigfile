@@ -10,7 +10,7 @@
 -define(TO_P3_ASSET(Network, Token), <<Network/binary, "/", Token/binary>>).
 -define(FROM_P3_ASSET(Asset), list_to_tuple(binary:split(Asset, <<"/">>))).
 
--define(ARWEAVE_AR, <<"arweave/AR">>).
+-define(BIGFILE_BIG, <<"bigfile/BIG">>).
 
 -define(P3_ENDPOINT_HEADER, <<"endpoint">>).
 -define(P3_ADDRESS_HEADER, <<"address">>).

@@ -7,7 +7,7 @@
 
 %% 2.5 exports.
 -export([get_tx_fee/4, get_miner_reward_and_endowment_pool/1,
-		usd_to_ar_rate/1, usd_to_ar/3, recalculate_usd_to_ar_rate/1,
+		usd_to_big_rate/1, usd_to_big/3, recalculate_usd_to_big_rate/1,
 		get_storage_cost/4, get_expected_min_decline_rate/6]).
 
 %% For tests.
@@ -415,7 +415,7 @@ get_total_supply(Denomination) ->
 get_storage_cost(DataSize, Timestamp, Rate, Height) ->
 	Size = ?TX_SIZE_BASE + DataSize,
 	PerpetualGBStorageCost =
-		usd_to_ar(
+		usd_to_big(
 			get_perpetual_gb_cost_at_timestamp(Timestamp, Height),
 			Rate,
 			Height
@@ -439,7 +439,7 @@ get_miner_reward_and_endowment_pool(Args) ->
 	{PoolFeeShare, MinerFeeShare} = distribute_transaction_fees(TXs, Height),
 	BaseReward = Inflation + MinerFeeShare,
 	StorageCostPerGBPerBlock =
-		usd_to_ar(
+		usd_to_big(
 			get_gb_cost_per_block_at_timestamp(Timestamp, Height),
 			Rate,
 			Height
@@ -456,46 +456,46 @@ get_miner_reward_and_endowment_pool(Args) ->
 
 %% @doc Return the effective USD to AR rate corresponding to the given block
 %% considering its previous block.
-usd_to_ar_rate(#block{ height = PrevHeight } = PrevB) ->
+usd_to_big_rate(#block{ height = PrevHeight } = PrevB) ->
 	Height_2_5 = ar_fork:height_2_5(),
 	Height = PrevHeight + 1,
 	case PrevHeight < Height_2_5 of
 		true ->
-			?INITIAL_USD_TO_AR(Height)();
+			?INITIAL_USD_TO_BIG(Height)();
 		false ->
-			PrevB#block.usd_to_ar_rate
+			PrevB#block.usd_to_big_rate
 	end.
 
 %% @doc Return the amount of AR the given number of USD is worth.
-usd_to_ar(USD, Rate, Height) when is_number(USD) ->
-	usd_to_ar({USD, 1}, Rate, Height);
-usd_to_ar({Dividend, Divisor}, Rate, Height) ->
-	InitialInflation = trunc(ar_inflation:calculate(?INITIAL_USD_TO_AR_HEIGHT(Height)())),
+usd_to_big(USD, Rate, Height) when is_number(USD) ->
+	usd_to_big({USD, 1}, Rate, Height);
+usd_to_big({Dividend, Divisor}, Rate, Height) ->
+	InitialInflation = trunc(ar_inflation:calculate(?INITIAL_USD_TO_BIG_HEIGHT(Height)())),
 	CurrentInflation = trunc(ar_inflation:calculate(Height)),
 	{InitialRateDividend, InitialRateDivisor} = Rate,
 	trunc(	Dividend
-			* ?WINSTON_PER_AR
+			* ?WINSTON_PER_BIG
 			* CurrentInflation
 			* InitialRateDividend	)
 		div Divisor
 		div InitialInflation
 		div InitialRateDivisor.
 
-recalculate_usd_to_ar_rate(#block{ height = PrevHeight } = B) ->
+recalculate_usd_to_big_rate(#block{ height = PrevHeight } = B) ->
 	Height = PrevHeight + 1,
 	Fork_2_5 = ar_fork:height_2_5(),
 	true = Height >= Fork_2_5,
 	case Height > Fork_2_5 of
 		false ->
-			Rate = ?INITIAL_USD_TO_AR(Height)(),
+			Rate = ?INITIAL_USD_TO_BIG(Height)(),
 			{Rate, Rate};
 		true ->
 			Fork_2_6 = ar_fork:height_2_6(),
 			case Height == Fork_2_6 of
 				true ->
-					{B#block.usd_to_ar_rate, ?FORK_2_6_PRE_TRANSITION_USD_TO_AR_RATE};
+					{B#block.usd_to_big_rate, ?FORK_2_6_PRE_TRANSITION_USD_TO_BIG_RATE};
 				false ->
-					recalculate_usd_to_ar_rate2(B)
+					recalculate_usd_to_big_rate2(B)
 			end
 	end.
 
@@ -507,9 +507,9 @@ recalculate_usd_to_ar_rate(#block{ height = PrevHeight } = B) ->
 get_expected_min_decline_rate(Timestamp, Period, Amount, Size, Rate, Height) ->
 	{USDDiv1, USDDivisor1} = get_gb_cost_per_year_at_timestamp(Timestamp, Height),
 	%% Multiply by 2 to account for hashing costs.
-	Sum1 = 2 * usd_to_ar({USDDiv1, USDDivisor1}, Rate, Height),
+	Sum1 = 2 * usd_to_big({USDDiv1, USDDivisor1}, Rate, Height),
 	{USDDiv2, USDDivisor2} = get_gb_cost_per_year_at_timestamp(Timestamp + Period, Height),
-	Sum2 = 2 * usd_to_ar({USDDiv2, USDDivisor2}, Rate, Height),
+	Sum2 = 2 * usd_to_big({USDDiv2, USDDivisor2}, Rate, Height),
 	%% Sum1 / -logRate - Sum2 / -logRate = Amount
 	%% => -logRate = (Sum1 - Sum2) / Amount
 	%% => 1 / Rate = exp((Sum1 - Sum2) / Amount)
@@ -699,10 +699,10 @@ system_time_to_universal_time(Time, TimeUnit) ->
 	SecondsPerDay = 86400,
 	calendar:gregorian_seconds_to_datetime(Seconds + (DaysFrom0To1970 * SecondsPerDay)).
 
-recalculate_usd_to_ar_rate2(#block{ height = PrevHeight } = B) ->
+recalculate_usd_to_big_rate2(#block{ height = PrevHeight } = B) ->
 	case is_price_adjustment_height(PrevHeight + 1) of
 		false ->
-			{B#block.usd_to_ar_rate, B#block.scheduled_usd_to_ar_rate};
+			{B#block.usd_to_big_rate, B#block.scheduled_usd_to_big_rate};
 		true ->
 			Fork_2_6 = ar_fork:height_2_6(),
 			true = PrevHeight + 1 /= Fork_2_6,
@@ -710,25 +710,25 @@ recalculate_usd_to_ar_rate2(#block{ height = PrevHeight } = B) ->
 				true ->
 					%% Keep the rate fixed after the 2.6 fork till the transition to the
 					%% new pricing scheme ends. Then it won't be used any longer.
-					{B#block.scheduled_usd_to_ar_rate, B#block.scheduled_usd_to_ar_rate};
+					{B#block.scheduled_usd_to_big_rate, B#block.scheduled_usd_to_big_rate};
 				false ->
-					recalculate_usd_to_ar_rate3(B)
+					recalculate_usd_to_big_rate3(B)
 			end
 	end.
 
-recalculate_usd_to_ar_rate3(#block{ height = PrevHeight, diff = Diff } = B) ->
+recalculate_usd_to_big_rate3(#block{ height = PrevHeight, diff = Diff } = B) ->
 	Height = PrevHeight + 1,
-	InitialDiff = ar_retarget:switch_to_linear_diff(?INITIAL_USD_TO_AR_DIFF(Height)()),
+	InitialDiff = ar_retarget:switch_to_linear_diff(?INITIAL_USD_TO_BIG_DIFF(Height)()),
 	MaxDiff = ?MAX_DIFF,
-	InitialRate = ?INITIAL_USD_TO_AR(Height)(),
+	InitialRate = ?INITIAL_USD_TO_BIG(Height)(),
 	{Dividend, Divisor} = InitialRate,
 	ScheduledRate = {Dividend * (MaxDiff - Diff), Divisor * (MaxDiff - InitialDiff)},
-	Rate = B#block.scheduled_usd_to_ar_rate,
-	MaxAdjustmentUp = ar_fraction:multiply(Rate, ?USD_TO_AR_MAX_ADJUSTMENT_UP_MULTIPLIER),
-	MaxAdjustmentDown = ar_fraction:multiply(Rate, ?USD_TO_AR_MAX_ADJUSTMENT_DOWN_MULTIPLIER),
+	Rate = B#block.scheduled_usd_to_big_rate,
+	MaxAdjustmentUp = ar_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_UP_MULTIPLIER),
+	MaxAdjustmentDown = ar_fraction:multiply(Rate, ?USD_TO_BIG_MAX_ADJUSTMENT_DOWN_MULTIPLIER),
 	CappedScheduledRate = ar_fraction:reduce(ar_fraction:maximum(
 			ar_fraction:minimum(ScheduledRate, MaxAdjustmentUp), MaxAdjustmentDown),
-			?USD_TO_AR_FRACTION_REDUCTION_LIMIT),
+			?USD_TO_BIG_FRACTION_REDUCTION_LIMIT),
 	?LOG_DEBUG([{event, recalculated_rate},
 			{new_rate, ar_util:safe_divide(element(1, Rate), element(2, Rate))},
 			{new_scheduled_rate, ar_util:safe_divide(element(1, CappedScheduledRate),

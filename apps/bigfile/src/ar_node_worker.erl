@@ -122,7 +122,7 @@ init([]) ->
 		{false, true, _} ->
 			Config2 = Config#config{ init = false },
 			application:set_env(arweave, config, Config2),
-			InitialBalance = ?AR(?LOCALNET_BALANCE),
+			InitialBalance = ?BIG(?LOCALNET_BALANCE),
 			[B0] = ar_weave:init([{Config#config.mining_addr, InitialBalance, <<>>}],
 					ar_retarget:switch_to_linear_diff(Config#config.diff)),
 			RootHash0 = B0#block.wallet_list,
@@ -405,7 +405,7 @@ handle_info({event, nonce_limiter, initialized}, State) ->
 			lists:sublist(Blocks, ?STORE_BLOCKS_BEHIND_CURRENT)),
 	BlockTXPairs = [block_txs_pair(Block) || Block <- Blocks],
 	{BlockAnchors, RecentTXMap} = get_block_anchors_and_recent_txs_map(BlockTXPairs),
-	{Rate, ScheduledRate} = {B#block.usd_to_ar_rate, B#block.scheduled_usd_to_ar_rate},
+	{Rate, ScheduledRate} = {B#block.usd_to_big_rate, B#block.scheduled_usd_to_big_rate},
 	RecentBI2 = lists:sublist(BI, ?BLOCK_INDEX_HEAD_LEN),
 	ets:insert(node_state, [
 		{recent_block_index,	RecentBI2},
@@ -425,8 +425,8 @@ handle_info({event, nonce_limiter, initialized}, State) ->
 		{block_txs_pairs,		BlockTXPairs},
 		{block_anchors,			BlockAnchors},
 		{recent_txs_map,		RecentTXMap},
-		{usd_to_ar_rate,		Rate},
-		{scheduled_usd_to_ar_rate, ScheduledRate},
+		{usd_to_big_rate,		Rate},
+		{scheduled_usd_to_big_rate, ScheduledRate},
 		{price_per_gib_minute, B#block.price_per_gib_minute},
 		{kryder_plus_rate_multiplier, B#block.kryder_plus_rate_multiplier},
 		{denomination, B#block.denomination},
@@ -676,7 +676,7 @@ handle_task({filter_mempool, Mempool}, State) ->
 		_ ->
 			[{wallet_list, WalletList}] = ets:lookup(node_state, wallet_list),
 			Height = ar_node:get_height(),
-			[{usd_to_ar_rate, Rate}] = ets:lookup(node_state, usd_to_ar_rate),
+			[{usd_to_big_rate, Rate}] = ets:lookup(node_state, usd_to_big_rate),
 			[{price_per_gib_minute, Price}] = ets:lookup(node_state, price_per_gib_minute),
 			[{kryder_plus_rate_multiplier, KryderPlusRateMultiplier}] = ets:lookup(node_state,
 					kryder_plus_rate_multiplier),
@@ -1060,7 +1060,7 @@ pack_block_with_transactions(B, PrevB) ->
 	#block{ reward_history = RewardHistory,
 			reward_history_hash = PreviousRewardHistoryHash } = PrevB,
 	TXs = collect_mining_transactions(?BLOCK_TX_COUNT_LIMIT),
-	Rate = ar_pricing:usd_to_ar_rate(PrevB),
+	Rate = ar_pricing:usd_to_big_rate(PrevB),
 	PricePerGiBMinute = PrevB#block.price_per_gib_minute,
 	PrevDenomination = PrevB#block.denomination,
 	Height = B#block.height,
@@ -1359,9 +1359,9 @@ apply_validated_block2(State, B, PrevBlocks, Orphans, RecentBI, BlockTXPairs) ->
 	{Rate, ScheduledRate} =
 		case Height >= ar_fork:height_2_5() of
 			true ->
-				{B#block.usd_to_ar_rate, B#block.scheduled_usd_to_ar_rate};
+				{B#block.usd_to_big_rate, B#block.scheduled_usd_to_big_rate};
 			false ->
-				{?INITIAL_USD_TO_AR((Height + 1))(), ?INITIAL_USD_TO_AR((Height + 1))()}
+				{?INITIAL_USD_TO_BIG((Height + 1))(), ?INITIAL_USD_TO_BIG((Height + 1))()}
 		end,
 	AddedBlocks = tl(lists:reverse([B | [PrevB2 || PrevB2 <- PrevBlocks]])),
 	AddedBIElements = [block_index_entry(Blck) || Blck <- AddedBlocks],
@@ -1398,8 +1398,8 @@ apply_validated_block2(State, B, PrevBlocks, Orphans, RecentBI, BlockTXPairs) ->
 		{block_txs_pairs,		BlockTXPairs},
 		{block_anchors,			BlockAnchors},
 		{recent_txs_map,		RecentTXMap},
-		{usd_to_ar_rate,		Rate},
-		{scheduled_usd_to_ar_rate, ScheduledRate},
+		{usd_to_big_rate,		Rate},
+		{scheduled_usd_to_big_rate, ScheduledRate},
 		{price_per_gib_minute, B#block.price_per_gib_minute},
 		{kryder_plus_rate_multiplier, B#block.kryder_plus_rate_multiplier},
 		{denomination, B#block.denomination},
@@ -1477,7 +1477,7 @@ record_economic_metrics2(B, PrevB) ->
 	prometheus_gauge:set(endowment_pool, B#block.reward_pool),
 	Period_200_Years = 200 * 365 * 24 * 60 * 60,
 	Burden = ar_pricing:get_storage_cost(B#block.weave_size, B#block.timestamp,
-			B#block.usd_to_ar_rate, B#block.height),
+			B#block.usd_to_big_rate, B#block.height),
 	case B#block.height >= ar_fork:height_2_6() of
 		true ->
 			#block{ reward_history = RewardHistory } = B,
@@ -1499,7 +1499,7 @@ record_economic_metrics2(B, PrevB) ->
 					_, _, _, _} = ar_pricing:get_miner_reward_endowment_pool_debt_supply(Args),
 			prometheus_gauge:set(expected_block_reward, ExpectedBlockReward),
 			LegacyPricePerGibibyte = ar_pricing:get_storage_cost(1024 * 1024 * 1024,
-					os:system_time(second), PrevB#block.usd_to_ar_rate, B#block.height),
+					os:system_time(second), PrevB#block.usd_to_big_rate, B#block.height),
 			prometheus_gauge:set(legacy_price_per_gibibyte_minute, LegacyPricePerGibibyte),
 			prometheus_gauge:set(available_supply,
 					?TOTAL_SUPPLY - B#block.reward_pool + B#block.debt_supply),
@@ -1509,17 +1509,17 @@ record_economic_metrics2(B, PrevB) ->
 	end,
 	%% 2.5 metrics:
 	prometheus_gauge:set(network_burden, Burden),
-	Burden_10_USD_AR = ar_pricing:get_storage_cost(B#block.weave_size, B#block.timestamp,
+	Burden_10_USD_BIG = ar_pricing:get_storage_cost(B#block.weave_size, B#block.timestamp,
 			{1, 10}, B#block.height),
-	prometheus_gauge:set(network_burden_10_usd_ar, Burden_10_USD_AR),
+	prometheus_gauge:set(network_burden_10_usd_big, Burden_10_USD_BIG),
 	Burden_200_Years = Burden - ar_pricing:get_storage_cost(B#block.weave_size,
-			B#block.timestamp + Period_200_Years, B#block.usd_to_ar_rate, B#block.height),
+			B#block.timestamp + Period_200_Years, B#block.usd_to_big_rate, B#block.height),
 	prometheus_gauge:set(network_burden_200_years, Burden_200_Years),
-	Burden_200_Years_10_USD_AR = Burden_10_USD_AR - ar_pricing:get_storage_cost(
+	Burden_200_Years_10_USD_BIG = Burden_10_USD_BIG - ar_pricing:get_storage_cost(
 			B#block.weave_size, B#block.timestamp + Period_200_Years, {1, 10}, B#block.height),
-	prometheus_gauge:set(network_burden_200_years_10_usd_ar, Burden_200_Years_10_USD_AR),
+	prometheus_gauge:set(network_burden_200_years_10_usd_big, Burden_200_Years_10_USD_BIG),
 	case catch ar_pricing:get_expected_min_decline_rate(B#block.timestamp,
-			Period_200_Years, B#block.reward_pool, B#block.weave_size, B#block.usd_to_ar_rate,
+			Period_200_Years, B#block.reward_pool, B#block.weave_size, B#block.usd_to_big_rate,
 			B#block.height) of
 		{'EXIT', _} ->
 			?LOG_ERROR([{event, failed_to_compute_expected_min_decline_rate}]);
@@ -1534,7 +1534,7 @@ record_economic_metrics2(B, PrevB) ->
 			?LOG_ERROR([{event, failed_to_compute_expected_min_decline_rate2}]);
 		{RateDivisor2, RateDividend2} ->
 			prometheus_gauge:set(
-					expected_minimum_200_years_storage_costs_decline_rate_10_usd_ar,
+					expected_minimum_200_years_storage_costs_decline_rate_10_usd_big,
 					ar_util:safe_divide(RateDivisor2, RateDividend2))
 	end.
 
@@ -2005,7 +2005,7 @@ handle_found_solution(Args, PrevB, State) ->
 					next_vdf_difficulty = NextVDFDifficulty,
 					last_step_checkpoints = LastStepCheckpoints2,
 					steps = Steps },
-			{Rate, ScheduledRate} = ar_pricing:recalculate_usd_to_ar_rate(PrevB),
+			{Rate, ScheduledRate} = ar_pricing:recalculate_usd_to_big_rate(PrevB),
 			{PricePerGiBMinute, ScheduledPricePerGiBMinute} =
 					ar_pricing:recalculate_price_per_gib_minute(PrevB),
 			Denomination = PrevB#block.denomination,
@@ -2035,8 +2035,8 @@ handle_found_solution(Args, PrevB, State) ->
 				previous_cumulative_diff = PrevB#block.cumulative_diff,
 				poa = PoA1,
 				poa_cache = PoACache,
-				usd_to_ar_rate = Rate,
-				scheduled_usd_to_ar_rate = ScheduledRate,
+				usd_to_big_rate = Rate,
+				scheduled_usd_to_big_rate = ScheduledRate,
 				packing_2_5_threshold = 0,
 				strict_data_split_threshold = PrevB#block.strict_data_split_threshold,
 				hash_preimage = SolutionPreimage,

@@ -7,5 +7,5 @@ SCRIPT_DIR="$(dirname "$0")"
 SCRIPT_ACTION="remote_console"
 
 # Sets $ARWEAVE and $ARWEAVE_* variables
-source ${SCRIPT_DIR}/arweave.env
+source ${SCRIPT_DIR}/bigfile.env
 ${ARWEAVE} ${SCRIPT_ACTION}

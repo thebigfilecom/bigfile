@@ -303,8 +303,8 @@ generate_signed_hash(#block{ previous_block = PrevH, timestamp = TS,
 		hash_list_merkle = HashListMerkle, reward_pool = RewardPool,
 		packing_2_5_threshold = Packing_2_5_Threshold, reward_addr = Addr,
 		reward_key = RewardKey, strict_data_split_threshold = StrictChunkThreshold,
-		usd_to_ar_rate = {RateDividend, RateDivisor},
-		scheduled_usd_to_ar_rate = {ScheduledRateDividend, ScheduledRateDivisor},
+		usd_to_big_rate = {RateDividend, RateDivisor},
+		scheduled_usd_to_big_rate = {ScheduledRateDividend, ScheduledRateDivisor},
 		tags = Tags, txs = TXs,
 		reward = Reward, hash_preimage = HashPreimage, recall_byte = RecallByte,
 		partition_number = PartitionNumber, recall_byte2 = RecallByte2,
@@ -482,9 +482,9 @@ generate_block_data_segment_base(B) ->
 			Props2 =
 				case B#block.height >= ar_fork:height_2_5() of
 					true ->
-						{RateDividend, RateDivisor} = B#block.usd_to_ar_rate,
+						{RateDividend, RateDivisor} = B#block.usd_to_big_rate,
 						{ScheduledRateDividend, ScheduledRateDivisor} =
-							B#block.scheduled_usd_to_ar_rate,
+							B#block.scheduled_usd_to_big_rate,
 						[
 							integer_to_binary(RateDividend),
 							integer_to_binary(RateDivisor),

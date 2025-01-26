@@ -1710,8 +1710,8 @@ estimate_tx_fee(Size, Addr, Type) ->
 				[{'or',
 					{'==', '$1', height},
 					{'==', '$1', wallet_list},
-					{'==', '$1', usd_to_ar_rate},
-					{'==', '$1', scheduled_usd_to_ar_rate},
+					{'==', '$1', usd_to_big_rate},
+					{'==', '$1', scheduled_usd_to_big_rate},
 					{'==', '$1', price_per_gib_minute},
 					{'==', '$1', denomination},
 					{'==', '$1', scheduled_price_per_gib_minute},
@@ -2271,8 +2271,8 @@ block_field_to_string(<<"height">>, Res) -> integer_to_list(Res);
 block_field_to_string(<<"txs">>, Res) -> ar_serialize:jsonify(Res);
 block_field_to_string(<<"hash_list">>, Res) -> ar_serialize:jsonify(Res);
 block_field_to_string(<<"wallet_list">>, Res) -> ar_serialize:jsonify(Res);
-block_field_to_string(<<"usd_to_ar_rate">>, Res) -> ar_serialize:jsonify(Res);
-block_field_to_string(<<"scheduled_usd_to_ar_rate">>, Res) -> ar_serialize:jsonify(Res);
+block_field_to_string(<<"usd_to_big_rate">>, Res) -> ar_serialize:jsonify(Res);
+block_field_to_string(<<"scheduled_usd_to_big_rate">>, Res) -> ar_serialize:jsonify(Res);
 block_field_to_string(<<"poa">>, Res) -> ar_serialize:jsonify(Res);
 block_field_to_string(_, Res) -> Res.
 

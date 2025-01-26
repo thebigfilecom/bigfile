@@ -297,7 +297,7 @@ test_auto_redenomination_and_endowment_debt() ->
 	[B0] = ar_weave:init([
 		{ar_wallet:to_address(Pub1), 20000000000000, <<>>},
 		{ar_wallet:to_address(Pub2), 2000000000, <<>>},
-		{ar_wallet:to_address(Pub3), ?AR(1000000000000000000), <<>>}
+		{ar_wallet:to_address(Pub3), ?BIG(1000000000000000000), <<>>}
 	]),
 	ar_test_node:start(B0),
 	ar_test_node:start_peer(peer1, B0),
@@ -498,7 +498,7 @@ test_auto_redenomination_and_endowment_debt() ->
 	?assertEqual(2, length(B9#block.txs)),
 	?assertEqual(0, B9#block.redenomination_height),
 	?assert(prometheus_gauge:value(available_supply) < ?REDENOMINATION_THRESHOLD),
-	?assertEqual(?AR(1000000000000000000) - Reward3 - Reward4 - 10, get_balance(Pub3)),
+	?assertEqual(?BIG(1000000000000000000) - Reward3 - Reward4 - 10, get_balance(Pub3)),
 	?assertEqual(2000000000 + 10, get_balance(Pub2)),
 	ar_test_node:mine(),
 	_BI10 = ar_test_node:wait_until_height(10),

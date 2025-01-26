@@ -14,19 +14,19 @@ if ! $ARWEAVE_DIR/testnet/assert_testnet.sh; then
 	exit 1
 fi
 
-if [[ ! -f "/arweave-build/testnet/bin/start" ]]; then
-    echo "Arweave start script not found. Please run rebuild_testnet.sh first."
+if [[ ! -f "/bigfile-build/testnet/bin/start" ]]; then
+    echo "BigFile start script not found. Please run rebuild_testnet.sh first."
 	exit 1
 fi
 
 node="bigfile-testnet-1"
 config_file="$ARWEAVE_DIR/testnet/config/${node}.json"
 
-SCREEN_CMD="screen -dmsL arweave /arweave-build/testnet/bin/start config_file $config_file $*"
+SCREEN_CMD="screen -dmsL arweave /bigfile-build/testnet/bin/start config_file $config_file $*"
 
 echo "$SCREEN_CMD"
-echo "$SCREEN_CMD" > /arweave-build/testnet/run.sh
-chmod +x /arweave-build/testnet/run.sh
+echo "$SCREEN_CMD" > /bigfile-build/testnet/run.sh
+chmod +x /bigfile-build/testnet/run.sh
 
-cd /arweave-build/testnet
+cd /bigfile-build/testnet
 ./run.sh

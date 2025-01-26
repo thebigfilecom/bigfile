@@ -9,7 +9,7 @@
 		get_current_block/0, get_current_diff/0,
 		is_in_block_index/1, get_block_index_and_height/0,
 		get_height/0, get_weave_size/0, get_balance/1, get_last_tx/1, get_ready_for_mining_txs/0,
-		get_current_usd_to_ar_rate/0, get_current_block_hash/0,
+		get_current_usd_to_big_rate/0, get_current_block_hash/0,
 		get_block_index_entry/1, get_2_0_hash_of_1_0_block/1, is_joined/0, get_block_anchors/0,
 		get_recent_txs_map/0, get_mempool_size/0,
 		get_block_shadow_from_cache/1, get_recent_partition_upper_bound_by_prev_h/1,
@@ -173,8 +173,8 @@ is_joined() ->
 	end.
 
 %% @doc Get the currently estimated USD to AR exchange rate.
-get_current_usd_to_ar_rate() ->
-	[{_, Rate}] = ets:lookup(node_state, usd_to_ar_rate),
+get_current_usd_to_big_rate() ->
+	[{_, Rate}] = ets:lookup(node_state, usd_to_big_rate),
 	Rate.
 
 %% @doc Returns a list of block anchors corrsponding to the current state -

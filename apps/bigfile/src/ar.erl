@@ -36,7 +36,7 @@ main(Args) ->
 	start(parse_config_file(Args, [], #config{})).
 
 show_help() ->
-	io:format("Usage: arweave-server [options]~n"),
+	io:format("Usage: bigfile-server [options]~n"),
 	io:format("Compatible with network: ~s~n", [?NETWORK_NAME]),
 	io:format("Options:~n"),
 	lists:foreach(

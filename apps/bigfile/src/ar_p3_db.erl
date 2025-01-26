@@ -21,7 +21,7 @@ start_link() ->
 get_or_create_account(
 		Address,
 		{{_, _} = _SignatureType, _Pub} = PublicKey,
-		Asset = ?ARWEAVE_AR) ->
+		Asset = ?BIGFILE_BIG) ->
 	validated_call(Address, {get_or_create_account, Address, PublicKey, Asset});
 get_or_create_account(
 		_Address,
@@ -36,7 +36,7 @@ get_transaction(Address, Id) ->
 	validated_call(Address, {get_transaction, Address, Id}).
 
 get_balance(Address) ->
-	get_balance(Address, ?ARWEAVE_AR).
+	get_balance(Address, ?BIGFILE_BIG).
 get_balance(Address, Asset) ->
 	case get_account(Address) of
 		{ok, Account = #p3_account{ asset = Asset}} ->

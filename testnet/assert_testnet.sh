@@ -23,5 +23,5 @@ if [[ "$is_testnet_server" -eq 0 ]]; then
     exit 1
 fi
 
-mkdir -p /arweave-build/mainnet
-mkdir -p /arweave-build/testnet
+mkdir -p /bigfile-build/mainnet
+mkdir -p /bigfile-build/testnet

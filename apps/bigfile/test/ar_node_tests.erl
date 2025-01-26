@@ -87,23 +87,23 @@ replay_attack_test_() ->
 	{timeout, 120, fun() ->
 		Key1 = {_Priv1, Pub1} = ar_wallet:new(),
 		{_Priv2, Pub2} = ar_wallet:new(),
-		[B0] = ar_weave:init([{ar_wallet:to_address(Pub1), ?AR(10000), <<>>}]),
+		[B0] = ar_weave:init([{ar_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
 		ar_test_node:start(B0),
 		ar_test_node:start_peer(peer1, B0),
 		ar_test_node:connect_to_peer(peer1),
 		SignedTX = sign_v1_tx(main, Key1, #{ target => ar_wallet:to_address(Pub2),
-				quantity => ?AR(1000), reward => ?AR(1), last_tx => <<>> }),
+				quantity => ?BIG(1000), reward => ?BIG(1), last_tx => <<>> }),
 		ar_test_node:assert_post_tx_to_peer(main, SignedTX),
 		ar_test_node:mine(),
 		ar_test_node:assert_wait_until_height(peer1, 1),
-		?assertEqual(?AR(8999), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub1])),
-		?assertEqual(?AR(1000), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub2])),
+		?assertEqual(?BIG(8999), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub1])),
+		?assertEqual(?BIG(1000), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub2])),
 		ar_events:send(tx, {ready_for_mining, SignedTX}),
 		ar_test_node:wait_until_receives_txs([SignedTX]),
 		ar_test_node:mine(),
 		ar_test_node:assert_wait_until_height(peer1, 2),
-		?assertEqual(?AR(8999), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub1])),
-		?assertEqual(?AR(1000), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub2]))
+		?assertEqual(?BIG(8999), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub1])),
+		?assertEqual(?BIG(1000), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub2]))
 	end}.
 
 %% @doc Create two new wallets and a blockweave with a wallet balance.
@@ -117,9 +117,9 @@ test_wallet_transaction() ->
 		fun() ->
 			{Priv1, Pub1} = ar_wallet:new_keyfile(KeyType),
 			{_Priv2, Pub2} = ar_wallet:new(),
-			TX = ar_tx:new(ar_wallet:to_address(Pub2), ?AR(1), ?AR(9000), <<>>),
+			TX = ar_tx:new(ar_wallet:to_address(Pub2), ?BIG(1), ?BIG(9000), <<>>),
 			SignedTX = ar_tx:sign(TX#tx{ format = 2 }, Priv1, Pub1),
-			[B0] = ar_weave:init([{ar_wallet:to_address(Pub1), ?AR(10000), <<>>}]),
+			[B0] = ar_weave:init([{ar_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
 			ar_test_node:start(B0, ar_wallet:to_address(ar_wallet:new_keyfile({eddsa, ed25519}))),
 			ar_test_node:start_peer(peer1, B0),
 			ar_test_node:connect_to_peer(peer1),
@@ -127,8 +127,8 @@ test_wallet_transaction() ->
 			ar_test_node:mine(),
 			ar_test_node:wait_until_height(1),
 			ar_test_node:assert_wait_until_height(peer1, 1),
-			?assertEqual(?AR(999), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub1])),
-			?assertEqual(?AR(9000), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub2]))
+			?assertEqual(?BIG(999), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub1])),
+			?assertEqual(?BIG(9000), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub2]))
 		end
 	end,
 	[
@@ -142,22 +142,22 @@ tx_threading_test_() ->
 	{timeout, 120, fun() ->
 		Key1 = {_Priv1, Pub1} = ar_wallet:new(),
 		{_Priv2, Pub2} = ar_wallet:new(),
-		[B0] = ar_weave:init([{ar_wallet:to_address(Pub1), ?AR(10000), <<>>}]),
+		[B0] = ar_weave:init([{ar_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
 		ar_test_node:start(B0),
 		ar_test_node:start_peer(peer1, B0),
 		ar_test_node:connect_to_peer(peer1),
 		SignedTX = sign_v1_tx(main, Key1, #{ target => ar_wallet:to_address(Pub2),
-				quantity => ?AR(1000), reward => ?AR(1), last_tx => <<>> }),
+				quantity => ?BIG(1000), reward => ?BIG(1), last_tx => <<>> }),
 		SignedTX2 = sign_v1_tx(main, Key1, #{ target => ar_wallet:to_address(Pub2),
-				quantity => ?AR(1000), reward => ?AR(1), last_tx => SignedTX#tx.id }),
+				quantity => ?BIG(1000), reward => ?BIG(1), last_tx => SignedTX#tx.id }),
 		ar_test_node:assert_post_tx_to_peer(main, SignedTX),
 		ar_test_node:mine(),
 		ar_test_node:wait_until_height(1),
 		ar_test_node:assert_post_tx_to_peer(main, SignedTX2),
 		ar_test_node:mine(),
 		ar_test_node:assert_wait_until_height(peer1, 2),
-		?assertEqual(?AR(7998), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub1])),
-		?assertEqual(?AR(2000), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub2]))
+		?assertEqual(?BIG(7998), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub1])),
+		?assertEqual(?BIG(2000), ar_test_node:remote_call(peer1, ar_node, get_balance, [Pub2]))
 	end}.
 
 persisted_mempool_test_() ->
@@ -169,7 +169,7 @@ persisted_mempool_test_() ->
 
 test_persisted_mempool() ->
 	{_, Pub} = Wallet = ar_wallet:new(),
-	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?AR(10000), <<>>}]),
+	[B0] = ar_weave:init([{ar_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 	ar_test_node:start(B0),
 	ar_test_node:start_peer(peer1, B0),
 	ar_test_node:disconnect_from(peer1),

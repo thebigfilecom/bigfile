@@ -34,7 +34,7 @@ test_timeout() ->
 	?assertEqual({error, timeout}, ar_p3_db:get_or_create_account(
 		Address,
 		Pub,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	)).
 
 test_account() ->
@@ -46,20 +46,20 @@ test_account() ->
 	{ok, Account1} = ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 	?assertEqual(Address1, Account1#p3_account.address),
 	?assertEqual(PubKey1, Account1#p3_account.public_key),
-	?assertEqual(?ARWEAVE_AR, Account1#p3_account.asset),
+	?assertEqual(?BIGFILE_BIG, Account1#p3_account.asset),
 	?assertEqual(0, Account1#p3_account.balance),
 	?assertEqual(0, Account1#p3_account.count),
 	?assert(Account1#p3_account.timestamp >= TestStart),
 	{ok, Account2} = ar_p3_db:get_or_create_account(
 			Address2,
 			PubKey2,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 	?assertEqual(Address2, Account2#p3_account.address),
 	?assertEqual(PubKey2, Account2#p3_account.public_key),
-	?assertEqual(?ARWEAVE_AR, Account2#p3_account.asset),
+	?assertEqual(?BIGFILE_BIG, Account2#p3_account.asset),
 	?assertEqual(0, Account2#p3_account.balance),
 	?assertEqual(0, Account2#p3_account.count),
 	?assert(Account2#p3_account.timestamp >= TestStart),
@@ -75,7 +75,7 @@ test_account_errors() ->
 	{ok, Account} = ar_p3_db:get_or_create_account(
 		ar_wallet:to_address(Wallet),
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	?assertEqual(
 		{error, invalid_address},
@@ -117,11 +117,11 @@ test_deposit() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address2,
 			PubKey2,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 
 	%% Post Tx1 to Account1
 	TXID1 = crypto:strong_rand_bytes(32),
@@ -181,16 +181,16 @@ test_deposit() ->
 		ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey1,
-			?ARWEAVE_AR)), 
+			?BIGFILE_BIG)), 
 	?assertEqual(
 		{error, account_mismatch},
 		ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey2,
-			?ARWEAVE_AR)), 
+			?BIGFILE_BIG)), 
 	?assertEqual(Address1, Account1C#p3_account.address),
 	?assertEqual(PubKey1, Account1C#p3_account.public_key),
-	?assertEqual(?ARWEAVE_AR, Account1C#p3_account.asset),
+	?assertEqual(?BIGFILE_BIG, Account1C#p3_account.asset),
 	?assertEqual(15, Account1C#p3_account.balance),
 	?assertEqual(2, Account1C#p3_account.count),
 	?assert(Account1C#p3_account.timestamp >= TestStart),
@@ -206,7 +206,7 @@ test_double_deposit() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 
 	%% Post Tx1 to Account1
 	TXID1 = crypto:strong_rand_bytes(32),
@@ -238,7 +238,7 @@ test_deposit_errors() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 		Address3,
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	?assertEqual(
 		{error, not_found},
@@ -299,7 +299,7 @@ test_charge() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 
 	Request = raw_request(<<"GET">>, <<"/price/1000">>),
 
@@ -350,7 +350,7 @@ test_double_charge() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 
 	Request = raw_request(<<"GET">>, <<"/price/1000">>),
 
@@ -386,7 +386,7 @@ test_charge_errors() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 		Address3,
 		PubKey,
-		?ARWEAVE_AR
+		?BIGFILE_BIG
 	),
 	Request = raw_request(<<"GET">>, <<"/price/1000">>),
 	?assertEqual(
@@ -461,11 +461,11 @@ test_reverse() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address1,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address2,
 			PubKey2,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 
 	TXID1 = crypto:strong_rand_bytes(32),
 	{ok, Deposit1} = ar_p3_db:post_deposit(Address1, 10, TXID1),
@@ -532,7 +532,7 @@ test_concurrent_deposits() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 	NumThreads = 100,
 	ar_util:pmap(
 		fun(_) ->
@@ -552,7 +552,7 @@ test_concurrent_charges() ->
 	{ok, _} = ar_p3_db:get_or_create_account(
 			Address,
 			PubKey1,
-			?ARWEAVE_AR),
+			?BIGFILE_BIG),
 	Request = raw_request(<<"GET">>, <<"/price/1000">>),
 	ar_p3_db:post_deposit(Address, 10, crypto:strong_rand_bytes(32)),
 	NumThreads = 100,

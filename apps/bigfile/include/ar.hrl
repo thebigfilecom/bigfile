@@ -92,7 +92,7 @@
 -define(GENESIS_TOKENS, 55000000).
 
 %% Winstons per AR.
--define(WINSTON_PER_AR, 1000000000000).
+-define(WINSTON_PER_BIG, 1000000000000).
 
 %% The number of bytes in a gibibyte.
 -define(MiB, (1024 * 1024)).
@@ -522,11 +522,11 @@
 	%% The estimated USD to AR conversion rate used in the pricing calculations.
 	%% A tuple {Dividend, Divisor}.
 	%% Used until the transition to the new fee calculation method is complete.
-	usd_to_ar_rate,
+	usd_to_big_rate,
 	%% The estimated USD to AR conversion rate scheduled to be used a bit later, used to
 	%% compute the necessary fee for the currently signed txs. A tuple {Dividend, Divisor}.
 	%% Used until the transition to the new fee calculation method is complete.
-	scheduled_usd_to_ar_rate,
+	scheduled_usd_to_big_rate,
 	%% The offset on the weave separting the data which has to be packed for mining after the
 	%% fork 2.5 from the data which does not have to be packed yet. It is set to the
 	%% weave_size of the 50th previous block at the hard fork block and moves down at a speed
@@ -735,7 +735,7 @@
 }).
 
 %% A macro to convert AR into Winstons.
--define(AR(AR), (?WINSTON_PER_AR * AR)).
+-define(BIG(BIG), (?WINSTON_PER_BIG * BIG)).
 
 %% A macro to return whether a term is a block record.
 -define(IS_BLOCK(X), (is_record(X, block))).
