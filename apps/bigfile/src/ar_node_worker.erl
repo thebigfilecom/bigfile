@@ -1651,7 +1651,7 @@ priority({cache_missing_txs, _, _}) ->
 priority(_) ->
 	{os:system_time(second), 1}.
 
-	read_hash_list_2_0_for_1_0_blocks() ->
+read_hash_list_2_0_for_1_0_blocks() ->
 		Fork_2_0 = ar_fork:height_2_0(),
 		case Fork_2_0 > 0 of
 			true ->
@@ -1662,18 +1662,15 @@ priority(_) ->
 							Decoded when is_list(Decoded) ->
 								lists:map(fun ar_util:decode/1, Decoded);
 							_ ->
-								?LOG_ERROR("Invalid format in hash list file."), %% Değişti
+								io:format("Invalid format in hash list file.~n"),
 								[]
 						end;
-					{error, enoent} -> %% <--- YENİ SATIR
-						?LOG_INFO("Hash list file not found, fresh start"), %% Yeni
-						[];
-					{error, Reason} -> 
-						?LOG_ERROR("Failed to read hash list: ~p", [Reason]), %% Değişti
+					{error, Reason} ->
+						io:format("Failed to read hash list file: ~p~n", [Reason]),
 						[]
 				end;
 			false ->
-				[] %% <--- ZATEN DOĞRU (yeni ağlar için false kalacak)
+				[]
 		end.
 	
 start_from_state([#block{} = GenesisB]) ->
