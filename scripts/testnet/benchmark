@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -e
+
+SCRIPT_DIR="$(dirname "$0")"
+$SCRIPT_DIR/check-nofile
+
+# Sets $BIGFILE and $COMMAND
+source $SCRIPT_DIR/bigfile.env
+
+echo "Moving the benchmark folder to benchmark.old..."
+rm -rf benchmark.old
+if [ -d benchmark ]; then
+    mv -i benchmark benchmark.old;
+fi
+
+$BIGFILE foreground -run big main $RANDOMX_JIT init mine data_dir benchmark

@@ -1,0 +1,6 @@
+[submodule "lib/RandomX"]
+	path = apps/bigfile/lib/RandomX
+	url = https://github.com/thebigfilecom/RandomX.git
+[submodule "apps/bigfile/lib/secp256k1"]
+	path = apps/bigfile/lib/secp256k1
+	url = https://github.com/bitcoin-core/secp256k1

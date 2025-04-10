@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+SCRIPT_DIR=$(dirname ${0})
+BIGFILE_DEV=1
+BIGFILE=${SCRIPT_DIR}/bigfile
+${BIGFILE} test_e2e ${*}

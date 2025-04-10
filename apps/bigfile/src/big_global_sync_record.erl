@@ -1,0 +1,163 @@
+-module(big_global_sync_record).
+
+-behaviour(gen_server).
+
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_data_discovery.hrl").
+
+-export([start_link/0, get_serialized_sync_record/1, get_serialized_sync_buckets/0]).
+
+-export([init/1, handle_cast/2, handle_call/3, handle_info/2, terminate/2]).
+
+%% The frequency in seconds of updating serialized sync buckets.
+-ifdef(BIG_TEST).
+-define(UPDATE_SERIALIZED_SYNC_BUCKETS_FREQUENCY_S, 300).
+-else.
+-define(UPDATE_SERIALIZED_SYNC_BUCKETS_FREQUENCY_S, 300).
+-endif.
+
+%% The frequency of recalculating the total size of the stored unique data.
+-define(UPDATE_SIZE_METRIC_FREQUENCY_MS, 10000).
+
+-record(state, {
+	sync_record,
+	sync_buckets
+}).
+
+%%%===================================================================
+%%% Public interface.
+%%%===================================================================
+
+%% @doc Start the server.
+start_link() ->
+	gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+%% @doc Return a set of data intervals from all configured storage modules.
+%%
+%% Args is a map with the following keys
+%%
+%% format			required	etf or json		serialize in Erlang Term Format or JSON
+%% random_subset	optional	any()			pick a random subset if the key is present
+%% start			optional	integer()		pick intervals with right bound >= start
+%% limit			optional	integer()		the number of intervals to pick
+%%
+%% ?MAX_SHARED_SYNCED_INTERVALS_COUNT is both the default and the maximum value for limit.
+%% If random_subset key is present, a random subset of intervals is picked, the start key is
+%% ignored. If random_subset key is not present, the start key must be provided.
+get_serialized_sync_record(Args) ->
+	case catch gen_server:call(?MODULE, {get_serialized_sync_record, Args}, 10000) of
+		{'EXIT', {timeout, {gen_server, call, _}}} ->
+			{error, timeout};
+		Reply ->
+			Reply
+	end.
+
+%% @doc Return an ETF-serialized compact but imprecise representation of the synced data -
+%% a bucket size and a map where every key is the sequence number of the bucket, every value -
+%% the percentage of data synced in the reported bucket.
+get_serialized_sync_buckets() ->
+	case ets:lookup(?MODULE, serialized_sync_buckets) of
+		[] ->
+			{error, not_initialized};
+		[{_, SerializedSyncBuckets}] ->
+			{ok, SerializedSyncBuckets}
+	end.
+
+%%%===================================================================
+%%% Generic server callbacks.
+%%%===================================================================
+
+init([]) ->
+	ok = big_events:subscribe(sync_record),
+	{ok, Config} = application:get_env(bigfile, config),
+	SyncRecord = lists:foldl(
+		fun(Module, Acc) ->
+			case Module of
+				{_, _, {replica_2_9, _}} when ?BLOCK_2_9_SYNCING ->
+					%% Ignore replica.2.9 packing. This is a temporary solution until
+					%% we can support data syncing in batches corresponding to the
+					%% replica.2.9 entropy footprint
+					Acc;
+				_ ->
+					StoreID = big_storage_module:id(Module),
+					big_intervals:union(big_sync_record:get(big_data_sync, StoreID), Acc)
+			end
+		end,
+		big_intervals:new(),
+		["default" | Config#config.storage_modules]
+	),
+	SyncBuckets = big_sync_buckets:from_intervals(SyncRecord),
+	{SyncBuckets2, SerializedSyncBuckets} = big_sync_buckets:serialize(SyncBuckets,
+					?MAX_SYNC_BUCKETS_SIZE),
+	ets:insert(?MODULE, {serialized_sync_buckets, SerializedSyncBuckets}),
+	ar_util:cast_after(?UPDATE_SERIALIZED_SYNC_BUCKETS_FREQUENCY_S * 1000,
+			?MODULE, update_serialized_sync_buckets),
+	gen_server:cast(?MODULE, record_v2_index_data_size_metric),
+	{ok, #state{ sync_record = SyncRecord, sync_buckets = SyncBuckets2 }}.
+
+handle_call({get_serialized_sync_record, Args}, _From, State) ->
+	#state{ sync_record = SyncRecord } = State,
+	Limit = min(maps:get(limit, Args, ?MAX_SHARED_SYNCED_INTERVALS_COUNT),
+			?MAX_SHARED_SYNCED_INTERVALS_COUNT),
+	{reply, {ok, big_intervals:serialize(Args#{ limit => Limit }, SyncRecord)}, State};
+
+handle_call(Request, _From, State) ->
+	?LOG_WARNING([{event, unhandled_call}, {module, ?MODULE}, {request, Request}]),
+	{reply, ok, State}.
+
+handle_cast(update_serialized_sync_buckets, State) ->
+	#state{ sync_buckets = SyncBuckets } = State,
+	{SyncBuckets2, SerializedSyncBuckets} = big_sync_buckets:serialize(SyncBuckets,
+			?MAX_SYNC_BUCKETS_SIZE),
+	ets:insert(?MODULE, {serialized_sync_buckets, SerializedSyncBuckets}),
+	ar_util:cast_after(?UPDATE_SERIALIZED_SYNC_BUCKETS_FREQUENCY_S * 1000,
+			?MODULE, update_serialized_sync_buckets),
+	{noreply, State#state{ sync_buckets = SyncBuckets2 }};
+
+handle_cast(record_v2_index_data_size_metric, State) ->
+	#state{ sync_record = SyncRecord } = State,
+	big_mining_stats:set_total_data_size(big_intervals:sum(SyncRecord)),
+	ar_util:cast_after(?UPDATE_SIZE_METRIC_FREQUENCY_MS, ?MODULE,
+			record_v2_index_data_size_metric),
+	{noreply, State};
+
+handle_cast(Cast, State) ->
+	?LOG_WARNING([{event, unhandled_cast}, {module, ?MODULE}, {cast, Cast}]),
+	{noreply, State}.
+
+handle_info({event, sync_record, {add_range, Start, End, big_data_sync, StoreID}}, State) ->
+	case big_storage_module:get_packing(StoreID) of
+		{replica_2_9, _} when ?BLOCK_2_9_SYNCING ->
+			%% Ignore replica.2.9 packing. This is a temporary solution until
+			%% we can support data syncing in batches corresponding to the
+			%% replica.2.9 entropy footprint
+			{noreply, State};
+		_ ->
+			#state{ sync_record = SyncRecord, sync_buckets = SyncBuckets } = State,
+			SyncRecord2 = big_intervals:add(SyncRecord, End, Start),
+			SyncBuckets2 = big_sync_buckets:add(End, Start, SyncBuckets),
+			{noreply, State#state{ sync_record = SyncRecord2, sync_buckets = SyncBuckets2 }}
+	end;
+
+handle_info({event, sync_record, {global_cut, Offset}}, State) ->
+	#state{ sync_record = SyncRecord, sync_buckets = SyncBuckets } = State,
+	SyncRecord2 = big_intervals:cut(SyncRecord, Offset),
+	SyncBuckets2 = big_sync_buckets:cut(Offset, SyncBuckets),
+	{noreply, State#state{ sync_record = SyncRecord2, sync_buckets = SyncBuckets2 }};
+
+handle_info({event, sync_record, {global_remove_range, Start, End}}, State) ->
+	#state{ sync_record = SyncRecord, sync_buckets = SyncBuckets } = State,
+	SyncRecord2 = big_intervals:delete(SyncRecord, End, Start),
+	SyncBuckets2 = big_sync_buckets:delete(End, Start, SyncBuckets),
+	{noreply, State#state{ sync_record = SyncRecord2, sync_buckets = SyncBuckets2 }};
+
+handle_info({event, sync_record, _}, State) ->
+	{noreply, State};
+
+handle_info(Message, State) ->
+	?LOG_WARNING([{event, unhandled_info}, {module, ?MODULE}, {message, Message}]),
+	{noreply, State}.
+
+terminate(Reason, _State) ->
+	?LOG_INFO([{event, terminate}, {module, ?MODULE}, {reason, io_lib:format("~p", [Reason])}]).

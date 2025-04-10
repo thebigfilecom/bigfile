@@ -1,0 +1,65 @@
+{
+  "init": true,
+  "port": 1984,
+  "mine": true,
+  "peers": [],
+  "block_gossip_peers": [],
+  "local_peers": [],
+  "data_dir": "/root/arweave/data_dir",
+  "log_dir": "/root/arweave/data_dir/logs",
+  "repack_batch_size": 200,
+  "polling": 10,
+  "block_pollers": 100,
+  "join_workers": 10,
+  "diff": 6,
+  "sync_jobs": 10,
+  "header_sync_jobs": 1,  
+  "disk_pool_jobs": 2,
+  "hashing_threads": 16,
+  "data_cache_size_limit": 10000,
+  "packing_cache_size_limit": 20000,
+  "disk_space": 44,
+  "disk_space_check_frequency": 10,
+  "mining_cache_size_mb": 512,
+  "tx_validators": 3,
+  "post_tx_timeout": 50,
+  "max_emitters": 4,
+  "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
+  "storage_modules": [
+    "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
+  ],
+  "max_disk_pool_buffer_mb": 100000,
+  "max_connections": 512,
+  "max_gateway_connections": 64,
+  "replica_2_9_workers": 8,
+  "packing_workers": 25,
+  "disk_pool_data_root_expiration_time": 10000,
+  "max_disk_pool_data_root_buffer_mb": 100000000,
+  "disk_cache_size_mb": 1024,
+  "requests_per_minute_limit": 2500,
+  "requests_per_minute_limit_by_ip": {
+    "127.0.0.1": {
+      "chunk": 100000,
+      "data_sync_record": 1,
+      "recent_hash_list_diff": 200000,
+      "default": 100
+    }
+  },
+  "semaphores": {
+    "get_chunk": 1,
+    "get_and_pack_chunk": 2,
+    "get_tx_data": 3,
+    "post_chunk": 999,
+    "get_block_index": 1,
+    "get_wallet_list": 2,
+    "arql": 3,
+    "gateway_arql": 3
+  },
+  "run_defragmentation": true,
+  "defragmentation_trigger_threshold": 1000,
+  "defragment_modules": [
+    "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
+  ],
+  "block_throttle_by_ip_interval": 5000,
+  "block_throttle_by_solution_interval": 12000
+}

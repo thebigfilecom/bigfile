@@ -1,0 +1,21 @@
+{application, bigfile, [
+	{description, "BigFile"},
+	{vsn, "2.9.4"},
+	{mod, {big, []}},
+	{applications, [
+		kernel,
+		stdlib,
+		sasl,
+		os_mon,
+		gun,
+		cowlib,
+		ranch,
+		cowboy,
+		prometheus,
+		prometheus_cowboy,
+		prometheus_process_collector,
+		prometheus_httpd,
+		runtime_tools
+	]},
+	{extra_applications, [recon]}
+]}.
