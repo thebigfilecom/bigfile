@@ -92,7 +92,7 @@ peer sfo-1.na-west-1.arweave.xyz
 $ ./rebar3 as prod tar
 ```
 
-You will then find the gzipped tarball at `_build/prod/rel/arweave/arweave-x.y.z.tar.gz`.
+You will then find the gzipped tarball at `_build/prod/rel/bigfile/bigfile-x.y.z.tar.gz`.
 
 ### Testnet
 
@@ -102,7 +102,7 @@ To make a testnet build, run:
 $ ./rebar3 as testnet tar
 ```
 
-The tarball is created at `_build/testnet/rel/arweave/arweave-x.y.z.tar.gz`.
+The tarball is created at `_build/testnet/rel/bigfile/bigfile-x.y.z.tar.gz`.
 
 You can join the public testnet now:
 

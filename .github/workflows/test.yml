@@ -1,4 +1,4 @@
-name: "Arweave Tests"
+name: "Bigfile Tests"
 on:
   workflow_dispatch:
   push:
@@ -18,7 +18,7 @@ jobs:
         with:
           submodules: "recursive"
 
-      # only arweave dependencies are being cached,
+      # only bigfile dependencies are being cached,
       # those are not updated everyday and this is
       # unecessary to fetch them everytime.
       - uses: actions/cache@v4
@@ -108,7 +108,7 @@ jobs:
       - name: Prepare artifacts
         run: |
           chmod -R u+w ./_build
-          tar czfp _build.tar.gz ./_build ./bin/arweave
+          tar czfp _build.tar.gz ./_build ./bin/bigfile
           tar czfp apps.tar.gz ./apps
 
       # to avoid reusing artifacts from someone else
