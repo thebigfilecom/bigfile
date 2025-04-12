@@ -21,7 +21,7 @@
 
 -define(HTTP_IFACE_ROUTES, [
 	{"/metrics/[:registry]", big_prometheus_cowboy_handler, []},
-	{"/[...]", ar_http_iface_handler, []}
+	{"/[...]", big_http_iface_handler, []}
 ]).
 
 -define(ENDPOINTS, ["info", "block", "block_announcement", "block2", "tx", "tx2",
@@ -85,9 +85,9 @@ start_http_iface_listener(Config) ->
 	},
 	case TlsCertfilePath of
 		not_set ->
-			{ok, _} = cowboy:start_clear(ar_http_iface_listener, TransportOpts, ProtocolOpts);
+			{ok, _} = cowboy:start_clear(big_http_iface_listener, TransportOpts, ProtocolOpts);
 		_ ->
-			{ok, _} = cowboy:start_tls(ar_http_iface_listener, TransportOpts ++ [
+			{ok, _} = cowboy:start_tls(big_http_iface_listener, TransportOpts ++ [
 				{certfile, TlsCertfilePath},
 				{keyfile, TlsKeyfilePath}
 			], ProtocolOpts)
@@ -95,7 +95,7 @@ start_http_iface_listener(Config) ->
 	ok.
 
 stop() ->
-	cowboy:stop_listener(ar_http_iface_listener).
+	cowboy:stop_listener(big_http_iface_listener).
 
 name_route([]) ->
 	"/";

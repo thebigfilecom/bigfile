@@ -213,7 +213,7 @@ read_range2(MessagesRemaining, {Start, End, OriginStoreID, TargetStoreID}) ->
 						Reply ->
 							?LOG_ERROR([{event, chunk_record_not_found},
 									{absolute_end_offset, AbsoluteOffset},
-									{ar_sync_record_reply, io_lib:format("~p", [Reply])}]),
+									{big_sync_record_reply, io_lib:format("~p", [Reply])}]),
 							read_range2(MessagesRemaining,
 									{Start + ChunkSize, End, OriginStoreID, TargetStoreID})
 					end

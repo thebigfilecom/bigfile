@@ -41,7 +41,7 @@ start_link(Name, {StoreID, Packing}) ->
 
 %% @doc Return the name of the server serving the given StoreID.
 name(StoreID) ->
-	list_to_atom("ar_entropy_gen_" ++ big_storage_module:label_by_id(StoreID)).
+	list_to_atom("big_entropy_gen_" ++ big_storage_module:label_by_id(StoreID)).
 
 
 register_workers(Module) ->
@@ -115,7 +115,7 @@ set_repack_cursor(StoreID, RepackCursor) ->
     gen_server:cast(name(StoreID), {set_repack_cursor, RepackCursor}).
 
 init({StoreID, Packing}) ->
-	?LOG_INFO([{event, ar_entropy_storage_init},
+	?LOG_INFO([{event, big_entropy_gen_init},
         {name, name(StoreID)}, {store_id, StoreID},
         {packing, big_serialize:encode_packing(Packing, true)}]),
 
@@ -385,7 +385,7 @@ generate_entropies(RewardAddr, PaddedEndOffset) ->
 	Entropies.
 
 advance_entropy_offset(BucketEndOffset, StoreID) ->
-    ID = ar_chunk_storage_replica_2_9_1_entropy,
+    ID = big_chunk_storage_replica_2_9_1_entropy,
     case big_sync_record:get_next_unsynced_interval(
             BucketEndOffset, infinity, ID, StoreID) of
         not_found ->

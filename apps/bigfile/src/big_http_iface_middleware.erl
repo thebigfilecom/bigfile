@@ -30,7 +30,7 @@
 %% middlewares. It uses the `handler` env value set by cowboy_router
 %% to determine whether or not it should run, otherwise it lets
 %% the cowboy_handler middleware run prometheus_cowboy2_handler.
-execute(Req, #{ handler := ar_http_iface_handler }) ->
+execute(Req, #{ handler := big_http_iface_handler }) ->
 	Pid = self(),
 	HandlerPid = spawn_link(fun() ->
 		Pid ! {handled, handle(Req, Pid)}

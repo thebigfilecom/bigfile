@@ -271,12 +271,12 @@ init(StoreID) ->
 	{Dir, StorageModuleSize, StorageModuleIndex, PartitionNumber} =
 		case StoreID of
 			"default" ->
-				{filename:join(?ROCKS_DB_DIR, "ar_sync_record_db"),
+				{filename:join(?ROCKS_DB_DIR, "big_sync_record_db"),
 					undefined, undefined, undefined};
 			_ ->
 				{Size, Index, _Packing} = big_storage_module:get_by_id(StoreID),
 				{filename:join(["storage_modules", StoreID, ?ROCKS_DB_DIR,
-						"ar_sync_record_db"]), Size, Index,
+						"big_sync_record_db"]), Size, Index,
 							big_node:get_partition_number(Size * Index)}
 		end,
 	StateDB = {sync_record, StoreID},
@@ -429,7 +429,7 @@ terminate(Reason, State) ->
 %%%===================================================================
 
 name(StoreID) ->
-	list_to_atom("ar_sync_record_" ++ big_storage_module:label_by_id(StoreID)).
+	list_to_atom("big_sync_record_" ++ big_storage_module:label_by_id(StoreID)).
 
 add2(End, Start, ID, State) ->
 	#state{ sync_record_by_id = SyncRecordByID, state_db = StateDB,

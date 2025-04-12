@@ -70,8 +70,8 @@ get_scan_height() ->
 init([]) ->
 	process_flag(trap_exit, true),
 	%% Database for general P3 state data (e.g. last scanned block height)
-	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "ar_p3_ledger_db"),
-			ar_p3_state_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_p3_ledger_db"),
+			big_p3_state_db),
 	{ok, #{}}.
 
 handle_call({get_or_create_account, Address, PublicKey, Asset}, _From, State) ->
@@ -156,7 +156,7 @@ create_account(Address, PublicKey, Asset) ->
 		{"p3_account", BasicOpts},
 		{"p3_tx", BasicOpts}],
 	ok = big_kv:open(
-		filename:join([?ROCKS_DB_DIR, "ar_p3_ledger_db", DatabaseId]),
+		filename:join([?ROCKS_DB_DIR, "big_p3_ledger_db", DatabaseId]),
 		ColumnFamilyDescriptors, [],
 		[{?MODULE, Address}, {p3_account, Address}, {p3_tx, Address}]),
 	Account = #p3_account{
@@ -269,7 +269,7 @@ set_scan_height2(Height) when
 		is_integer(Height), Height >= 0 ->
 	case get_scan_height2() < Height of
 		true ->
-			big_kv:put(ar_p3_state_db, <<"scan_height">>, term_to_binary(Height)),
+			big_kv:put(big_p3_state_db, <<"scan_height">>, term_to_binary(Height)),
 			{ok, Height};
 		false ->
 			{error, invalid_height}
@@ -278,7 +278,7 @@ set_scan_height2(_) ->
 	{error, invalid_height}.
 
 get_scan_height2() ->
-	case safe_get(ar_p3_state_db, <<"scan_height">>, not_found) of
+	case safe_get(big_p3_state_db, <<"scan_height">>, not_found) of
 		not_found ->
 			0;
 		Height ->

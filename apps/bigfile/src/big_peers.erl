@@ -188,7 +188,7 @@ filter_peers(Peers, {timestamp, Seconds})
 	when is_integer(Seconds) ->
 		Timefilter = erlang:system_time(seconds) - Seconds,
 		Tag = {connection, last},
-		Pattern = {{ar_tags, ?MODULE, '$1', Tag}, '$3'},
+		Pattern = {{big_tags, ?MODULE, '$1', Tag}, '$3'},
 		Guard = [{'>=', '$3', Timefilter}],
 		Select = ['$1'],
 		TaggedPeers = ets:select(?MODULE, [{Pattern, Guard, Select}]),
@@ -947,7 +947,7 @@ store_peers() ->
 					[],
 					?MODULE
 				),
-			Tags = ets:foldl(fun ({{ar_tags, _, _, _}, _} = Tag, Acc) ->
+			Tags = ets:foldl(fun ({{big_tags, _, _, _}, _} = Tag, Acc) ->
 						[Tag|Acc];
 					     (_, Acc) -> Acc
 					end, [], ?MODULE),
@@ -964,7 +964,7 @@ store_peers() ->
 %% @end
 %%--------------------------------------------------------------------
 set_tag(Peer, Tag, Value) ->
-	ets:insert(?MODULE, {{ar_tags, ?MODULE, Peer, Tag}, Value}).
+	ets:insert(?MODULE, {{big_tags, ?MODULE, Peer, Tag}, Value}).
 
 %%--------------------------------------------------------------------
 %% @hidden
@@ -972,7 +972,7 @@ set_tag(Peer, Tag, Value) ->
 %% @end
 %%--------------------------------------------------------------------
 get_tag(Peer, Tag) ->
-	Pattern = {{ar_tags, ?MODULE, Peer, Tag}, '$1'},
+	Pattern = {{big_tags, ?MODULE, Peer, Tag}, '$1'},
 	Guard = [],
 	Select = ['$1'],
 	case ets:select(?MODULE, [{Pattern, Guard, Select}]) of

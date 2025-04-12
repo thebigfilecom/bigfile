@@ -7,10 +7,10 @@
 
 -import(big_test_node, [sign_v1_tx/3, read_block_when_stored/1]).
 
-ar_node_interface_test_() ->
-	{timeout, 300, fun test_ar_node_interface/0}.
+big_node_interface_test_() ->
+	{timeout, 300, fun test_big_node_interface/0}.
 
-test_ar_node_interface() ->
+test_big_node_interface() ->
 	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	?assertEqual(0, big_node:get_height()),

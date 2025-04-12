@@ -167,7 +167,7 @@ setup() ->
 	Routes = [{"/[...]", big_tx_blacklist_tests, BadTXIDs2}],
 	{ok, _PID} =
 		big_test_node:remote_call(peer1, cowboy, start_clear, [
-			ar_tx_blacklist_test_listener,
+			big_tx_blacklist_test_listener,
 			[{port, 1985}],
 			#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 		]),

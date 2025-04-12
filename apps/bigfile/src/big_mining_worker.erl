@@ -46,7 +46,7 @@ start_link(Partition, PackingDifficulty) ->
 	gen_server:start_link({local, Name}, ?MODULE, {Partition, PackingDifficulty}, []).
 
 name(Partition, PackingDifficulty) ->
-	list_to_atom("ar_mining_worker_" ++ integer_to_list(Partition) ++ "_" ++
+	list_to_atom("big_mining_worker_" ++ integer_to_list(Partition) ++ "_" ++
 			integer_to_list(PackingDifficulty)).
 
 reset(Worker, DiffPair) ->

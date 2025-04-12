@@ -148,7 +148,7 @@ handle_cast(garbage_collect, State) ->
 	maps:fold(
 		fun(_Key, Thread, _) ->
 			erlang:garbage_collect(Thread,
-				[{async, {ar_mining_io_worker, Thread, erlang:monotonic_time()}}])
+				[{async, {big_mining_io_worker, Thread, erlang:monotonic_time()}}])
 		end,
 		ok,
 		State#state.io_threads

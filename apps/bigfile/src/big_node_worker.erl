@@ -609,7 +609,7 @@ terminate(Reason, _State) ->
 		_ ->
 			ok
 	end,
-	?LOG_INFO([{event, ar_node_worker_terminated}, {reason, Reason}]).
+	?LOG_INFO([{event, big_node_worker_terminated}, {reason, Reason}]).
 
 %%%===================================================================
 %%% Private functions.
@@ -736,7 +736,7 @@ handle_task(compute_mining_difficulty, State) ->
 
 handle_task(Msg, State) ->
 	?LOG_ERROR([
-		{event, ar_node_worker_received_unknown_message},
+		{event, big_node_worker_received_unknown_message},
 		{message, Msg}
 	]),
 	{noreply, State}.
@@ -1284,7 +1284,7 @@ validate_wallet_list(#block{ indep_hash = H } = B, PrevB) ->
 
 get_missing_txs_and_retry(#block{ txs = TXIDs }, _Worker)
 		when length(TXIDs) > 1000 ->
-	?LOG_WARNING([{event, ar_node_worker_downloaded_txs_count_exceeds_limit}]),
+	?LOG_WARNING([{event, big_node_worker_downloaded_txs_count_exceeds_limit}]),
 	ok;
 get_missing_txs_and_retry(BShadow, Worker) ->
 	get_missing_txs_and_retry(BShadow#block.indep_hash, BShadow#block.txs,
@@ -1292,7 +1292,7 @@ get_missing_txs_and_retry(BShadow, Worker) ->
 
 get_missing_txs_and_retry(_H, _TXIDs, _Worker, _Peers, _TXs, TotalSize)
 		when TotalSize > ?BLOCK_TX_DATA_SIZE_LIMIT ->
-	?LOG_WARNING([{event, ar_node_worker_downloaded_txs_exceed_block_size_limit}]),
+	?LOG_WARNING([{event, big_node_worker_downloaded_txs_exceed_block_size_limit}]),
 	ok;
 get_missing_txs_and_retry(H, [], Worker, _Peers, TXs, _TotalSize) ->
 	gen_server:cast(Worker, {cache_missing_txs, H, lists:reverse(TXs)});
@@ -1320,7 +1320,7 @@ get_missing_txs_and_retry(H, TXIDs, Worker, Peers, TXs, TotalSize) ->
 		),
 	case Fetch of
 		failed_to_fetch_tx ->
-			?LOG_WARNING([{event, ar_node_worker_failed_to_fetch_missing_tx}]),
+			?LOG_WARNING([{event, big_node_worker_failed_to_fetch_missing_tx}]),
 			ok;
 		{TXs2, TotalSize2} ->
 			get_missing_txs_and_retry(H, Rest, Worker, Peers, TXs2, TotalSize2)

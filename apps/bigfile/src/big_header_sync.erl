@@ -58,12 +58,12 @@ remove_block(Height) ->
 %%%===================================================================
 
 init([]) ->
-	?LOG_INFO([{event, ar_header_sync_start}]),
+	?LOG_INFO([{event, big_header_sync_start}]),
 	%% Trap exit to avoid corrupting any open files on quit..
 	process_flag(trap_exit, true),
 	[ok, ok] = big_events:subscribe([tx, disksup]),
 	{ok, Config} = application:get_env(bigfile, config),
-	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "ar_header_sync_db"), ?MODULE),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_header_sync_db"), ?MODULE),
 	{SyncRecord, Height, CurrentBI} =
 		case big_storage:read_term(header_sync_state) of
 			not_found ->
@@ -289,7 +289,7 @@ handle_info({event, disksup, {remaining_disk_space, "default", true, _Percentage
 							"stays available for the node.~n~n"
 							"The mining performance is not affected.~n",
 					big:console(Msg, []),
-					?LOG_INFO([{event, ar_header_sync_stopped_syncing},
+					?LOG_INFO([{event, big_header_sync_stopped_syncing},
 							{reason, insufficient_disk_space}]);
 				false ->
 					ok
@@ -305,7 +305,7 @@ handle_info({event, disksup, {remaining_disk_space, "default", true, _Percentage
 							Msg = "The available disk space has been detected, "
 									"resuming header syncing.~n",
 							big:console(Msg, []),
-							?LOG_INFO([{event, ar_header_sync_resumed_syncing}])
+							?LOG_INFO([{event, big_header_sync_resumed_syncing}])
 					end,
 					{noreply, State#state{ is_disk_space_sufficient = true }};
 				false ->
@@ -336,7 +336,7 @@ handle_info(Info, State) ->
 	{noreply, State}.
 
 terminate(Reason, _State) ->
-	?LOG_INFO([{event, ar_header_sync_terminate}, {reason, Reason}]).
+	?LOG_INFO([{event, big_header_sync_terminate}, {reason, Reason}]).
 
 %%%===================================================================
 %%% Private functions.
@@ -496,7 +496,7 @@ download_block(Peers, H, H2, TXRoot) ->
 	case big_http_iface_client:get_block_shadow(Peers, H, Opts) of
 		unavailable ->
 			?LOG_WARNING([
-				{event, ar_header_sync_failed_to_download_block_header},
+				{event, big_header_sync_failed_to_download_block_header},
 				{block, big_util:encode(H)}
 			]),
 			{error, block_header_unavailable};
@@ -519,7 +519,7 @@ download_block(Peers, H, H2, TXRoot) ->
 					download_txs(Peers, B, TXRoot);
 				_ ->
 					?LOG_WARNING([
-						{event, ar_header_sync_block_hash_mismatch},
+						{event, big_header_sync_block_hash_mismatch},
 						{block, big_util:encode(H)},
 						{peer, big_util:format_peer(Peer)}
 					]),
@@ -538,26 +538,26 @@ download_txs(Peers, B, TXRoot) ->
 					{ok, B#block{ txs = TXs, size_tagged_txs = SizeTaggedTXs }};
 				_ ->
 					?LOG_WARNING([
-						{event, ar_header_sync_block_tx_root_mismatch},
+						{event, big_header_sync_block_tx_root_mismatch},
 						{block, big_util:encode(B#block.indep_hash)}
 					]),
 					{error, block_tx_root_mismatch}
 			end;
 		{error, txs_exceed_block_size_limit} ->
 			?LOG_WARNING([
-				{event, ar_header_sync_block_txs_exceed_block_size_limit},
+				{event, big_header_sync_block_txs_exceed_block_size_limit},
 				{block, big_util:encode(B#block.indep_hash)}
 			]),
 			{error, txs_exceed_block_size_limit};
 		{error, txs_count_exceeds_limit} ->
 			?LOG_WARNING([
-				{event, ar_header_sync_block_txs_count_exceeds_limit},
+				{event, big_header_sync_block_txs_count_exceeds_limit},
 				{block, big_util:encode(B#block.indep_hash)}
 			]),
 			{error, txs_count_exceeds_limit};
 		{error, tx_not_found} ->
 			?LOG_WARNING([
-				{event, ar_header_sync_block_tx_not_found},
+				{event, big_header_sync_block_tx_not_found},
 				{block, big_util:encode(B#block.indep_hash)}
 			]),
 			{error, tx_not_found}

@@ -57,7 +57,7 @@ register() ->
 	%%       erlant:monotonic_time() without any arguments.
 	%%       See: https://github.com/deadtrickster/prometheus.erl/blob/6dd56bf321e99688108bb976283a80e4d82b3d30/src/prometheus_time.erl#L2-L84
 	prometheus_histogram:new([
-		{name, ar_http_request_duration_seconds},
+		{name, big_http_request_duration_seconds},
 		{buckets, [0.01, 0.1, 0.5, 1, 5, 10, 30, 60]},
         {labels, [http_method, route, status_class]},
 		{

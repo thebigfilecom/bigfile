@@ -32,11 +32,11 @@
 lookup_block_filename(H) when is_binary(H)->
 	%% Use the process dictionary to keep the path.
 	PathBlock =
-		case get(ar_disk_cache_path) of
+		case get(big_disk_cache_path) of
 			undefined ->
 				{ok, Config} = application:get_env(bigfile, config),
 				Path = filename:join(Config#config.data_dir, ?DISK_CACHE_DIR),
-				put(ar_disk_cache_path, Path),
+				put(big_disk_cache_path, Path),
 				filename:join(Path, ?DISK_CACHE_BLOCK_DIR);
 			Path ->
 				filename:join(Path, ?DISK_CACHE_BLOCK_DIR)
@@ -58,11 +58,11 @@ lookup_block_filename(H) when is_binary(H)->
 	end.
 
 lookup_tx_filename(Hash) when is_binary(Hash) ->
-	PathTX = case get(ar_disk_cache_path) of
+	PathTX = case get(big_disk_cache_path) of
 		undefined ->
 			{ok, Config} = application:get_env(bigfile, config),
 			Path = filename:join(Config#config.data_dir, ?DISK_CACHE_DIR),
-			put(ar_disk_cache_path, Path),
+			put(big_disk_cache_path, Path),
 			filename:join(Path, ?DISK_CACHE_TX_DIR);
 		Path ->
 			filename:join(Path, ?DISK_CACHE_TX_DIR)

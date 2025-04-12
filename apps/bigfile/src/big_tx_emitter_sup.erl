@@ -46,7 +46,7 @@ tx_emitter(Args) ->
 	 , restart => permanent
 	 }.
 
-% helper function to create ar_tx_workers processes.
+% helper function to create big_tx_workers processes.
 tx_workers(Num) ->
 	Name = "big_tx_emitter_worker_" ++ integer_to_list(Num),
 	Atom = list_to_atom(Name),

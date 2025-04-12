@@ -23,10 +23,10 @@ start_link(Name, {StoreID, _}) ->
 
 %% @doc Return the name of the server serving the given StoreID.
 name(StoreID) ->
-    list_to_atom("ar_entropy_storage_" ++ big_storage_module:label_by_id(StoreID)).
+    list_to_atom("big_entropy_storage_" ++ big_storage_module:label_by_id(StoreID)).
 
 init(StoreID) ->
-    ?LOG_INFO([{event, ar_entropy_storage_init}, {name, name(StoreID)}, {store_id, StoreID}]),
+    ?LOG_INFO([{event, big_entropy_storage_init}, {name, name(StoreID)}, {store_id, StoreID}]),
     {ok, #state{store_id = StoreID}}.
 
 store_entropy(StoreID,
@@ -100,17 +100,17 @@ handle_info(Info, State) ->
 %% @doc Return true if the 2.9 entropy with the given offset is recorded.
 is_entropy_recorded(PaddedEndOffset, StoreID) ->
     %% Entropy indexing changed between 2.9.0 and 2.9.1. So we'll use a new
-    %% sync_record id (ar_chunk_storage_replica_2_9_1_entropy) going forward.
-    %% The old id (ar_chunk_storage_replica_2_9_entropy) should not be used.
-    ID = ar_chunk_storage_replica_2_9_1_entropy,
+    %% sync_record id (big_chunk_storage_replica_2_9_1_entropy) going forward.
+    %% The old id (big_chunk_storage_replica_2_9_entropy) should not be used.
+    ID = big_chunk_storage_replica_2_9_1_entropy,
     ChunkBucketStart = big_chunk_storage:get_chunk_bucket_start(PaddedEndOffset),
     big_sync_record:is_recorded(ChunkBucketStart + 1, ID, StoreID).
 
 update_sync_records(IsComplete, PaddedEndOffset, StoreID, RewardAddr) ->
     %% Entropy indexing changed between 2.9.0 and 2.9.1. So we'll use a new
-    %% sync_record id (ar_chunk_storage_replica_2_9_1_entropy) going forward.
-    %% The old id (ar_chunk_storage_replica_2_9_entropy) should not be used.
-    ID = ar_chunk_storage_replica_2_9_1_entropy,
+    %% sync_record id (big_chunk_storage_replica_2_9_1_entropy) going forward.
+    %% The old id (big_chunk_storage_replica_2_9_entropy) should not be used.
+    ID = big_chunk_storage_replica_2_9_1_entropy,
     BucketEnd = big_chunk_storage:get_chunk_bucket_end(PaddedEndOffset),
     BucketStart = big_chunk_storage:get_chunk_bucket_start(PaddedEndOffset),
     big_sync_record:add_async(replica_2_9_entropy, BucketEnd, BucketStart, ID, StoreID),
@@ -141,9 +141,9 @@ update_sync_records(IsComplete, PaddedEndOffset, StoreID, RewardAddr) ->
 
 delete_record(PaddedEndOffset, StoreID) ->
     %% Entropy indexing changed between 2.9.0 and 2.9.1. So we'll use a new
-    %% sync_record id (ar_chunk_storage_replica_2_9_1_entropy) going forward.
-    %% The old id (ar_chunk_storage_replica_2_9_entropy) should not be used.
-    ID = ar_chunk_storage_replica_2_9_1_entropy,
+    %% sync_record id (big_chunk_storage_replica_2_9_1_entropy) going forward.
+    %% The old id (big_chunk_storage_replica_2_9_entropy) should not be used.
+    ID = big_chunk_storage_replica_2_9_1_entropy,
     BucketStart = big_chunk_storage:get_chunk_bucket_start(PaddedEndOffset),
     big_sync_record:delete(BucketStart + ?DATA_CHUNK_SIZE, BucketStart, ID, StoreID).
 

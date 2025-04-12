@@ -57,7 +57,7 @@ start_link(Name, {StoreID, RepackInPlacePacking}) ->
 
 %% @doc Return the name of the server serving the given StoreID.
 name(StoreID) ->
-	list_to_atom("ar_chunk_storage_" ++ big_storage_module:label_by_id(StoreID)).
+	list_to_atom("big_chunk_storage_" ++ big_storage_module:label_by_id(StoreID)).
 
 register_workers() ->
 	{ok, Config} = application:get_env(bigfile, config),
@@ -73,7 +73,7 @@ register_workers() ->
 	),
 	
 	DefaultChunkStorageWorker = ?CHILD_WITH_ARGS(big_chunk_storage, worker,
-		ar_chunk_storage_default, [ar_chunk_storage_default, {"default", none}]),
+		big_chunk_storage_default, [big_chunk_storage_default, {"default", none}]),
 
 	RepackInPlaceWorkers = lists:map(
 		fun({StorageModule, Packing}) ->
@@ -670,9 +670,9 @@ record_chunk(
 
 sync_record_id(unpacked_padded) ->
 	%% Entropy indexing changed between 2.9.0 and 2.9.1. So we'll use a new
-	%% sync_record id (ar_chunk_storage_replica_2_9_1_unpacked) going forward.
-	%% The old id (ar_chunk_storage_replica_2_9_unpacked) should not be used.
-	ar_chunk_storage_replica_2_9_1_unpacked;
+	%% sync_record id (big_chunk_storage_replica_2_9_1_unpacked) going forward.
+	%% The old id (big_chunk_storage_replica_2_9_unpacked) should not be used.
+	big_chunk_storage_replica_2_9_1_unpacked;
 sync_record_id(_Packing) ->
 	big_chunk_storage.
 

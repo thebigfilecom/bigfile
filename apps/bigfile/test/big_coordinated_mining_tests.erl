@@ -416,7 +416,7 @@ mine_in_parallel(Miners, ValidatorNode, CurrentHeight) ->
 	
 	lists:foreach(
 		fun(Node) ->
-			?LOG_DEBUG([{test, ar_coordinated_mining_tests},
+			?LOG_DEBUG([{test, big_coordinated_mining_tests},
 				{waiting_for_height, NewHeight}, {node, Node}]),
 			%% Make sure the miner contains all of the new validator hashes, it's okay if
 			%% the miner contains *more* hashes since it's possible concurrent blocks were
