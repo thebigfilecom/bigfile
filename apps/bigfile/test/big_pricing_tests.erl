@@ -294,7 +294,7 @@ test_auto_redenomination_and_endowment_debt() ->
 	Key1 = {_, Pub1} = big_wallet:new(),
 	{_, Pub2} = big_wallet:new(),
 	Key3 = {_, Pub3} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub1), 20000000000000, <<>>},
 		{big_wallet:to_address(Pub2), 2000000000, <<>>},
 		{big_wallet:to_address(Pub3), ?BIG(1000000000000000000), <<>>}
@@ -658,7 +658,7 @@ get_balance(Pub) ->
 		big_http:req(#{
 			method => get,
 			peer => Peer,
-			path => "/wallet/" ++ binary_to_list(ar_util:encode(Address)) ++ "/balance"
+			path => "/wallet/" ++ binary_to_list(big_util:encode(Address)) ++ "/balance"
 		}),
 	Balance = binary_to_integer(Reply),
 	B = big_node:get_current_block(),
@@ -666,8 +666,8 @@ get_balance(Pub) ->
 		big_http:req(#{
 			method => get,
 			peer => Peer,
-			path => "/wallet_list/" ++ binary_to_list(ar_util:encode(B#block.wallet_list))
-					++ "/" ++ binary_to_list(ar_util:encode(Address)) ++ "/balance"
+			path => "/wallet_list/" ++ binary_to_list(big_util:encode(B#block.wallet_list))
+					++ "/" ++ binary_to_list(big_util:encode(Address)) ++ "/balance"
 		}),
 	case binary_to_integer(Reply2) of
 		Balance ->
@@ -683,7 +683,7 @@ get_reserved_balance(Address) ->
 		big_http:req(#{
 			method => get,
 			peer => Peer,
-			path => "/wallet/" ++ binary_to_list(ar_util:encode(Address))
+			path => "/wallet/" ++ binary_to_list(big_util:encode(Address))
 					++ "/reserved_rewards_total"
 		}),
 	binary_to_integer(Reply).

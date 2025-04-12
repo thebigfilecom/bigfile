@@ -15,7 +15,7 @@ test_sync_record() ->
 	DiskPoolStart = ?PARTITION_SIZE,
 	PartitionStart = ?PARTITION_SIZE - ?DATA_CHUNK_SIZE,
 	WeaveSize = 4 * ?DATA_CHUNK_SIZE,
-	[B0] = ar_weave:init([], 1, WeaveSize),
+	[B0] = big_weave:init([], 1, WeaveSize),
 	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
 	{ok, Config} = application:get_env(bigfile, config),
 	try
@@ -58,7 +58,7 @@ test_sync_record() ->
 		%% We need to explicitly declare global removal
 		big_events:send(sync_record,
 				{global_remove_range, DiskPoolStart+?DATA_CHUNK_SIZE, DiskPoolStart}),
-		true = ar_util:do_until(
+		true = big_util:do_until(
 				fun() ->
 					{ok, Binary4} = big_global_sync_record:get_serialized_sync_record(Options),
 					{ok, Global4} = big_intervals:safe_from_etf(Binary4),
@@ -89,7 +89,7 @@ test_sync_record() ->
 			big_intervals:to_list(Global5)),
 		big_events:send(sync_record,
 				{global_remove_range, PartitionStart+?DATA_CHUNK_SIZE,PartitionStart}),
-		true = ar_util:do_until(
+		true = big_util:do_until(
 				fun() ->
 					{ok, Binary6} = big_global_sync_record:get_serialized_sync_record(Options),
 					{ok, Global6} = big_intervals:safe_from_etf(Binary6),
@@ -144,7 +144,7 @@ test_sync_record_with_replica_2_9() when ?BLOCK_2_9_SYNCING ->
 	SleepTime = 1000,
 	PartitionStart = ?PARTITION_SIZE - ?DATA_CHUNK_SIZE,
 	WeaveSize = 4 * ?DATA_CHUNK_SIZE,
-	[B0] = ar_weave:init([], 1, WeaveSize),
+	[B0] = big_weave:init([], 1, WeaveSize),
 	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
 	{ok, Config} = application:get_env(bigfile, config),
 	try

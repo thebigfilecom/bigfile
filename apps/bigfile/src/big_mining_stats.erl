@@ -98,7 +98,7 @@ start_link() ->
 
 start_performance_reports() ->
 	reset_all_stats(),
-	ar_util:cast_after(?PERFORMANCE_REPORT_FREQUENCY_MS, ?MODULE, report_performance).
+	big_util:cast_after(?PERFORMANCE_REPORT_FREQUENCY_MS, ?MODULE, report_performance).
 
 %% @doc Stop logging performance reports for the given number of milliseconds.
 pause_performance_reports(Time) ->
@@ -259,12 +259,12 @@ handle_cast(report_performance, #state{ pause_performance_reports = true,
 			gen_server:cast(?MODULE, report_performance),
 			{noreply, State#state{ pause_performance_reports = false }};
 		false ->
-			ar_util:cast_after(?PERFORMANCE_REPORT_FREQUENCY_MS, ?MODULE, report_performance),
+			big_util:cast_after(?PERFORMANCE_REPORT_FREQUENCY_MS, ?MODULE, report_performance),
 			{noreply, State}
 	end;
 handle_cast(report_performance, State) ->
 	report_performance(),
-	ar_util:cast_after(?PERFORMANCE_REPORT_FREQUENCY_MS, ?MODULE, report_performance),
+	big_util:cast_after(?PERFORMANCE_REPORT_FREQUENCY_MS, ?MODULE, report_performance),
 	{noreply, State};
 
 
@@ -620,7 +620,7 @@ set_partition_metrics([PartitionReport | PartitionReports]) ->
 set_peer_metrics([]) ->
 	ok;
 set_peer_metrics([PeerReport | PeerReports]) ->
-	Peer = ar_util:format_peer(PeerReport#peer_report.peer),
+	Peer = big_util:format_peer(PeerReport#peer_report.peer),
 	prometheus_gauge:set(cm_h1_rate, [Peer, to],
 		PeerReport#peer_report.current_h1_to_peer_hps),
 	prometheus_gauge:set(cm_h1_rate, [Peer, from],
@@ -655,7 +655,7 @@ clear_partition_metrics([PartitionReport | PartitionReports]) ->
 clear_peer_metrics([]) ->
 	ok;
 clear_peer_metrics([PeerReport | PeerReports]) ->
-	Peer = ar_util:format_peer(PeerReport#peer_report.peer),
+	Peer = big_util:format_peer(PeerReport#peer_report.peer),
 	prometheus_gauge:set(cm_h1_rate, [Peer, to], 0),
 	prometheus_gauge:set(cm_h1_rate, [Peer, from], 0),
 	prometheus_gauge:set(cm_h2_count, [Peer, to], 0),
@@ -789,7 +789,7 @@ format_peer_row(PeerReport) ->
     io_lib:format(
 		"| ~20s | ~8B h/s | ~8B h/s | ~7B h/s | ~7B h/s | ~6B | ~6B |\n",
 		[
-			ar_util:format_peer(Peer),
+			big_util:format_peer(Peer),
 			floor(CurrentH1To), floor(AverageH1To), 
 			floor(CurrentH1From), floor(AverageH1From), 
 			TotalH2To, TotalH2From

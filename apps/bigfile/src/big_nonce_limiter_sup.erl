@@ -25,7 +25,7 @@ init([]) ->
 	ServerWorkers = lists:map(
 		fun(Peer) ->
 			Name = list_to_atom("big_nonce_limiter_server_worker_"
-					++ ar_util:peer_to_str(Peer)),
+					++ big_util:peer_to_str(Peer)),
 			?CHILD_WITH_ARGS(big_nonce_limiter_server_worker,
 					worker, Name, [Name, Peer])
 		end,

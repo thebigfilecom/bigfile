@@ -209,8 +209,8 @@ add_chunk(DataRoot, DataPath, Chunk, Offset, TXSize) ->
 					{error, Reason} ->
 						?LOG_WARNING([{event, failed_to_read_chunk_from_disk_pool},
 								{reason, io_lib:format("~p", [Reason])},
-								{data_path_hash, ar_util:encode(DataPathHash)},
-								{data_root, ar_util:encode(DataRoot)},
+								{data_path_hash, big_util:encode(DataPathHash)},
+								{data_root, big_util:encode(DataRoot)},
 								{relative_offset, EndOffset2}]),
 						{error, failed_to_store_chunk}
 				end
@@ -234,8 +234,8 @@ add_chunk(DataRoot, DataPath, Chunk, Offset, TXSize) ->
 				{error, Reason2} ->
 					?LOG_WARNING([{event, failed_to_store_chunk_in_disk_pool},
 						{reason, io_lib:format("~p", [Reason2])},
-						{data_path_hash, ar_util:encode(DataPathHash2)},
-						{data_root, ar_util:encode(DataRoot)},
+						{data_path_hash, big_util:encode(DataPathHash2)},
+						{data_root, big_util:encode(DataRoot)},
 						{relative_offset, EndOffset3}]),
 					{error, failed_to_store_chunk};
 				ok ->
@@ -246,8 +246,8 @@ add_chunk(DataRoot, DataPath, Chunk, Offset, TXSize) ->
 						{error, Reason3} ->
 							?LOG_WARNING([{event, failed_to_record_chunk_in_disk_pool},
 								{reason, io_lib:format("~p", [Reason3])},
-								{data_path_hash, ar_util:encode(DataPathHash2)},
-								{data_root, ar_util:encode(DataRoot)},
+								{data_path_hash, big_util:encode(DataPathHash2)},
+								{data_root, big_util:encode(DataRoot)},
 								{relative_offset, EndOffset3}]),
 							{error, failed_to_store_chunk};
 						ok ->
@@ -560,11 +560,11 @@ request_tx_data_removal(TXID, Ref, ReplyTo) ->
 			{End, Size} = binary_to_term(Value),
 			remove_range(End - Size, End, Ref, ReplyTo);
 		not_found ->
-			?LOG_WARNING([{event, tx_offset_not_found}, {tx, ar_util:encode(TXID)}]),
+			?LOG_WARNING([{event, tx_offset_not_found}, {tx, big_util:encode(TXID)}]),
 			ok;
 		{error, Reason} ->
 			?LOG_ERROR([{event, failed_to_fetch_blacklisted_tx_offset},
-					{tx, ar_util:encode(TXID)}, {reason, Reason}]),
+					{tx, big_util:encode(TXID)}, {reason, Reason}]),
 			ok
 	end.
 
@@ -748,7 +748,7 @@ init({"default" = StoreID, _}) ->
 				Free = proplists:get_value(free_memory, memsup:get_system_memory_data(),
 						2000000000),
 				Limit2 = min(1000, erlang:ceil(Free * 0.9 / 3 / 262144)),
-				Limit3 = ar_util:ceil_int(Limit2, 100),
+				Limit3 = big_util:ceil_int(Limit2, 100),
 				Limit3;
 			Limit2 ->
 				Limit2
@@ -796,7 +796,7 @@ handle_cast({move_data_root_index, Cursor, N}, State) ->
 	{noreply, State};
 
 handle_cast(process_store_chunk_queue, State) ->
-	ar_util:cast_after(200, self(), process_store_chunk_queue),
+	big_util:cast_after(200, self(), process_store_chunk_queue),
 	{noreply, process_store_chunk_queue(State)};
 
 handle_cast({join, RecentBI}, State) ->
@@ -899,7 +899,7 @@ handle_cast(sync_data, State) ->
 		active ->
 			do_sync_data(State2);
 		paused ->
-			ar_util:cast_after(?DEVICE_LOCK_WAIT, self(), sync_data),
+			big_util:cast_after(?DEVICE_LOCK_WAIT, self(), sync_data),
 			State2;
 		_ ->
 			State2
@@ -914,7 +914,7 @@ handle_cast(sync_data2, State) ->
 		active ->
 			do_sync_data2(State2);
 		paused ->
-			ar_util:cast_after(?DEVICE_LOCK_WAIT, self(), sync_data2),
+			big_util:cast_after(?DEVICE_LOCK_WAIT, self(), sync_data2),
 			State2;
 		_ ->
 			State2
@@ -941,7 +941,7 @@ handle_cast({collect_peer_intervals, Start, End}, State) when Start >= End ->
 	%% the collection process to restart in ?COLLECT_SYNC_INTERVALS_FREQUENCY_MS and
 	%% clear the all_peers_intervals cache so we can start fresh and requery peers for
 	%% their advertised intervals.
-	ar_util:cast_after(?COLLECT_SYNC_INTERVALS_FREQUENCY_MS, self(), collect_peer_intervals),
+	big_util:cast_after(?COLLECT_SYNC_INTERVALS_FREQUENCY_MS, self(), collect_peer_intervals),
 	{noreply, State#sync_data_state{ all_peers_intervals = #{} }};
 handle_cast({collect_peer_intervals, Start, End}, State) ->
 	#sync_data_state{ sync_intervals_queue = Q,
@@ -950,7 +950,7 @@ handle_cast({collect_peer_intervals, Start, End}, State) ->
 	IsJoined =
 		case big_node:is_joined() of
 			false ->
-				ar_util:cast_after(1000, self(), {collect_peer_intervals, Start, End}),
+				big_util:cast_after(1000, self(), {collect_peer_intervals, Start, End}),
 				false;
 			true ->
 				true
@@ -964,7 +964,7 @@ handle_cast({collect_peer_intervals, Start, End}, State) ->
 					true ->
 						true;
 					_ ->
-						ar_util:cast_after(30_000, self(), {collect_peer_intervals, Start, End}),
+						big_util:cast_after(30_000, self(), {collect_peer_intervals, Start, End}),
 						false
 				end
 		end,
@@ -998,7 +998,7 @@ handle_cast({collect_peer_intervals, Start, End}, State) ->
 				prometheus_gauge:set(sync_intervals_queue_size, [StoreIDLabel], IntervalsQueueSize),
 				case IntervalsQueueSize > (?NETWORK_DATA_BUCKET_SIZE / ?DATA_CHUNK_SIZE) of
 					true ->
-						ar_util:cast_after(500, self(), {collect_peer_intervals, Start, End}),
+						big_util:cast_after(500, self(), {collect_peer_intervals, Start, End}),
 						true;
 					false ->
 						false
@@ -1011,7 +1011,7 @@ handle_cast({collect_peer_intervals, Start, End}, State) ->
 			End2 = min(End, WeaveSize),
 			case Start >= End2 of
 				true ->
-					ar_util:cast_after(500, self(), {collect_peer_intervals, Start, End});
+					big_util:cast_after(500, self(), {collect_peer_intervals, Start, End});
 				false ->
 					%% All checks have passed, find and enqueue intervals for one
 					%% sync bucket worth of chunks starting at offset Start
@@ -1060,7 +1060,7 @@ handle_cast({enqueue_intervals, Intervals}, State) ->
 	ChunksPerPeer = trunc(((TotalChunksToEnqueue + NumPeers - 1) div NumPeers) * ScalingFactor),
 
 	{Q2, QIntervals2} = enqueue_intervals(
-		ar_util:shuffle_list(Intervals), ChunksPerPeer, {Q, QIntervals}),
+		big_util:shuffle_list(Intervals), ChunksPerPeer, {Q, QIntervals}),
 
 	?LOG_DEBUG([{event, enqueue_intervals}, {pid, self()},
 		{queue_before, gb_sets:size(Q)}, {queue_after, gb_sets:size(Q2)},
@@ -1077,7 +1077,7 @@ handle_cast(sync_intervals, State) ->
 		active ->
 			do_sync_intervals(State2);
 		paused ->
-			ar_util:cast_after(?DEVICE_LOCK_WAIT, self(), sync_intervals),
+			big_util:cast_after(?DEVICE_LOCK_WAIT, self(), sync_intervals),
 			State2;
 		_ ->
 			State2
@@ -1094,7 +1094,7 @@ handle_cast({pack_and_store_chunk, Args} = Cast,
 		true ->
 			pack_and_store_chunk(Args, State);
 		_ ->
-			ar_util:cast_after(30000, self(), Cast),
+			big_util:cast_after(30000, self(), Cast),
 			{noreply, State}
 	end;
 
@@ -1104,7 +1104,7 @@ handle_cast({store_chunk, ChunkArgs, Args} = Cast,
 		true ->
 			{noreply, store_chunk(ChunkArgs, Args, State)};
 		_ ->
-			ar_util:cast_after(30000, self(), Cast),
+			big_util:cast_after(30000, self(), Cast),
 			{noreply, State}
 	end;
 
@@ -1145,7 +1145,7 @@ handle_cast({store_fetched_chunk, Peer, Byte, Proof} = Cast, State) ->
 	end;
 
 handle_cast(process_disk_pool_item, #sync_data_state{ disk_pool_scan_pause = true } = State) ->
-	ar_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(), process_disk_pool_item),
+	big_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(), process_disk_pool_item),
 	{noreply, State};
 handle_cast(process_disk_pool_item, State) ->
 	#sync_data_state{ disk_pool_cursor = Cursor, disk_pool_chunks_index = DiskPoolChunksIndex,
@@ -1176,8 +1176,8 @@ handle_cast(process_disk_pool_item, State) ->
 		end,
 	case NextKey of
 		none ->
-			ar_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(), resume_disk_pool_scan),
-			ar_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(), process_disk_pool_item),
+			big_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(), resume_disk_pool_scan),
+			big_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(), process_disk_pool_item),
 			{noreply, State#sync_data_state{ disk_pool_cursor = first,
 					disk_pool_full_scan_start_key = none, disk_pool_scan_pause = true }};
 		{ok, Key3, Value3} ->
@@ -1191,9 +1191,9 @@ handle_cast(process_disk_pool_item, State) ->
 					TimePassed = timer:now_diff(erlang:timestamp(), Timestamp),
 					case TimePassed < (?DISK_POOL_SCAN_DELAY_MS) * 1000 of
 						true ->
-							ar_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(),
+							big_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(),
 									resume_disk_pool_scan),
-							ar_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(),
+							big_util:cast_after(?DISK_POOL_SCAN_DELAY_MS, self(),
 									process_disk_pool_item),
 							{noreply, State#sync_data_state{ disk_pool_cursor = first,
 									disk_pool_full_scan_start_key = none,
@@ -1298,8 +1298,8 @@ handle_cast({expire_repack_chunk_request, Key}, State) ->
 			decrement_chunk_cache_size(),
 			DataPathHash = crypto:hash(sha256, DataPath),
 			?LOG_DEBUG([{event, expired_repack_chunk_request},
-					{data_path_hash, ar_util:encode(DataPathHash)},
-					{data_root, ar_util:encode(DataRoot)},
+					{data_path_hash, big_util:encode(DataPathHash)},
+					{data_root, big_util:encode(DataRoot)},
 					{relative_offset, Offset}]),
 			State2 = State#sync_data_state{ packing_map = maps:remove(Key, PackingMap) },
 			{noreply, State2};
@@ -1320,7 +1320,7 @@ handle_cast({expire_unpack_fetched_chunk_request, Key}, State) ->
 
 handle_cast(store_sync_state, State) ->
 	store_sync_state(State),
-	ar_util:cast_after(?STORE_STATE_FREQUENCY_MS, self(), store_sync_state),
+	big_util:cast_after(?STORE_STATE_FREQUENCY_MS, self(), store_sync_state),
 	{noreply, State};
 
 handle_cast({remove_recently_processed_disk_pool_offset, Offset, ChunkDataKey}, State) ->
@@ -1499,7 +1499,7 @@ do_sync_intervals(State) ->
 	IsQueueEmpty =
 		case gb_sets:is_empty(Q) of
 			true ->
-				ar_util:cast_after(500, self(), sync_intervals),
+				big_util:cast_after(500, self(), sync_intervals),
 				true;
 			false ->
 				false
@@ -1513,7 +1513,7 @@ do_sync_intervals(State) ->
 					true ->
 						true;
 					_ ->
-						ar_util:cast_after(30000, self(), sync_intervals),
+						big_util:cast_after(30000, self(), sync_intervals),
 						false
 				end
 		end,
@@ -1524,7 +1524,7 @@ do_sync_intervals(State) ->
 			true ->
 				case is_chunk_cache_full() of
 					true ->
-						ar_util:cast_after(1000, self(), sync_intervals),
+						big_util:cast_after(1000, self(), sync_intervals),
 						true;
 					false ->
 						false
@@ -1537,7 +1537,7 @@ do_sync_intervals(State) ->
 			false ->
 				case big_data_sync_worker_master:ready_for_work() of
 					false ->
-						ar_util:cast_after(200, self(), sync_intervals),
+						big_util:cast_after(200, self(), sync_intervals),
 						true;
 					true ->
 						false
@@ -1586,7 +1586,7 @@ do_sync_data2(#sync_data_state{
 		range_start = RangeStart, range_end = RangeEnd } = State,
 	?LOG_INFO([{event, sync_data_complete}, {store_id, StoreID}, {range_start, RangeStart},
 			{range_end, RangeEnd}]),
-	ar_util:cast_after(2000, self(), collect_peer_intervals),
+	big_util:cast_after(2000, self(), collect_peer_intervals),
 	State;
 %% @doc Check to see if a neighboring storage_module may have already synced one of our
 %% unsynced intervals
@@ -1624,7 +1624,7 @@ do_sync_data2(#sync_data_state{
 			false ->
 				State
 		end,
-	ar_util:cast_after(50, self(), sync_data2),
+	big_util:cast_after(50, self(), sync_data2),
 	State2.
 
 remove_expired_disk_pool_data_roots() ->
@@ -1728,8 +1728,8 @@ get_chunk(Offset, SeekOffset, Pack, Packing, StoredPacking, StoreID, RequestOrig
 												big_serialize:encode_packing(StoredPacking, true)},
 											{absolute_end_offset, AbsoluteOffset},
 											{store_id, StoreID},
-											{expected_chunk_id, ar_util:encode(ChunkID)},
-											{chunk_id, ar_util:encode(ComputedChunkID)}]),
+											{expected_chunk_id, big_util:encode(ChunkID)},
+											{chunk_id, big_util:encode(ComputedChunkID)}]),
 									invalidate_bad_data_record({AbsoluteOffset, ChunkSize,
 										StoreID, get_chunk_invalid_id}),
 									{error, chunk_not_found}
@@ -1825,7 +1825,7 @@ read_chunk_with_metadata(
 						{stored_packing,
 							big_serialize:encode_packing(StoredPacking, true)},
 						{modules_covering_seek_offset, ModuleIDs},
-						{chunk_data_key, ar_util:encode(ChunkDataKey)},
+						{chunk_data_key, big_util:encode(ChunkDataKey)},
 						{read_fun, ReadFun}]),
 					invalidate_bad_data_record({AbsoluteOffset, ChunkSize, StoreID,
 						failed_to_read_chunk_data_path}),
@@ -1833,7 +1833,7 @@ read_chunk_with_metadata(
 				{error, Error} ->
 					log_chunk_error(failed_to_read_chunk,
 							[{reason, io_lib:format("~p", [Error])},
-							{chunk_data_key, ar_util:encode(ChunkDataKey)},
+							{chunk_data_key, big_util:encode(ChunkDataKey)},
 							{absolute_end_offset, Offset}]),
 					{error, failed_to_read_chunk};
 				{ok, {Chunk, DataPath}} ->
@@ -1955,8 +1955,8 @@ validate_fetched_chunk(Args) ->
 					end;
 				{_BlockStart, _BlockEnd, TXRoot2} ->
 					log_chunk_error(stored_chunk_invalid_tx_root,
-						[{end_offset, Offset}, {tx_root, ar_util:encode(TXRoot2)},
-						{stored_tx_root, ar_util:encode(TXRoot)}, {store_id, StoreID}]),
+						[{end_offset, Offset}, {tx_root, big_util:encode(TXRoot2)},
+						{stored_tx_root, big_util:encode(TXRoot)}, {store_id, StoreID}]),
 					invalidate_bad_data_record({Offset, ChunkSize, StoreID,
 						stored_chunk_invalid_tx_root}),
 					false
@@ -1985,7 +1985,7 @@ get_tx_offset(TXIndex, TXID) ->
 		{error, Reason} ->
 			?LOG_ERROR([{event, failed_to_read_tx_offset},
 					{reason, io_lib:format("~p", [Reason])},
-					{tx, ar_util:encode(TXID)}]),
+					{tx, big_util:encode(TXID)}]),
 			{error, failed_to_read_offset}
 	end.
 
@@ -2492,13 +2492,13 @@ update_tx_index(SizeTaggedTXs, BlockStartOffset, StoreID) ->
 							{error, Reason} ->
 								?LOG_ERROR([{event, failed_to_update_tx_index},
 										{reason, io_lib:format("~p", [Reason])},
-										{tx, ar_util:encode(TXID)}]),
+										{tx, big_util:encode(TXID)}]),
 								TXEndOffset
 						end;
 					{error, Reason} ->
 						?LOG_ERROR([{event, failed_to_update_tx_offset_index},
 								{reason, io_lib:format("~p", [Reason])},
-								{tx, ar_util:encode(TXID)}]),
+								{tx, big_util:encode(TXID)}]),
 						TXEndOffset
 				end
 		end,
@@ -2652,7 +2652,7 @@ enqueue_intervals([{Peer, Intervals} | Rest], ChunksToEnqueue, {Q, QIntervals}) 
 
 enqueue_peer_intervals(Peer, Intervals, ChunksToEnqueue, {Q, QIntervals}) ->
 	?LOG_DEBUG([{event, enqueue_peer_intervals}, {pid, self()},
-		{peer, ar_util:format_peer(Peer)}, {num_intervals, gb_sets:size(Intervals)},
+		{peer, big_util:format_peer(Peer)}, {num_intervals, gb_sets:size(Intervals)},
 		{chunks_to_enqueue, ChunksToEnqueue}]),
 
 	%% Only keep unique intervals. We may get some duplicates for two
@@ -2700,11 +2700,11 @@ unpack_fetched_chunk(Cast, AbsoluteOffset, ChunkArgs, Args, State) ->
 		false ->
 			case big_packing_server:is_buffer_full() of
 				true ->
-					ar_util:cast_after(1000, self(), Cast),
+					big_util:cast_after(1000, self(), Cast),
 					{noreply, State};
 				false ->
 					big_packing_server:request_unpack(AbsoluteOffset, ChunkArgs),
-					ar_util:cast_after(600000, self(),
+					big_util:cast_after(600000, self(),
 							{expire_unpack_fetched_chunk_request,
 							{AbsoluteOffset, unpacked}}),
 					{noreply, State#sync_data_state{
@@ -2953,7 +2953,7 @@ should_unpack({replica_2_9, Addr}) when ?BLOCK_2_9_SYNCING ->
 	%% Unpacking another peer's replica 2.9 chunk is expensive, so don't do it.
 	%% Note: peers running the reference client won't share replica 2.9 chunks
 	%% anyways, so this check is just a backup.
-	{false, got_replica_2_9_chunk_from_peer, [{mining_addr, ar_util:encode(Addr)}]};
+	{false, got_replica_2_9_chunk_from_peer, [{mining_addr, big_util:encode(Addr)}]};
 should_unpack(_) ->
 	true.
 
@@ -2963,7 +2963,7 @@ process_invalid_fetched_chunk(Peer, Byte, State) ->
 	process_invalid_fetched_chunk(Peer, Byte, State, got_invalid_proof_from_peer, []).
 process_invalid_fetched_chunk(Peer, Byte, State, Event, ExtraLogs) ->
 	#sync_data_state{ weave_size = WeaveSize } = State,
-	?LOG_WARNING([{event, Event}, {peer, ar_util:format_peer(Peer)},
+	?LOG_WARNING([{event, Event}, {peer, big_util:format_peer(Peer)},
 			{byte, Byte}, {weave_size, WeaveSize} | ExtraLogs]),
 	{noreply, State}.
 
@@ -2975,7 +2975,7 @@ process_valid_fetched_chunk(ChunkArgs, Args, State) ->
 	case is_chunk_proof_ratio_attractive(ChunkSize, TXSize, DataPath) of
 		false ->
 			?LOG_WARNING([{event, got_too_big_proof_from_peer},
-					{peer, ar_util:format_peer(Peer)}]),
+					{peer, big_util:format_peer(Peer)}]),
 			decrement_chunk_cache_size(),
 			{noreply, State};
 		true ->
@@ -3031,7 +3031,7 @@ pack_and_store_chunk(Args, State) ->
 				false ->
 					case big_packing_server:is_buffer_full() of
 						true ->
-							ar_util:cast_after(1000, self(), {pack_and_store_chunk, Args}),
+							big_util:cast_after(1000, self(), {pack_and_store_chunk, Args}),
 							{noreply, State};
 						false ->
 							{Packing2, Chunk2} =
@@ -3044,7 +3044,7 @@ pack_and_store_chunk(Args, State) ->
 							big_packing_server:request_repack(AbsoluteOffset,
 									{RequiredPacking, Packing2, Chunk2, AbsoluteOffset,
 										TXRoot, ChunkSize}),
-							ar_util:cast_after(600000, self(),
+							big_util:cast_after(600000, self(),
 									{expire_repack_chunk_request,
 											{AbsoluteOffset, RequiredPacking}}),
 							PackingArgs = {pack_chunk, {RequiredPacking, DataPath,
@@ -3167,24 +3167,24 @@ log_failed_to_store_chunk(already_stored,
 	?LOG_INFO([{event, chunk_already_stored},
 			{absolute_end_offset, AbsoluteOffset},
 			{relative_offset, Offset},
-			{data_path_hash, ar_util:encode(DataPathHash)},
-			{data_root, ar_util:encode(DataRoot)},
+			{data_path_hash, big_util:encode(DataPathHash)},
+			{data_root, big_util:encode(DataRoot)},
 			{store_id, StoreID}]);
 log_failed_to_store_chunk(not_prepared_yet,
 		AbsoluteOffset, Offset, DataRoot, DataPathHash, StoreID) ->
 	?LOG_WARNING([{event, chunk_not_prepared_yet},
 			{absolute_end_offset, AbsoluteOffset},
 			{relative_offset, Offset},
-			{data_path_hash, ar_util:encode(DataPathHash)},
-			{data_root, ar_util:encode(DataRoot)},
+			{data_path_hash, big_util:encode(DataPathHash)},
+			{data_root, big_util:encode(DataRoot)},
 			{store_id, StoreID}]);
 log_failed_to_store_chunk(Reason, AbsoluteOffset, Offset, DataRoot, DataPathHash, StoreID) ->
 	?LOG_ERROR([{event, failed_to_store_chunk},
 			{reason, io_lib:format("~p", [Reason])},
 			{absolute_end_offset, AbsoluteOffset},
 			{relative_offset, Offset},
-			{data_path_hash, ar_util:encode(DataPathHash)},
-			{data_root, ar_util:encode(DataRoot)},
+			{data_path_hash, big_util:encode(DataPathHash)},
+			{data_root, big_util:encode(DataRoot)},
 			{store_id, StoreID}]).
 
 get_required_chunk_packing(_Offset, _ChunkSize, #sync_data_state{ store_id = "default" }) ->
@@ -3384,8 +3384,8 @@ process_disk_pool_chunk_offset(Iterator, TXRoot, TXPath, AbsoluteOffset, MayConc
 					{passed_base, PassedBase}, {passed_strict, PassedStrictValidation},
 					{passed_rebase, PassedRebaseValidation},
 					{relative_offset, Offset},
-					{data_path_hash, ar_util:encode(DataPathHash)},
-					{data_root, ar_util:encode(DataRoot)}]),
+					{data_path_hash, big_util:encode(DataPathHash)},
+					{data_root, big_util:encode(DataRoot)}]),
 			gen_server:cast(self(), {process_disk_pool_chunk_offsets, Iterator,
 					MayConclude, Args}),
 			{noreply, State};
@@ -3422,11 +3422,11 @@ process_disk_pool_immature_chunk_offset(Iterator, TXRoot, TXPath, AbsoluteOffset
 				{error, Reason} ->
 					?LOG_WARNING([{event, failed_to_index_disk_pool_chunk},
 							{reason, io_lib:format("~p", [Reason])},
-							{data_path_hash, ar_util:encode(DataPathHash)},
-							{data_root, ar_util:encode(DataRoot)},
+							{data_path_hash, big_util:encode(DataPathHash)},
+							{data_root, big_util:encode(DataRoot)},
 							{absolute_end_offset, AbsoluteOffset},
 							{relative_offset, Offset},
-							{chunk_data_key, ar_util:encode(element(5, Args))}]),
+							{chunk_data_key, big_util:encode(element(5, Args))}]),
 					gen_server:cast(self(), process_disk_pool_item),
 					{noreply, deregister_currently_processed_disk_pool_key(Key, State)}
 			end
@@ -3516,22 +3516,22 @@ process_disk_pool_matured_chunk_offset(Iterator, TXRoot, TXPath, AbsoluteOffset,
 			case read_chunk(AbsoluteOffset, ChunkDataKey, DefaultStoreID) of
 				not_found ->
 					?LOG_ERROR([{event, disk_pool_chunk_not_found},
-							{data_path_hash, ar_util:encode(DataPathHash)},
-							{data_root, ar_util:encode(DataRoot)},
+							{data_path_hash, big_util:encode(DataPathHash)},
+							{data_root, big_util:encode(DataRoot)},
 							{absolute_end_offset, AbsoluteOffset},
 							{relative_offset, Offset},
-							{chunk_data_key, ar_util:encode(element(5, Args))}]),
+							{chunk_data_key, big_util:encode(element(5, Args))}]),
 					gen_server:cast(self(), {process_disk_pool_chunk_offsets, Iterator,
 							MayConclude, Args}),
 					{noreply, State};
 				{error, Reason2} ->
 					?LOG_ERROR([{event, failed_to_read_disk_pool_chunk},
 							{reason, io_lib:format("~p", [Reason2])},
-							{data_path_hash, ar_util:encode(DataPathHash)},
-							{data_root, ar_util:encode(DataRoot)},
+							{data_path_hash, big_util:encode(DataPathHash)},
+							{data_root, big_util:encode(DataRoot)},
 							{absolute_end_offset, AbsoluteOffset},
 							{relative_offset, Offset},
-							{chunk_data_key, ar_util:encode(element(5, Args))}]),
+							{chunk_data_key, big_util:encode(element(5, Args))}]),
 					gen_server:cast(self(), process_disk_pool_item),
 					{noreply, deregister_currently_processed_disk_pool_key(Key, State)};
 				{ok, {Chunk, DataPath}} ->
@@ -3604,7 +3604,7 @@ cache_recently_processed_offset(Offset, ChunkDataKey, State) ->
 	Map2 =
 		case sets:is_element(ChunkDataKey, Set) of
 			false ->
-				ar_util:cast_after(?CACHE_RECENTLY_PROCESSED_DISK_POOL_OFFSET_LIFETIME_MS,
+				big_util:cast_after(?CACHE_RECENTLY_PROCESSED_DISK_POOL_OFFSET_LIFETIME_MS,
 						self(), {remove_recently_processed_disk_pool_offset, Offset,
 						ChunkDataKey}),
 				maps:put(Offset, sets:add_element(ChunkDataKey, Set), Map);

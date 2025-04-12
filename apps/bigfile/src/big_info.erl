@@ -27,7 +27,7 @@ get_info() ->
         <<"current">> =>
             case is_atom(Current) of
                 true -> atom_to_binary(Current, utf8);
-                false -> ar_util:encode(Current)
+                false -> big_util:encode(Current)
             end,
         <<"blocks">> => BlockCount,
         <<"peers">> => prometheus_gauge:value(bigfile_peer_count),
@@ -69,7 +69,7 @@ get_recent_blocks() ->
         fun(H, Acc) ->
             B = big_block_cache:get(block_cache, H),
             [#{
-                <<"id">> => ar_util:encode(H),
+                <<"id">> => big_util:encode(H),
                 <<"received">> => get_block_timestamp(B, length(Acc)),
                 <<"height">> => B#block.height
             } | Acc]
@@ -91,10 +91,10 @@ get_recent_forks() ->
                         id = ID, height = Height, timestamp = Timestamp, 
                         block_ids = BlockIDs} = Fork,
                     [#{
-                        <<"id">> => ar_util:encode(ID),
+                        <<"id">> => big_util:encode(ID),
                         <<"height">> => Height,
                         <<"timestamp">> => Timestamp div 1000,
-                        <<"blocks">> => [ ar_util:encode(BlockID) || BlockID <- BlockIDs ]
+                        <<"blocks">> => [ big_util:encode(BlockID) || BlockID <- BlockIDs ]
                     } | Acc]
                 end,
                 [],
@@ -107,5 +107,5 @@ get_block_timestamp(B, Depth)
             B#block.receive_timestamp =:= undefined ->
     <<"pending">>;
 get_block_timestamp(B, _Depth) ->
-    ar_util:timestamp_to_seconds(B#block.receive_timestamp).
+    big_util:timestamp_to_seconds(B#block.receive_timestamp).
 

@@ -165,7 +165,7 @@ test_bad_secret() ->
 	end.
 
 test_partition_table() ->
-	[B0] = ar_weave:init([], big_test_node:get_difficulty_for_invalid_hash(), 5 * ?PARTITION_SIZE),
+	[B0] = big_weave:init([], big_test_node:get_difficulty_for_invalid_hash(), 5 * ?PARTITION_SIZE),
 	Config = big_test_node:base_cm_config([]),
 	
 	MiningAddr = Config#config.mining_addr,
@@ -230,7 +230,7 @@ test_partition_table() ->
 
 test_peers_by_partition() ->
 	PartitionUpperBound = 6 * ?PARTITION_SIZE,
-	[B0] = ar_weave:init([], big_test_node:get_difficulty_for_invalid_hash(),
+	[B0] = big_weave:init([], big_test_node:get_difficulty_for_invalid_hash(),
 			PartitionUpperBound),
 
 	Peer1 = big_test_node:peer_ip(peer1),
@@ -351,7 +351,7 @@ test_peers_by_partition() ->
 %% --------------------------------------------------------------------
 
 assert_peers(ExpectedPeers, Node, Partition) ->
-	?assert(ar_util:do_until(
+	?assert(big_util:do_until(
 		fun() ->
 			Peers = big_test_node:remote_call(Node, big_coordination, get_peers, [Partition]),
 			lists:sort(ExpectedPeers) == lists:sort(Peers)
@@ -404,7 +404,7 @@ wait_for_cross_node(Miners, ValidatorNode, CurrentHeight, ExpectedPartitions, Re
 	
 mine_in_parallel(Miners, ValidatorNode, CurrentHeight) ->
 	report_miners(Miners),
-	ar_util:pmap(fun(Node) -> big_test_node:mine(Node) end, Miners),
+	big_util:pmap(fun(Node) -> big_test_node:mine(Node) end, Miners),
 	?debugFmt("Waiting until the validator node (port ~B) advances to height ~B.",
 			[big_test_node:peer_port(ValidatorNode), CurrentHeight + 1]),
 	BIValidator = big_test_node:wait_until_height(ValidatorNode, CurrentHeight + 1, false),

@@ -36,8 +36,8 @@ test_vdf_basic_compute_verify_() ->
 	StartStepNumber2 = 3,
 	StartSalt1 = big_vdf:step_number_to_salt_number(StartStepNumber1-1),
 	StartSalt2 = big_vdf:step_number_to_salt_number(StartStepNumber2-1),
-	PrevOutput = ar_util:decode(?ENCODED_PREV_OUTPUT),
-	ResetSeed = ar_util:decode(?RESET_SEED),
+	PrevOutput = big_util:decode(?ENCODED_PREV_OUTPUT),
+	ResetSeed = big_util:decode(?RESET_SEED),
 
 	ResetSalt = -1,
 
@@ -80,7 +80,7 @@ test_vdf_basic_compute_verify_break_(StartSalt, PrevOutput, StepBetweenHashCount
 		Hashes, ResetSalt, ResetSeed, BreakPos-1).
 
 assert_verify(StartSalt, ResetSalt, Output, NumCheckpointsBetweenHashes, Checkpoints) ->
-	ResetSeed = ar_util:decode(?RESET_SEED),
+	ResetSeed = big_util:decode(?RESET_SEED),
 	?assertEqual(
 		{true, iolist_to_binary(Checkpoints)},
 		big_vdf:verify(
@@ -102,8 +102,8 @@ test_vdf_reset_0_() ->
 	StartStepNumber2 = 3,
 	StartSalt1 = big_vdf:step_number_to_salt_number(StartStepNumber1-1),
 	StartSalt2 = big_vdf:step_number_to_salt_number(StartStepNumber2-1),
-	PrevOutput = ar_util:decode(?ENCODED_PREV_OUTPUT),
-	ResetSeed = ar_util:decode(?RESET_SEED),
+	PrevOutput = big_util:decode(?ENCODED_PREV_OUTPUT),
+	ResetSeed = big_util:decode(?RESET_SEED),
 
 	ResetSalt = StartSalt1,
 
@@ -128,8 +128,8 @@ test_vdf_reset_1_() ->
 	StartStepNumber2 = 3,
 	StartSalt1 = big_vdf:step_number_to_salt_number(StartStepNumber1-1),
 	StartSalt2 = big_vdf:step_number_to_salt_number(StartStepNumber2-1),
-	PrevOutput = ar_util:decode(?ENCODED_PREV_OUTPUT),
-	ResetSeed = ar_util:decode(?RESET_SEED),
+	PrevOutput = big_util:decode(?ENCODED_PREV_OUTPUT),
+	ResetSeed = big_util:decode(?RESET_SEED),
 
 	ResetSalt = StartSalt2,
 
@@ -157,8 +157,8 @@ test_vdf_reset_mid_checkpoint_() ->
 	StartStepNumber2 = 3,
 	StartSalt1 = big_vdf:step_number_to_salt_number(StartStepNumber1-1),
 	StartSalt2 = big_vdf:step_number_to_salt_number(StartStepNumber2-1),
-	PrevOutput = ar_util:decode(?ENCODED_PREV_OUTPUT),
-	ResetSeed = ar_util:decode(?RESET_SEED),
+	PrevOutput = big_util:decode(?ENCODED_PREV_OUTPUT),
+	ResetSeed = big_util:decode(?RESET_SEED),
 
 	% means inside 1 iteration
 	ResetSaltFlat = 10,

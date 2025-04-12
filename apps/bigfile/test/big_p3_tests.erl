@@ -46,7 +46,7 @@ test_not_found() ->
 test_valid_request() ->
 	Wallet = {PrivKey, PubKey} = big_wallet:new(),
 	Address = big_wallet:to_address(Wallet),
-	EncodedAddress = ar_util:encode(Address),
+	EncodedAddress = big_util:encode(Address),
 	{ok, _Account} = big_p3_db:get_or_create_account(
 		Address,
 		PubKey,
@@ -86,7 +86,7 @@ test_valid_request() ->
 test_zero_rate() ->
 	Wallet = {PrivKey, PubKey} = big_wallet:new(),
 	Address = big_wallet:to_address(Wallet),
-	EncodedAddress = ar_util:encode(Address),
+	EncodedAddress = big_util:encode(Address),
 	{ok, _Account} = big_p3_db:get_or_create_account(
 		Address,
 		PubKey,
@@ -116,8 +116,8 @@ test_checksum_request() ->
 	Wallet = {PrivKey, PubKey} = big_wallet:new(),
 	Address = big_wallet:to_address(Wallet),
 	Checksum = << (erlang:crc32(Address)):32 >>,
-	EncodedAddress = ar_util:encode(Address),
-	EncodedChecksum = ar_util:encode(Checksum),
+	EncodedAddress = big_util:encode(Address),
+	EncodedChecksum = big_util:encode(Checksum),
 	ValidAddress = << EncodedAddress/binary, ":", EncodedChecksum/binary>>,
 	InvalidAddress = << EncodedAddress/binary, ":BAD_CHECKSUM">>,
 	{ok, _Account} = big_p3_db:get_or_create_account(
@@ -148,7 +148,7 @@ test_checksum_request() ->
 test_bad_headers() ->
 	Wallet = {PrivKey, PubKey} = big_wallet:new(),
 	Address = big_wallet:to_address(Wallet),
-	EncodedAddress = ar_util:encode(Address),
+	EncodedAddress = big_util:encode(Address),
 	{ok, _Account} = big_p3_db:get_or_create_account(
 		Address,
 		PubKey,
@@ -156,7 +156,7 @@ test_bad_headers() ->
 	),
 	Wallet2 = {PrivKey2, PubKey2} = big_wallet:new(),
 	Address2 = big_wallet:to_address(Wallet2),
-	EncodedAddress2 = ar_util:encode(Address2),
+	EncodedAddress2 = big_util:encode(Address2),
 	{ok, _Account2} = big_p3_db:get_or_create_account(
 		Address2,
 		PubKey2,
@@ -304,7 +304,7 @@ test_bad_headers() ->
 		big_p3:handle_call({allow_request, 
 			ValidRequest#{
 				headers => ValidHeaders#{
-					?P3_SIGNATURE_HEADER => ar_util:decode(maps:get(?P3_SIGNATURE_HEADER, ValidHeaders))
+					?P3_SIGNATURE_HEADER => big_util:decode(maps:get(?P3_SIGNATURE_HEADER, ValidHeaders))
 				}
 			}}, [],
 			Config),
@@ -313,7 +313,7 @@ test_bad_headers() ->
 test_bad_config() ->
 	Wallet = {PrivKey, PubKey} = big_wallet:new(),
 	Address = big_wallet:to_address(Wallet),
-	EncodedAddress = ar_util:encode(Address),
+	EncodedAddress = big_util:encode(Address),
 	{ok, _Account} = big_p3_db:get_or_create_account(
 		Address,
 		PubKey,
@@ -387,7 +387,7 @@ test_balance_endpoint() ->
 	Wallet = {PrivKey, PubKey} = big_wallet:new(),
 	Address = big_wallet:to_address(Wallet),
 	Checksum = << (erlang:crc32(Address)):32 >>,
-	EncodedAddress = ar_util:encode(Address),
+	EncodedAddress = big_util:encode(Address),
 	{ok, _Account} = big_p3_db:get_or_create_account(
 		Address,
 		PubKey,
@@ -465,12 +465,12 @@ e2e_deposit_before_charge() ->
 	{_, Pub4} = big_wallet:new(),
 	RewardAddress = big_wallet:to_address(big_wallet:new_keyfile()),
 	Sender1Address = big_wallet:to_address(Pub1),
-	EncodedSender1Address = ar_util:encode(Sender1Address),
+	EncodedSender1Address = big_util:encode(Sender1Address),
 	Sender2Address = big_wallet:to_address(Pub2),
-	EncodedSender2Address = ar_util:encode(Sender2Address),
+	EncodedSender2Address = big_util:encode(Sender2Address),
 	DepositAddress = big_wallet:to_address(Pub3),
 	OtherAddress = big_wallet:to_address(Pub4),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{Sender1Address, ?BIG(10000), <<>>},
 		{Sender2Address, ?BIG(10000), <<>>},
 		{DepositAddress, ?BIG(10000), <<>>}
@@ -695,10 +695,10 @@ e2e_charge_before_deposit() ->
 	{_, Pub4} = big_wallet:new(),
 	RewardAddress = big_wallet:to_address(big_wallet:new_keyfile()),
 	Address1 = big_wallet:to_address(Pub1),
-	EncodedAddress1 = ar_util:encode(Address1),
+	EncodedAddress1 = big_util:encode(Address1),
 	Address2 = big_wallet:to_address(Pub2),
 	DepositAddress = big_wallet:to_address(Pub3),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{Address1, ?BIG(10000), <<>>}
 	]),
 	{ok, BaseConfig} = application:get_env(bigfile, config),
@@ -785,7 +785,7 @@ e2e_restart_p3_service() ->
 	RewardAddress = big_wallet:to_address(big_wallet:new_keyfile()),
 	Sender1Address = big_wallet:to_address(Pub1),
 	DepositAddress = big_wallet:to_address(Pub3),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{Sender1Address, ?BIG(10000), <<>>},
 		{DepositAddress, ?BIG(10000), <<>>}
 	]),
@@ -860,9 +860,9 @@ e2e_concurrent_requests() ->
 	{_, Pub3} = big_wallet:new(),
 	RewardAddress = big_wallet:to_address(big_wallet:new_keyfile()),
 	Address1 = big_wallet:to_address(Pub1),
-	EncodedAddress1 = ar_util:encode(Address1),
+	EncodedAddress1 = big_util:encode(Address1),
 	DepositAddress = big_wallet:to_address(Pub3),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{Address1, ?BIG(10000), <<>>},
 		{DepositAddress, ?BIG(10000), <<>>}
 	]),
@@ -887,7 +887,7 @@ e2e_concurrent_requests() ->
 		%% Post 100 concurrent valid requests which all contain a client error. All of them
 		%% should be reversed.
 		NumThreads = 100,
-		ar_util:pmap(
+		big_util:pmap(
 			fun(_) ->
 				http_request(
 					signed_request(<<"GET">>, <<"/price/abc">>, Priv1,
@@ -916,7 +916,7 @@ e2e_concurrent_requests() ->
 		%% Post 100 concurrent valid requests. Only 1 of them should succeed before the P3 balance
 		%% is exhausted. The remaining 99 sould all fail *and* none of them should
 		%% generate a reversal. This is because they should all be blocked before being processed.
-		ar_util:pmap(
+		big_util:pmap(
 			fun(_) ->
 				http_request(
 					signed_request(<<"GET">>, <<"/price/1000">>, Priv1,
@@ -968,11 +968,11 @@ get_balance(Address) ->
 	get_balance(Address, <<"bigfile">>, <<"BIG">>).
 
 get_balance(Address, Checksum, Network, Token) ->
-	EncodedAddress = list_to_binary([ar_util:encode(Address), ":", ar_util:encode(Checksum)]),
+	EncodedAddress = list_to_binary([big_util:encode(Address), ":", big_util:encode(Checksum)]),
 	get_balance2(EncodedAddress, Network, Token).
 
 get_balance(Address, Network, Token) ->
-	EncodedAddress = ar_util:encode(Address),
+	EncodedAddress = big_util:encode(Address),
 	get_balance2(EncodedAddress, Network, Token).
 
 get_balance2(EncodedAddress, Network, Token) ->
@@ -985,7 +985,7 @@ get_balance2(EncodedAddress, Network, Token) ->
 signed_request(Method, Path, PrivKey, Headers) 
 		when is_map(Headers) ->
 	Message = build_message(Headers),
-	EncodedSignature = ar_util:encode(big_wallet:sign(PrivKey, Message)),
+	EncodedSignature = big_util:encode(big_wallet:sign(PrivKey, Message)),
 	raw_request(Method, Path, Headers#{
 		?P3_SIGNATURE_HEADER => EncodedSignature
 	}).

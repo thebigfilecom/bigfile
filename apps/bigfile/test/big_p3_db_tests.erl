@@ -80,7 +80,7 @@ test_account_errors() ->
 	?assertEqual(
 		{error, invalid_address},
 		big_p3_db:get_or_create_account(
-			binary_to_list(ar_util:encode(Account#p3_account.address)),
+			binary_to_list(big_util:encode(Account#p3_account.address)),
 			Account#p3_account.public_key,
 			Account#p3_account.asset)),
 	?assertEqual(
@@ -100,7 +100,7 @@ test_account_errors() ->
 		big_p3_db:get_account(<<"does_not_exist">>)),
 	?assertEqual(
 		{error, invalid_address},
-		big_p3_db:get_account(binary_to_list(ar_util:encode(Account#p3_account.address)))),
+		big_p3_db:get_account(binary_to_list(big_util:encode(Account#p3_account.address)))),
 	?assertEqual(
 		{error, invalid_address},
 		big_p3_db:get_account(<<>>)).
@@ -249,7 +249,7 @@ test_deposit_errors() ->
 	?assertEqual(
 		{error, invalid_address},
 		big_p3_db:post_deposit(
-			binary_to_list(ar_util:encode(Address3)),
+			binary_to_list(big_util:encode(Address3)),
 			5,
 			crypto:strong_rand_bytes(32))),
 	?assertEqual(
@@ -275,7 +275,7 @@ test_deposit_errors() ->
 		big_p3_db:get_balance(<<"does_not_exist">>)),
 	?assertEqual(
 		{error, invalid_address},
-		big_p3_db:get_balance(binary_to_list(ar_util:encode(Address3)))),
+		big_p3_db:get_balance(binary_to_list(big_util:encode(Address3)))),
 	?assertEqual(
 		{error, invalid_address},
 		big_p3_db:get_balance(<<>>)),
@@ -284,7 +284,7 @@ test_deposit_errors() ->
 		big_p3_db:get_transaction(<<"does_not_exist">>, 1)),
 	?assertEqual(
 		{error, invalid_address},
-		big_p3_db:get_transaction(binary_to_list(ar_util:encode(Address3)), 1)),
+		big_p3_db:get_transaction(binary_to_list(big_util:encode(Address3)), 1)),
 	?assertEqual(
 		{error, invalid_address},
 		big_p3_db:get_transaction(<<>>, 1)),
@@ -399,7 +399,7 @@ test_charge_errors() ->
 	?assertEqual(
 		{error, invalid_address},
 		big_p3_db:post_charge(
-			binary_to_list(ar_util:encode(Address3)),
+			binary_to_list(big_util:encode(Address3)),
 			5,
 			-10,
 			Request)),
@@ -534,7 +534,7 @@ test_concurrent_deposits() ->
 			PubKey1,
 			?BIGFILE_BIG),
 	NumThreads = 100,
-	ar_util:pmap(
+	big_util:pmap(
 		fun(_) ->
 			big_p3_db:post_deposit(Address, 1, crypto:strong_rand_bytes(32))
 			%% Uncomment to test without gen_server message queue - test will fail:
@@ -556,7 +556,7 @@ test_concurrent_charges() ->
 	Request = raw_request(<<"GET">>, <<"/price/1000">>),
 	big_p3_db:post_deposit(Address, 10, crypto:strong_rand_bytes(32)),
 	NumThreads = 100,
-	ar_util:pmap(
+	big_util:pmap(
 		fun(_) ->
 			big_p3_db:post_charge(Address, 1, 0, Request)
 			%% Uncomment to test without gen_server message queue - test will fail:

@@ -66,7 +66,7 @@ handle_cast(check_for_received_txs, State) ->
 			true ->
 				check_for_received_txs(State);
 			false ->
-				ar_util:cast_after(?CHECK_INTERVAL_MS, self(), check_for_received_txs),
+				big_util:cast_after(?CHECK_INTERVAL_MS, self(), check_for_received_txs),
 				State
 		end,
 	{noreply, State3};
@@ -123,7 +123,7 @@ check_for_received_txs(#state{ pending_txids = [TXID | PendingTXIDs] } = State) 
 check_for_received_txs(#state{ pending_txids = [] } = State) ->
 	Peers = lists:sublist(big_peers:get_peers(current), ?QUERY_PEERS_COUNT),
 	Reply = big_http_iface_client:get_mempool(Peers),
-	ar_util:cast_after(?POLL_INTERVAL_MS, self(), check_for_received_txs),
+	big_util:cast_after(?POLL_INTERVAL_MS, self(), check_for_received_txs),
 	case Reply of
 		{ok, TXIDs} ->
 			State#state{ pending_txids = TXIDs };
@@ -138,8 +138,8 @@ download_and_verify_tx(TXID) ->
 		not_found ->
 			big_ignore_registry:remove_temporary(TXID),
 			?LOG_DEBUG([{event, failed_to_get_tx_from_peers},
-					{peers, [ar_util:format_peer(Peer) || Peer <- Peers]},
-					{txid, ar_util:encode(TXID)}
+					{peers, [big_util:format_peer(Peer) || Peer <- Peers]},
+					{txid, big_util:encode(TXID)}
 			]);
 		{TX, Peer, Time, Size} ->
 			case big_tx_validator:validate(TX) of
@@ -157,18 +157,18 @@ download_and_verify_tx(TXID) ->
 	end.
 
 log_invalid_tx(tx_bad_anchor, TXID, TX, Peer) ->
-	LastTX = ar_util:encode(TX#tx.last_tx),
+	LastTX = big_util:encode(TX#tx.last_tx),
 	CurrentHeight = big_node:get_height(),
-	CurrentBlockHash = ar_util:encode(big_node:get_current_block_hash()),
+	CurrentBlockHash = big_util:encode(big_node:get_current_block_hash()),
 	?LOG_INFO(format_invalid_tx_message(tx_bad_anchor, TXID, Peer, [
 		{last_tx, LastTX},
 		{current_height, CurrentHeight},
 		{current_block_hash, CurrentBlockHash}
 	]));
 log_invalid_tx(tx_verification_failed, TXID, TX, Peer) ->
-	LastTX = ar_util:encode(TX#tx.last_tx),
+	LastTX = big_util:encode(TX#tx.last_tx),
 	CurrentHeight = big_node:get_height(),
-	CurrentBlockHash = ar_util:encode(big_node:get_current_block_hash()),
+	CurrentBlockHash = big_util:encode(big_node:get_current_block_hash()),
 	ErrorCodes = big_tx_db:get_error_codes(TXID),
 	?LOG_INFO(format_invalid_tx_message(tx_verification_failed, TXID, Peer, [
 		{last_tx, LastTX},
@@ -182,8 +182,8 @@ log_invalid_tx(Code, TXID, _TX, Peer) ->
 format_invalid_tx_message(Code, TXID, Peer, ExtraLogs) ->
 	[
 		{event, fetched_invalid_tx},
-		{txid, ar_util:encode(TXID)},
+		{txid, big_util:encode(TXID)},
 		{code, Code},
-		{peer, ar_util:format_peer(Peer)}
+		{peer, big_util:format_peer(Peer)}
 		| ExtraLogs
 	].

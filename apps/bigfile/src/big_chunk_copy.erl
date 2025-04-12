@@ -93,7 +93,7 @@ init(WorkerMap) ->
 		#{},
 		WorkerMap
 	),
-	ar_util:cast_after(1000, self(), process_queues),
+	big_util:cast_after(1000, self(), process_queues),
 	{ok, #state{
 		workers = Workers
 	}}.
@@ -109,7 +109,7 @@ handle_cast({read_range, Args}, State) ->
 	{noreply, enqueue_read_range(Args, State)};
 
 handle_cast(process_queues, State) ->
-	ar_util:cast_after(1000, self(), process_queues),
+	big_util:cast_after(1000, self(), process_queues),
 	{noreply, process_queues(State)};
 
 handle_cast({task_completed, {read_range, {Worker, _, Args}}}, State) ->

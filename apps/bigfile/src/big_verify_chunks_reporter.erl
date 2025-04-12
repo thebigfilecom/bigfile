@@ -33,7 +33,7 @@ update(StoreID, Report) ->
 %%%===================================================================
 
 init([]) ->
-	ar_util:cast_after(?REPORT_PROGRESS_INTERVAL, self(), report_progress),
+	big_util:cast_after(?REPORT_PROGRESS_INTERVAL, self(), report_progress),
 	{ok, #state{}}.
 
 
@@ -46,7 +46,7 @@ handle_cast(report_progress, State) ->
 	} = State,
 
 	print_reports(Reports),
-	ar_util:cast_after(?REPORT_PROGRESS_INTERVAL, self(), report_progress),
+	big_util:cast_after(?REPORT_PROGRESS_INTERVAL, self(), report_progress),
 	{noreply, State};
 
 handle_cast(Cast, State) ->

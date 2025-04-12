@@ -34,7 +34,7 @@ setup_nodes2(#{ peer_addr := PeerAddr } = Options) ->
 	{B0, Options2} =
 		case maps:get(b0, Options, not_set) of
 			not_set ->
-				[Genesis] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(200000), <<>>}]),
+				[Genesis] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(200000), <<>>}]),
 				{Genesis, Options#{ b0 => Genesis }};
 			Value ->
 				{Value, Options}
@@ -225,13 +225,13 @@ build_proofs(TX, Chunks, TXs, BlockStartOffset, Height) ->
 				TXStartOffset = TXOffset - DataSize,
 				AbsoluteChunkEndOffset = BlockStartOffset + TXStartOffset + ChunkOffset,
 				Proof = #{
-					tx_path => ar_util:encode(TXPath),
-					data_root => ar_util:encode(DataRoot),
+					tx_path => big_util:encode(TXPath),
+					data_root => big_util:encode(DataRoot),
 					data_path =>
-						ar_util:encode(
+						big_util:encode(
 							big_merkle:generate_path(DataRoot, ChunkOffset - 1, DataTree)
 						),
-					chunk => ar_util:encode(Chunk),
+					chunk => big_util:encode(Chunk),
 					offset => integer_to_binary(ChunkOffset - 1),
 					data_size => integer_to_binary(DataSize)
 				},
@@ -246,7 +246,7 @@ get_tx_offset(Node, TXID) ->
 	big_http:req(#{
 		method => get,
 		peer => Peer,
-		path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/offset"
+		path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/offset"
 	}).
 
 get_tx_data(TXID) ->
@@ -254,7 +254,7 @@ get_tx_data(TXID) ->
 	big_http:req(#{
 		method => get,
 		peer => {127, 0, 0, 1, Config#config.port},
-		path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/data"
+		path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/data"
 	}).
 
 post_random_blocks(Wallet) ->
@@ -337,7 +337,7 @@ post_proofs(Peer, B, TX, Chunks, IsTemporary) ->
 	Proofs.
 
 wait_until_syncs_chunk(Offset, ExpectedProof) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			case big_test_node:get_chunk(main, Offset) of
 				{ok, {{<<"200">>, _}, _, ProofJSON, _, _}} ->
@@ -375,7 +375,7 @@ wait_until_syncs_chunks(Proofs, UpperBound) ->
 wait_until_syncs_chunks(Node, Proofs, UpperBound) ->
 	lists:foreach(
 		fun({EndOffset, Proof}) ->
-			true = ar_util:do_until(
+			true = big_util:do_until(
 				fun() ->
 					case EndOffset > UpperBound of
 						true ->
@@ -387,9 +387,9 @@ wait_until_syncs_chunks(Node, Proofs, UpperBound) ->
 										jiffy:decode(EncodedProof, [return_maps])
 									),
 									ExpectedProof = #{
-										chunk => ar_util:decode(maps:get(chunk, Proof)),
-										tx_path => ar_util:decode(maps:get(tx_path, Proof)),
-										data_path => ar_util:decode(maps:get(data_path, Proof))
+										chunk => big_util:decode(maps:get(chunk, Proof)),
+										tx_path => big_util:decode(maps:get(tx_path, Proof)),
+										data_path => big_util:decode(maps:get(data_path, Proof))
 									},
 									compare_proofs(FetchedProof, ExpectedProof, EndOffset);
 								_ ->

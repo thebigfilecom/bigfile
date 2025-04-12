@@ -164,7 +164,7 @@ get_cluster_partitions_list() ->
 init([]) ->
 	{ok, Config} = application:get_env(bigfile, config),
 	
-	ar_util:cast_after(?BATCH_POLL_INTERVAL_MS, ?MODULE, check_batches),
+	big_util:cast_after(?BATCH_POLL_INTERVAL_MS, ?MODULE, check_batches),
 	State = #state{
 		last_peer_response = #{}
 	},
@@ -180,7 +180,7 @@ init([]) ->
 				_ ->
 					ok
 			end,
-			ar_util:cast_after(?START_DELAY, ?MODULE, refetch_peer_partitions),
+			big_util:cast_after(?START_DELAY, ?MODULE, refetch_peer_partitions),
 			State#state{
 				last_peer_response = #{}
 			}
@@ -235,7 +235,7 @@ handle_call(Request, _From, State) ->
 	{reply, ok, State}.
 
 handle_cast(check_batches, State) ->
-	ar_util:cast_after(?BATCH_POLL_INTERVAL_MS, ?MODULE, check_batches),
+	big_util:cast_after(?BATCH_POLL_INTERVAL_MS, ?MODULE, check_batches),
 	OutBatches = check_out_batches(State),
 	{noreply, State#state{ out_batches = OutBatches }};
 
@@ -282,7 +282,7 @@ handle_cast(refetch_peer_partitions, State) ->
 			false ->
 				[Config#config.cm_exit_peer | Peers]
 		end,
-	ar_util:cast_after(Config#config.cm_poll_interval, ?MODULE, refetch_peer_partitions),
+	big_util:cast_after(Config#config.cm_poll_interval, ?MODULE, refetch_peer_partitions),
 	refetch_peer_partitions(Peers2),
 	{noreply, State};
 
@@ -305,7 +305,7 @@ handle_cast({remove_peer, Peer}, State) ->
 			State2 = State#state{
 				last_peer_response = maps:put(Peer, SetValue, State#state.last_peer_response)
 			},
-			?LOG_INFO([{event, cm_peer_removed}, {peer, ar_util:format_peer(Peer)}]),
+			?LOG_INFO([{event, cm_peer_removed}, {peer, big_util:format_peer(Peer)}]),
 			remove_mining_peer(Peer, State2)
 	end,
 	{noreply, State3};
@@ -431,9 +431,9 @@ add_mining_peer({Peer, StorageModules}, State) ->
 		fun({PartitionID, _PartitionSize, PackingAddr, PackingDifficulty}) ->
 			{PartitionID, PackingAddr, PackingDifficulty} end, StorageModules),
 	?LOG_INFO([{event, cm_peer_updated},
-		{peer, ar_util:format_peer(Peer)},
+		{peer, big_util:format_peer(Peer)},
 		{partitions, io_lib:format("~p",
-			[[{ID, ar_util:encode(Addr), PackingDifficulty}
+			[[{ID, big_util:encode(Addr), PackingDifficulty}
 				|| {ID, Addr, PackingDifficulty} <- Partitions]])}]),
 	PeersByPartition =
 		lists:foldl(
@@ -461,7 +461,7 @@ remove_mining_peer(Peer, State) ->
 refetch_peer_partitions(Peers) ->
 	spawn(fun() ->
 		
-		ar_util:pmap(
+		big_util:pmap(
 			fun(Peer) ->
 				case big_http_iface_client:get_cm_partition_table(Peer) of
 					{ok, PartitionList} ->
@@ -471,7 +471,7 @@ refetch_peer_partitions(Peers) ->
 				end end,
 				Peers
 			),
-		%% ar_util:pmap ensures we fetch all the local up-to-date CM peer partitions first,
+		%% big_util:pmap ensures we fetch all the local up-to-date CM peer partitions first,
 		%% then share them with the Pool to fetch the complementary pool CM peer partitions.
 		case {big_pool:is_client(), big_coordination:is_exit_peer()} of
 			{true, true} ->

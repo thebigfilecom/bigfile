@@ -54,7 +54,7 @@
 
 -define(MAX_MINERS, 3).
 
-% define check timeout and interval, used with ar_util:do_until/3.
+% define check timeout and interval, used with big_util:do_until/3.
 -define(NODE_READY_CHECK_INTERVAL, 200).
 -define(NODE_READY_CHECK_TIMEOUT, 500_000).
 -define(REMOTE_CALL_TIMEOUT, 500_000).
@@ -89,14 +89,14 @@ new_custom_size_rsa_wallet(Size) ->
 				[
 					{kty, <<"RSA">>},
 					{ext, true},
-					{e, ar_util:encode(Expnt)},
-					{n, ar_util:encode(Pub)},
-					{d, ar_util:encode(Priv)},
-					{p, ar_util:encode(P1)},
-					{q, ar_util:encode(P2)},
-					{dp, ar_util:encode(E1)},
-					{dq, ar_util:encode(E2)},
-					{qi, ar_util:encode(C)}
+					{e, big_util:encode(Expnt)},
+					{n, big_util:encode(Pub)},
+					{d, big_util:encode(Priv)},
+					{p, big_util:encode(P1)},
+					{q, big_util:encode(P2)},
+					{dp, big_util:encode(E1)},
+					{dq, big_util:encode(E2)},
+					{qi, big_util:encode(C)}
 				]
 			}
 		),
@@ -204,7 +204,7 @@ wait_until_joined(Node) ->
 
 %% @doc Wait until the node joins the network (initializes the state).
 wait_until_joined() ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() -> big_node:is_joined() end,
 		100,
 		?WAIT_UNTIL_JOINED_TIMEOUT
@@ -272,7 +272,7 @@ start_node(B0, Config, WaitUntilSync) ->
 start_coordinated(MiningNodeCount) when MiningNodeCount >= 1, MiningNodeCount =< ?MAX_MINERS ->
 	%% Set weave larger than what we'll cover with the 3 nodes so that every node can find
 	%% a solution.
-	[B0] = ar_weave:init([], get_difficulty_for_invalid_hash(), ?PARTITION_SIZE * 5),
+	[B0] = big_weave:init([], get_difficulty_for_invalid_hash(), ?PARTITION_SIZE * 5),
 	ExitPeer = peer_ip(peer1),
 	ValidatorPeer = peer_ip(main),
 	MinerNodes = lists:sublist([peer2, peer3, peer4], MiningNodeCount),
@@ -344,7 +344,7 @@ http_get_block(H, Node) ->
 	Port = Config#config.port,
 	Peer = {127, 0, 0, 1, Port},
 	case big_http:req(#{ peer => Peer, method => get,
-			path => "/block2/hash/" ++ binary_to_list(ar_util:encode(H)) }) of
+			path => "/block2/hash/" ++ binary_to_list(big_util:encode(H)) }) of
 		{ok, {{<<"200">>, _}, _, BlockBin, _, _}} ->
 			big_serialize:binary_to_block(BlockBin);
 		{error, Reason} ->
@@ -402,14 +402,14 @@ write_genesis_files(DataDir, B0) ->
 	BH = B0#block.indep_hash,
 	BlockDir = filename:join(DataDir, ?BLOCK_DIR),
 	ok = filelib:ensure_dir(BlockDir ++ "/"),
-	BlockFilepath = filename:join(BlockDir, binary_to_list(ar_util:encode(BH)) ++ ".bin"),
+	BlockFilepath = filename:join(BlockDir, binary_to_list(big_util:encode(BH)) ++ ".bin"),
 	ok = file:write_file(BlockFilepath, big_serialize:block_to_binary(B0)),
 	TXDir = filename:join(DataDir, ?TX_DIR),
 	ok = filelib:ensure_dir(TXDir ++ "/"),
 	lists:foreach(
 		fun(TX) ->
 			TXID = TX#tx.id,
-			TXFilepath = filename:join(TXDir, binary_to_list(ar_util:encode(TXID)) ++ ".json"),
+			TXFilepath = filename:join(TXDir, binary_to_list(big_util:encode(TXID)) ++ ".json"),
 			TXJSON = big_serialize:jsonify(big_serialize:tx_to_json_struct(TX)),
 			ok = file:write_file(TXFilepath, TXJSON)
 		end,
@@ -439,7 +439,7 @@ write_genesis_files(DataDir, B0) ->
 	ok = filelib:ensure_dir(WalletListDir ++ "/"),
 	RootHash = B0#block.wallet_list,
 	WalletListFilepath =
-		filename:join(WalletListDir, binary_to_list(ar_util:encode(RootHash)) ++ ".json"),
+		filename:join(WalletListDir, binary_to_list(big_util:encode(RootHash)) ++ ".json"),
 	WalletListJSON =
 		big_serialize:jsonify(
 			big_serialize:wallet_list_to_json_struct(B0#block.reward_addr, false,
@@ -454,7 +454,7 @@ wait_until_syncs_data(Left, Right, WeaveSize, _Packing)
 			(WeaveSize - Left < ?DATA_CHUNK_SIZE) ->
 	ok;
 wait_until_syncs_data(Left, Right, WeaveSize, Packing) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			case Packing of
 				any ->
@@ -500,7 +500,7 @@ remote_call(Node, Module, Function, Args, Timeout) ->
 			apply(Module, Function, Args);
 		false ->
 			Key = rpc:async_call(NodeName, Module, Function, Args),
-			Result = ar_util:do_until(
+			Result = big_util:do_until(
 				fun() ->
 					case rpc:nb_yield(Key) of
 						timeout ->
@@ -535,7 +535,7 @@ start(Options) when is_map(Options) ->
 	B0 =
 		case maps:get(b0, Options, not_set) of
 			not_set ->
-				hd(ar_weave:init());
+				hd(big_weave:init());
 			Value ->
 				Value
 		end,
@@ -652,7 +652,7 @@ get_tx_price(Node, DataSize) ->
 get_tx_price(Node, DataSize, Target) ->
 	Peer = peer_ip(Node),
 	Path = "/price/" ++ integer_to_list(DataSize) ++ "/"
-			++ binary_to_list(ar_util:encode(Target)),
+			++ binary_to_list(big_util:encode(Target)),
 	{ok, {{<<"200">>, _}, _, Reply, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -661,7 +661,7 @@ get_tx_price(Node, DataSize, Target) ->
 		}),
 	Fee = binary_to_integer(Reply),
 	Path2 = "/price2/" ++ integer_to_list(DataSize) ++ "/"
-			++ binary_to_list(ar_util:encode(Target)),
+			++ binary_to_list(big_util:encode(Target)),
 	{ok, {{<<"200">>, _}, _, Reply2, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -684,7 +684,7 @@ get_optimistic_tx_price(Node, DataSize) ->
 %% node.
 get_optimistic_tx_price(Node, DataSize, Target) ->
 	Path = "/optimistic_price/" ++ integer_to_list(DataSize) ++ "/"
-			++ binary_to_list(ar_util:encode(Target)),
+			++ binary_to_list(big_util:encode(Target)),
 	{ok, {{<<"200">>, _}, _, Reply, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -867,7 +867,7 @@ connect_to_peer(Node) ->
 			path => "/info",
 			headers => p2p_headers(Self)
 		}),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			Peers = remote_call(Node, big_peers, get_peers, [lifetime]),
 			lists:member(peer_ip(Self), Peers)
@@ -882,7 +882,7 @@ connect_to_peer(Node) ->
 			path => "/info",
 			headers => p2p_headers(Node)
 		}),
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			lists:member(Peer, big_peers:get_peers(lifetime))
 		end,
@@ -943,7 +943,7 @@ wait_until_height(Node, TargetHeight, Strict) ->
 	BI.
 
 wait_until_height(TargetHeight) ->
-	{ok, BI} = ar_util:do_until(
+	{ok, BI} = big_util:do_until(
 		fun() ->
 			case big_node:get_blocks() of
 				BI when length(BI) - 1 >= TargetHeight ->
@@ -966,7 +966,7 @@ wait_until_block_index(Node, BI) ->
 	remote_call(Node, ?MODULE, wait_until_block_index, [BI]).
 
 wait_until_block_index(BI) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			case big_node:get_blocks() of
 				BI ->
@@ -994,7 +994,7 @@ safe_remote_call(Node, Module, Function, Args) ->
     end.
 
 wait_until_node_is_ready(NodeName) ->
-    ar_util:do_until(
+    big_util:do_until(
         fun() ->
             case net_adm:ping(NodeName) of
                 pong ->
@@ -1029,7 +1029,7 @@ wait_until_receives_txs(Node, TXs) ->
 					?WAIT_UNTIL_RECEIVES_TXS_TIMEOUT + 500).
 
 wait_until_receives_txs(TXs) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			MinedTXIDs = big_node:get_ready_for_mining_txs(),
 			case lists:all(fun(TX) -> lists:member(TX#tx.id, MinedTXIDs) end, TXs) of
@@ -1084,10 +1084,10 @@ post_tx_to_peer(Node, TX, Wait) ->
 				"Failed to post transaction.~nTX: ~s.~nTX format: ~B.~nTX fee: ~B.~n"
 				"TX size: ~B.~nTX last_tx: ~s.~nTX owner: ~s.~nTX owner address: ~s.~n"
 				"Error(s): ~p.~nReply: ~p.~n",
-				[ar_util:encode(TX#tx.id), TX#tx.format, TX#tx.reward,
-					TX#tx.data_size, ar_util:encode(TX#tx.last_tx),
-					ar_util:encode(TX#tx.owner),
-					ar_util:encode(Addr),
+				[big_util:encode(TX#tx.id), TX#tx.format, TX#tx.reward,
+					TX#tx.data_size, big_util:encode(TX#tx.last_tx),
+					big_util:encode(TX#tx.owner),
+					big_util:encode(Addr),
 					remote_call(Node, big_tx_db, get_error_codes, [TX#tx.id]),
 					ErrorInfo]),
 			noop
@@ -1109,14 +1109,14 @@ get_tx_anchor(Node) ->
 			peer => peer_ip(Node),
 			path => "/tx_anchor"
 		}),
-	ar_util:decode(Reply).
+	big_util:decode(Reply).
 
 get_tx_confirmations(Node, TXID) ->
 	Response =
 		big_http:req(#{
 			method => get,
 			peer => peer_ip(Node),
-			path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/status"
+			path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/status"
 		}),
 	case Response of
 		{ok, {{<<"200">>, _}, _, Reply, _, _}} ->
@@ -1293,13 +1293,13 @@ read_block_when_stored(H) ->
 	read_block_when_stored(H, false).
 
 read_block_when_stored(H, IncludeTXs) ->
-	{ok, B} = ar_util:do_until(
+	{ok, B} = big_util:do_until(
 		fun() ->
 			case big_storage:read_block(H) of
 				unavailable ->
 					unavailable;
 				B2 ->
-					ar_util:do_until(
+					big_util:do_until(
 						fun() ->
 							TXs = big_storage:read_tx(B2#block.txs),
 							case lists:any(fun(TX) -> TX == unavailable end, TXs) of
@@ -1363,12 +1363,12 @@ random_v1_data(Size) ->
 	<< (crypto:strong_rand_bytes(Size - 1))/binary, <<"a">>/binary >>.
 
 assert_get_tx_data(Node, TXID, ExpectedData) ->
-	?debugFmt("Polling for data of ~s.", [ar_util:encode(TXID)]),
+	?debugFmt("Polling for data of ~s.", [big_util:encode(TXID)]),
 	Peer = peer_ip(Node),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			case big_http:req(#{ method => get, peer => Peer,
-					path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/data" }) of
+					path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/data" }) of
 				{ok, {{<<"200">>, _}, _, ExpectedData, _, _}} ->
 					true;
 				{ok, {{<<"404">>, _}, _, _, _, _}} ->
@@ -1376,12 +1376,12 @@ assert_get_tx_data(Node, TXID, ExpectedData) ->
 				{ok, {{<<"200">>, _}, _, OtherData, _, _}} ->
 					?debugFmt("Got unexpected tx data response. TXID: ~s. Peer: ~s. "
 							"Expected data size: ~B, got data size: ~B.~n",
-							[ar_util:encode(TXID), ar_util:format_peer(Peer),
+							[big_util:encode(TXID), big_util:format_peer(Peer),
 								byte_size(ExpectedData), byte_size(OtherData)]);
 				UnexpectedResponse ->
 					?debugFmt("Got unexpected tx data response. TXID: ~s. Peer: ~s. "
 							" response: ~p.~n",
-							[ar_util:encode(TXID), ar_util:format_peer(Peer),
+							[big_util:encode(TXID), big_util:format_peer(Peer),
 									UnexpectedResponse]),
 					false
 			end
@@ -1391,7 +1391,7 @@ assert_get_tx_data(Node, TXID, ExpectedData) ->
 	),
 	{ok, {{<<"200">>, _}, _, OffsetJSON, _, _}}
 			= big_http:req(#{ method => get, peer => Peer,
-					path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/offset" }),
+					path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/offset" }),
 	Map = jiffy:decode(OffsetJSON, [return_maps]),
 	Offset = binary_to_integer(maps:get(<<"offset">>, Map)),
 	Size = binary_to_integer(maps:get(<<"size">>, Map)),
@@ -1402,26 +1402,26 @@ get_tx_data_in_chunks(Offset, Size, Peer) ->
 	get_tx_data_in_chunks(Offset, Offset - Size, Peer, []).
 
 get_tx_data_in_chunks(Offset, Start, _Peer, Bin) when Offset =< Start ->
-	ar_util:encode(iolist_to_binary(Bin));
+	big_util:encode(iolist_to_binary(Bin));
 get_tx_data_in_chunks(Offset, Start, Peer, Bin) ->
 	{ok, {{<<"200">>, _}, _, JSON, _, _}}
 			= big_http:req(#{ method => get, peer => Peer,
 					path => "/chunk/" ++ integer_to_list(Offset) }),
 	Map = jiffy:decode(JSON, [return_maps]),
-	Chunk = ar_util:decode(maps:get(<<"chunk">>, Map)),
+	Chunk = big_util:decode(maps:get(<<"chunk">>, Map)),
 	get_tx_data_in_chunks(Offset - byte_size(Chunk), Start, Peer, [Chunk | Bin]).
 
 get_tx_data_in_chunks_traverse_forward(Offset, Size, Peer) ->
 	get_tx_data_in_chunks_traverse_forward(Offset, Offset - Size, Peer, []).
 
 get_tx_data_in_chunks_traverse_forward(Offset, Start, _Peer, Bin) when Offset =< Start ->
-	ar_util:encode(iolist_to_binary(lists:reverse(Bin)));
+	big_util:encode(iolist_to_binary(lists:reverse(Bin)));
 get_tx_data_in_chunks_traverse_forward(Offset, Start, Peer, Bin) ->
 	{ok, {{<<"200">>, _}, _, JSON, _, _}}
 			= big_http:req(#{ method => get, peer => Peer,
 					path => "/chunk/" ++ integer_to_list(Start + 1) }),
 	Map = jiffy:decode(JSON, [return_maps]),
-	Chunk = ar_util:decode(maps:get(<<"chunk">>, Map)),
+	Chunk = big_util:decode(maps:get(<<"chunk">>, Map)),
 	get_tx_data_in_chunks_traverse_forward(Offset, Start + byte_size(Chunk), Peer,
 			[Chunk | Bin]).
 
@@ -1429,7 +1429,7 @@ assert_data_not_found(Node, TXID) ->
 	Peer = peer_ip(Node),
 	?assertMatch({ok, {{<<"404">>, _}, _, _Binary, _, _}},
 			big_http:req(#{ method => get, peer => Peer,
-					path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/data" })).
+					path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/data" })).
 
 get_node_namespace() ->
 	% Return the namespace part (everything after first - and before @)
@@ -1477,4 +1477,4 @@ get_genesis_chunk(EndOffset) ->
 get_genesis_chunk(StartOffset, EndOffset) ->
 	Size = EndOffset - StartOffset,
 	StartValue = StartOffset div 4,
-	ar_weave:generate_data(StartValue, Size, <<>>).
+	big_weave:generate_data(StartValue, Size, <<>>).

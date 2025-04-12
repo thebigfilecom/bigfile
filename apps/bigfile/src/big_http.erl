@@ -154,7 +154,7 @@ handle_info({gun_up, PID, _Protocol}, #state{ status_by_pid = StatusByPID } = St
 			{noreply, State#state{ status_by_pid = StatusByPID2 }};
 		{connected, _MonitorRef, Peer} ->
 			?LOG_WARNING([{event, gun_up_pid_already_exists},
-					{peer, ar_util:format_peer(Peer)}]),
+					{peer, big_util:format_peer(Peer)}]),
 			big_peers:connected_peer(Peer),
 			{noreply, State}
 	end;
@@ -395,7 +395,7 @@ log(Type, Event, #{method := Method, peer := Peer, path := Path}, Reason) ->
 			?LOG_WARNING([
 				{event, Event},
 				{http_method, Method},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{path, Path},
 				{reason, Reason}
 			]);
@@ -403,7 +403,7 @@ log(Type, Event, #{method := Method, peer := Peer, path := Path}, Reason) ->
 			?LOG_ERROR([
 				{event, Event},
 				{http_method, Method},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{path, Path},
 				{reason, Reason}
 			]);

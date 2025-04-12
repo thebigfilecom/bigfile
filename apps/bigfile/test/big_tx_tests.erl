@@ -22,7 +22,7 @@ accepts_gossips_and_mines_test_() ->
 			%% to the new pricinig model.
 			Key = {_, Pub} = big_wallet:new(KeyType),
 			Wallets = [{big_wallet:to_address(Pub), ?BIG(5), <<>>}],
-			[B0] = ar_weave:init(Wallets),
+			[B0] = big_weave:init(Wallets),
 			accepts_gossips_and_mines(B0, BuildTXSetFun(Key, B0))
 		end
 	end,
@@ -53,7 +53,7 @@ polls_for_transactions_and_gossips_and_mines_test_() ->
 			%% to the new pricinig model.
 			Key = {_, Pub} = big_wallet:new(KeyType),
 			Wallets = [{big_wallet:to_address(Pub), ?BIG(5), <<>>}],
-			[B0] = ar_weave:init(Wallets),
+			[B0] = big_weave:init(Wallets),
 			polls_for_transactions_and_gossips_and_mines(B0, BuildTXSetFun(Key, B0))
 		end
 	end,
@@ -75,7 +75,7 @@ keeps_txs_after_new_block_test_() ->
 			Key2 = {_, Pub2} = big_test_node:new_custom_size_rsa_wallet(66),
 			Wallets = [{big_wallet:to_address(Pub), ?BIG(5), <<>>},
 					{big_wallet:to_address(Pub2), ?BIG(5), <<>>}],
-			[B0] = ar_weave:init(Wallets),
+			[B0] = big_weave:init(Wallets),
 			keeps_txs_after_new_block(
 				B0,
 				BuildFirstTXSetFun(Key, B0),
@@ -155,7 +155,7 @@ rejects_txs_with_outdated_anchors_test_() ->
 		%%
 		%% Expect the transaction to be rejected.
 		Key = {_, Pub} = big_wallet:new(),
-		[B0] = ar_weave:init([
+		[B0] = big_weave:init([
 			{big_wallet:to_address(Pub), ?BIG(20), <<>>}
 		]),
 		_ = big_test_node:start_peer(peer1, B0),
@@ -351,7 +351,7 @@ keeps_txs_after_new_block(B0, FirstTXSetFuns, SecondTXSetFuns) ->
 
 returns_error_when_txs_exceed_balance(BuildTXSetFun) ->
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 
 	_ = big_test_node:start(B0),
 	_ = big_test_node:start_peer(peer1, B0),
@@ -413,7 +413,7 @@ test_rejects_transactions_above_the_size_limit() ->
 	%% Create a genesis block with a wallet.
 	Key1 = {_, Pub1} = big_wallet:new(),
 	Key2 = {_, Pub2} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub1), ?BIG(20), <<>>},
 		{big_wallet:to_address(Pub2), ?BIG(20), <<>>}
 	]),
@@ -445,7 +445,7 @@ test_accepts_at_most_one_wallet_list_anchored_tx_per_block() ->
 	%%
 	%% Expect the fourth TX to be accepted and mined into a block.
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub), ?BIG(20), <<>>}
 	]),
 	_ = big_test_node:start_peer(peer1, B0),
@@ -477,7 +477,7 @@ test_does_not_allow_to_spend_mempool_tokens() ->
 	%% Expect the transaction to be accepted.
 	Key1 = {_, Pub1} = big_wallet:new(),
 	Key2 = {_, Pub2} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub1), ?BIG(20), <<>>},
 		{big_wallet:to_address(Pub2), ?BIG(0), <<>>}
 	]),
@@ -527,7 +527,7 @@ test_does_not_allow_to_replay_empty_wallet_txs() ->
 	%% Expect the replay to be rejected.
 	Key1 = {_, Pub1} = big_wallet:new(),
 	Key2 = {_, Pub2} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub1), ?BIG(50), <<>>}
 	]),
 	_ = big_test_node:start_peer(peer1, B0),
@@ -536,7 +536,7 @@ test_does_not_allow_to_replay_empty_wallet_txs() ->
 	big_test_node:assert_post_tx_to_peer(peer1, TX1),
 	big_test_node:mine(peer1),
 	assert_wait_until_height(peer1, 1),
-	GetBalancePath = binary_to_list(ar_util:encode(big_wallet:to_address(Pub2))),
+	GetBalancePath = binary_to_list(big_util:encode(big_wallet:to_address(Pub2))),
 	{ok, {{<<"200">>, _}, _, Body, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -602,7 +602,7 @@ mines_blocks_under_the_size_limit(B0, TXGroups) ->
 	).
 
 assert_wait_until_txs_are_stored(TXIDs) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			lists:all(fun(TX) -> is_record(TX, tx) end, big_storage:read_tx(TXIDs))
 		end,
@@ -612,7 +612,7 @@ assert_wait_until_txs_are_stored(TXIDs) ->
 
 mines_format_2_txs_without_size_limit() ->
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub), ?BIG(20), <<>>}
 	]),
 	_ = big_test_node:start(B0),
@@ -646,7 +646,7 @@ test_drops_v1_txs_exceeding_mempool_limit() ->
 	%%
 	%% Expect the exceeding transaction to be dropped.
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub), ?BIG(20), <<>>}
 	]),
 	_ = big_test_node:start_peer(peer1, B0),
@@ -676,7 +676,7 @@ test_drops_v1_txs_exceeding_mempool_limit() ->
 
 drops_v2_txs_exceeding_mempool_limit() ->
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub), ?BIG(20), <<>>}
 	]),
 	_ = big_test_node:start_peer(peer1, B0),
@@ -730,7 +730,7 @@ joins_network_successfully() ->
 	%% block with transactions anchoring the oldest block possible on peer1.
 	%% Expect main to fork recover successfully.
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub), ?BIG(200000000), <<>>},
 		{Addr = crypto:strong_rand_bytes(32), ?BIG(200000000), <<>>},
 		{crypto:strong_rand_bytes(32), ?BIG(200000000), <<>>}
@@ -757,7 +757,7 @@ joins_network_successfully() ->
 			big_test_node:assert_post_tx_to_peer(peer1, TX),
 			big_test_node:mine(peer1),
 			assert_wait_until_height(peer1, Height),
-			ar_util:do_until(
+			big_util:do_until(
 				fun() ->
 					big_test_node:remote_call(peer1, big_mempool, get_all_txids, []) == []
 				end,
@@ -779,7 +779,7 @@ joins_network_successfully() ->
 	lists:foreach(
 		fun({TX, _}) ->
 			?assert(
-				ar_util:do_until(
+				big_util:do_until(
 					fun() ->
 						big_test_node:get_tx_confirmations(main, TX#tx.id) > 0
 					end,
@@ -856,7 +856,7 @@ recovers_from_forks(ForkHeight) ->
 	%% Resubmit all the transactions from the orphaned fork. Expect them to be accepted
 	%% and successfully mined into a block.
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub), ?BIG(20), <<>>}
 	]),
 	_ = big_test_node:start(B0),
@@ -942,7 +942,7 @@ recovers_from_forks(ForkHeight) ->
 	lists:foreach(
 		fun(TX) ->
 			?assert(
-				ar_util:do_until(
+				big_util:do_until(
 					fun() ->
 						big_test_node:get_tx_confirmations(main, TX#tx.id) > 0
 					end,
@@ -1050,7 +1050,7 @@ grouped_txs() ->
 		{big_wallet:to_address(Pub1), ?BIG(100), <<>>},
 		{big_wallet:to_address(Pub2), ?BIG(100), <<>>}
 	],
-	[B0] = ar_weave:init(Wallets),
+	[B0] = big_weave:init(Wallets),
 	Chunk1 = random_v1_data(?TX_DATA_SIZE_LIMIT),
 	Chunk2 = <<"a">>,
 	TX1 = big_test_node:sign_v1_tx(Key1, #{ reward => ?BIG(1), data => Chunk1, last_tx => <<>> }),

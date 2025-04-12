@@ -46,7 +46,7 @@ load_wallet_fixture(WalletFixture) ->
 	FixturePath = filename:join([FixtureDir, WalletName ++ ".json"]),
 	Wallet = big_wallet:load_keyfile(FixturePath),
 	Address = big_wallet:to_address(Wallet),
-	WalletPath = big_wallet:wallet_filepath(ar_util:encode(Address)),
+	WalletPath = big_wallet:wallet_filepath(big_util:encode(Address)),
 	file:copy(FixturePath, WalletPath),
 	big_wallet:load_keyfile(WalletPath).
 
@@ -118,11 +118,11 @@ start_source_node(Node, unpacked, _WalletFixture) ->
 		big_http:req(#{
 			method => get,
 			peer => big_test_node:peer_ip(Node),
-			path => "/tx/" ++ binary_to_list(ar_util:encode(TX2#tx.id)) ++ "/data"
+			path => "/tx/" ++ binary_to_list(big_util:encode(TX2#tx.id)) ++ "/data"
 		}),
 	{ok, ExpectedData} = big_e2e:load_chunk_fixture(
 		unpacked, ?PARTITION_SIZE + floor(3.75 * ?DATA_CHUNK_SIZE)),
-	?assertEqual(ExpectedData, ar_util:decode(Data)),
+	?assertEqual(ExpectedData, big_util:decode(Data)),
 
 	?LOG_INFO("Source node ~p restarted.", [Node]),
 
@@ -132,7 +132,7 @@ start_source_node(Node, PackingType, WalletFixture) ->
 		[Node, PackingType, WalletFixture]),
 	{Wallet, StorageModules} = source_node_storage_modules(Node, PackingType, WalletFixture),
 	RewardAddr = big_wallet:to_address(Wallet),
-	[B0] = ar_weave:init([{RewardAddr, ?BIG(200), <<>>}], 0, ?PARTITION_SIZE),
+	[B0] = big_weave:init([{RewardAddr, ?BIG(200), <<>>}], 0, ?PARTITION_SIZE),
 
 	{ok, Config} = big_test_node:remote_call(Node, application, get_env, [bigfile, config]),
 	
@@ -196,7 +196,7 @@ start_source_node(Node, PackingType, WalletFixture) ->
 		big_http:req(#{
 			method => get,
 			peer => big_test_node:peer_ip(Node),
-			path => "/tx/" ++ binary_to_list(ar_util:encode(TX1#tx.id)) ++ "/data"
+			path => "/tx/" ++ binary_to_list(big_util:encode(TX1#tx.id)) ++ "/data"
 		})),
 
 	?LOG_INFO("Source node ~p assertions passed.", [Node]),
@@ -268,7 +268,7 @@ assert_block({replica_2_9, Address}, MinedBlock) ->
 	
 assert_has_entropy(Node, StartOffset, EndOffset, StoreID) ->
 	RangeSize = EndOffset - StartOffset,
-	HasEntropy = ar_util:do_until(
+	HasEntropy = big_util:do_until(
 		fun() -> 
 			Intersection = big_test_node:remote_call(
 				Node, big_sync_record, get_intersection_size,
@@ -292,7 +292,7 @@ assert_has_entropy(Node, StartOffset, EndOffset, StoreID) ->
 	end.
 
 assert_no_entropy(Node, StartOffset, EndOffset, StoreID) ->
-	HasEntropy = ar_util:do_until(
+	HasEntropy = big_util:do_until(
 		fun() -> 
 			Intersection = big_test_node:remote_call(
 				Node, big_sync_record, get_intersection_size,
@@ -324,7 +324,7 @@ assert_syncs_range(Node, _Packing, StartOffset, EndOffset) ->
 	assert_syncs_range(Node, StartOffset, EndOffset).
 
 assert_syncs_range(Node, StartOffset, EndOffset) ->
-	HasRange = ar_util:do_until(
+	HasRange = big_util:do_until(
 		fun() -> has_range(Node, StartOffset, EndOffset) end,
 		100,
 		60_000
@@ -342,7 +342,7 @@ assert_syncs_range(Node, StartOffset, EndOffset) ->
 	end.
 
 assert_does_not_sync_range(Node, StartOffset, EndOffset) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() -> has_range(Node, StartOffset, EndOffset) end,
 		1000,
 		15_000
@@ -358,7 +358,7 @@ assert_partition_size(Node, PartitionNumber, Packing) ->
 assert_partition_size(Node, PartitionNumber, Packing, Size) ->
 	?LOG_INFO("~p: Asserting partition ~p,~p is size ~p",
 		[Node, PartitionNumber, big_serialize:encode_packing(Packing, true), Size]),
-	ar_util:do_until(
+	big_util:do_until(
 		fun() -> 
 			big_test_node:remote_call(Node, big_mining_stats, get_partition_data_size, 
 				[PartitionNumber, Packing]) >= Size
@@ -375,7 +375,7 @@ assert_partition_size(Node, PartitionNumber, Packing, Size) ->
 			[Node, PartitionNumber, big_serialize:encode_packing(Packing, true)]))).
 
 assert_empty_partition(Node, PartitionNumber, Packing) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() -> 
 			big_test_node:remote_call(Node, big_mining_stats, get_partition_data_size, 
 				[PartitionNumber, Packing]) > 0

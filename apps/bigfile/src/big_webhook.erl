@@ -179,7 +179,7 @@ handle_info({event, tx, {orphaned, TX}},
 		#state{ listen_to_transaction_data_stream = true } = State) ->
 	URL = State#state.url,
 	Headers = State#state.headers,
-	Payload = #{ event => transaction_orphaned, txid => ar_util:encode(TX#tx.id) },
+	Payload = #{ event => transaction_orphaned, txid => big_util:encode(TX#tx.id) },
 	call_webhook(URL, Headers, Payload, transaction_orphaned),
 	Cache = State#state.tx_offset_cache,
 	Cache2 = cache_remove_tx_offset_data(TX#tx.id, Cache),
@@ -301,8 +301,8 @@ do_call_webhook(URL, Headers, Entity, Event, _N) ->
 	]),
 	ok.
 
-entity_id(#block{ indep_hash = ID }) -> ar_util:encode(ID);
-entity_id(#tx{ id = ID }) -> ar_util:encode(ID);
+entity_id(#block{ indep_hash = ID }) -> big_util:encode(ID);
+entity_id(#tx{ id = ID }) -> big_util:encode(ID);
 entity_id(#{ txid := TXID }) -> TXID.
 
 to_json(#block{} = Block) ->
@@ -429,7 +429,7 @@ cache_add_tx_offset_data([{TXID, Start, End} | Data], Cache) ->
 						{cached_tx_end_offset, End2},
 						{tx_start_offset, Start},
 						{tx_end_offset, End},
-						{txid, ar_util:encode(TXID)}]),
+						{txid, big_util:encode(TXID)}]),
 				maps:put(TXID, {Start, End}, OffsetMap)
 		end,
 	Cache2 = Cache#tx_offset_cache{
@@ -457,10 +457,10 @@ check_offset_set_consistency2(Start, End, TXID, Iterator) ->
 					{check, end_offset_txid_start_offset},
 					{cached_tx_start_offset, Start2},
 					{cached_tx_end_offset, End2},
-					{cached_txid, ar_util:encode(TXID2)},
+					{cached_txid, big_util:encode(TXID2)},
 					{tx_start_offset, Start},
 					{tx_end_offset, End},
-					{txid, ar_util:encode(TXID)}]);
+					{txid, big_util:encode(TXID)}]);
 		{_, Iterator2} ->
 			check_offset_set_consistency2(Start, End, TXID, Iterator2)
 	end.
@@ -543,7 +543,7 @@ maybe_call_transaction_data_synced_webhook(Start, End, TXID, MaybeStoreID, State
 				URL = State#state.url,
 				Headers = State#state.headers,
 				Payload = #{ event => transaction_data_synced,
-						txid => ar_util:encode(TXID) },
+						txid => big_util:encode(TXID) },
 				call_webhook(URL, Headers, Payload, transaction_data_synced),
 				cache_mark_tx_data_synced(TXID, Cache);
 			false ->
@@ -605,7 +605,7 @@ process_removed_tx_data([{TXID, _Start, _End} | Data], State) ->
 		false ->
 			URL = State#state.url,
 			Headers = State#state.headers,
-			Payload = #{ event => transaction_data_removed, txid => ar_util:encode(TXID) },
+			Payload = #{ event => transaction_data_removed, txid => big_util:encode(TXID) },
 			call_webhook(URL, Headers, Payload, transaction_data_removed),
 			Cache2 = cache_mark_tx_data_unsynced(TXID, Cache),
 			State2 = State#state{ tx_offset_cache = Cache2 },

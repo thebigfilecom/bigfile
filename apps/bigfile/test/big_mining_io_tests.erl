@@ -12,7 +12,7 @@ chunks_read(_Worker, WhichChunk, Candidate, RangeStart, ChunkOffsets) ->
 	ets:insert(?MODULE, {WhichChunk, Candidate, RangeStart, ChunkOffsets}).
 
 setup_all() ->
-	[B0] = ar_weave:init([], 1, ?WEAVE_SIZE),
+	[B0] = big_weave:init([], 1, ?WEAVE_SIZE),
 	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
 	{ok, Config} = application:get_env(bigfile, config),
 	StorageModules = lists:flatten(
@@ -140,7 +140,7 @@ default_candidate() ->
 	}.
 
 wait_for_io(NumChunks) ->
-	Result = ar_util:do_until(
+	Result = big_util:do_until(
 		fun() ->
 			NumChunks == length(ets:tab2list(?MODULE))
 		end,

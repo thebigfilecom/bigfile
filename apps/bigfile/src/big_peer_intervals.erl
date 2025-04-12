@@ -18,7 +18,7 @@ fetch(Start, End, StoreID, _AllPeersIntervals) when Start >= End ->
 fetch(Start, End, StoreID, AllPeersIntervals) ->
 	spawn_link(fun() ->
 		try
-			End2 = min(ar_util:ceil_int(Start, ?NETWORK_DATA_BUCKET_SIZE), End),
+			End2 = min(big_util:ceil_int(Start, ?NETWORK_DATA_BUCKET_SIZE), End),
 			UnsyncedIntervals = get_unsynced_intervals(Start, End2, StoreID),
 
 			Bucket = Start div ?NETWORK_DATA_BUCKET_SIZE,
@@ -79,14 +79,14 @@ get_unsynced_intervals(Start, End, Intervals, StoreID) ->
 
 fetch_peer_intervals(Parent, Start, Peers, UnsyncedIntervals, AllPeersIntervals) ->
 	Intervals =
-		ar_util:pmap(
+		big_util:pmap(
 			fun(Peer) ->
 				case get_peer_intervals(Peer, Start, UnsyncedIntervals, AllPeersIntervals) of
 					{ok, SoughtIntervals, PeerIntervals, Left} ->
 						{Peer, SoughtIntervals, PeerIntervals, Left};
 					{error, Reason} ->
 						?LOG_DEBUG([{event, failed_to_fetch_peer_intervals},
-								{peer, ar_util:format_peer(Peer)},
+								{peer, big_util:format_peer(Peer)},
 								{reason, io_lib:format("~p", [Reason])}]),
 						ok
 				end

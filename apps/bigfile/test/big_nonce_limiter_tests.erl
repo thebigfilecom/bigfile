@@ -93,7 +93,7 @@ assert_validate(B, PrevB, ExpectedResult) ->
 
 assert_step_number(N) ->
 	timer:sleep(200),
-	?assert(ar_util:do_until(fun() -> big_nonce_limiter:get_current_step_number() == N end, 100, 1000)).
+	?assert(big_util:do_until(fun() -> big_nonce_limiter:get_current_step_number() == N end, 100, 1000)).
 
 test_block(StepNumber, Output, Seed, NextSeed, LastStepCheckpoints, Steps,
 		VDFDifficulty, NextVDFDifficulty) ->
@@ -123,7 +123,7 @@ test_applies_validated_steps() ->
 			B1VDFDifficulty, B1NextVDFDifficulty),
 	turn_off_initialized_event(),
 	big_nonce_limiter:account_tree_initialized([B1]),
-	true = ar_util:do_until(fun() -> big_nonce_limiter:get_current_step_number() == 1 end, 100, 1000),
+	true = big_util:do_until(fun() -> big_nonce_limiter:get_current_step_number() == 1 end, 100, 1000),
 	assert_session(B1, B1),
 	{ok, Output2, _} = big_nonce_limiter:compute(2, InitialOutput, B1VDFDifficulty),
 	B2VDFDifficulty = 3,

@@ -9,7 +9,7 @@ start_node() ->
 	Key = big_wallet:new(),
 	OtherKey = big_wallet:new(),
 	LastTXID = crypto:strong_rand_bytes(32), 
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		wallet(Key, 1000, LastTXID),
 		wallet(OtherKey, 800, crypto:strong_rand_bytes(32))
 	]),

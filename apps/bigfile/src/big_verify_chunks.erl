@@ -53,7 +53,7 @@ init(StoreID) ->
 	}}.
 
 handle_cast(verify, #state{ready = false, end_offset = EndOffset} = State) ->
-	ar_util:cast_after(1000, self(), verify),
+	big_util:cast_after(1000, self(), verify),
 	{noreply, State#state{ready = is_ready(EndOffset)}};
 handle_cast(verify,
 		#state{cursor = Cursor, end_offset = EndOffset} = State) when Cursor >= EndOffset ->

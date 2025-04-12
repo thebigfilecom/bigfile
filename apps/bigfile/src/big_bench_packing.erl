@@ -65,11 +65,11 @@ run_benchmark(Test, JIT, LargePages, HardwareAES, PackingDifficulty, Rounds) ->
 	timer:sleep(3000),
 	ets:new(offsets, [set, named_table, public]),
 	EncodedRoot = <<"OIgTTxuEPklMR47Ho8VWnNr1Uh6TNjzxwIs38yuqBK0">>,
-	Root = ar_util:decode(EncodedRoot),
+	Root = big_util:decode(EncodedRoot),
 	EncodedSrcAddress = <<"mvK6e65dcD6XNYDHUVxMa7-d6wVP535Ummtvb8OCUtQ">>,
-	SrcAddress = ar_util:decode(EncodedSrcAddress),
+	SrcAddress = big_util:decode(EncodedSrcAddress),
 	EncodedDstAddress = <<"ymvkTAt6DVo0LaV3SH4TPLvzCmn5TIqvCcv1pHWt2Zs">>,
-	DstAddress = ar_util:decode(EncodedDstAddress),
+	DstAddress = big_util:decode(EncodedDstAddress),
 
 	NumWorkers = erlang:system_info(dirty_cpu_schedulers_online),
 

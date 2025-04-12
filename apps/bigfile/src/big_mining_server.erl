@@ -123,7 +123,7 @@ log_prepare_solution_failure2(Solution, FailureReason, AdditionalLogData) ->
 			[FailureReason]),
 	?LOG_ERROR([{event, failed_to_prepare_block_from_mining_solution},
 			{reason, FailureReason},
-			{solution_hash, ar_util:safe_encode(SolutionH)},
+			{solution_hash, big_util:safe_encode(SolutionH)},
 			{packing_difficulty, PackingDifficulty} | AdditionalLogData]).
 
 -spec get_packing_difficulty(Packing :: big_storage_module:packing()) ->
@@ -272,7 +272,7 @@ handle_cast({manual_garbage_collect, Ref}, #state{ gc_process_ref = Ref } = Stat
 		State#state.workers
 	),
 	big_coordination:garbage_collect(),
-	ar_util:cast_after(State#state.gc_frequency_ms, ?MODULE, {manual_garbage_collect, Ref}),
+	big_util:cast_after(State#state.gc_frequency_ms, ?MODULE, {manual_garbage_collect, Ref}),
 	{noreply, State};
 handle_cast({manual_garbage_collect, _}, State) ->
 	%% Does not originate from the running instance of the server; happens in tests.
@@ -401,7 +401,7 @@ add_sessions([SessionKey | AddedSessions], State) ->
 	{NextSeed, StartIntervalNumber, NextVDFDifficulty} = SessionKey,
 	big:console("Starting new mining session: "
 		"next entropy nonce: ~s, interval number: ~B, next vdf difficulty: ~B.~n",
-		[ar_util:safe_encode(NextSeed), StartIntervalNumber, NextVDFDifficulty]),
+		[big_util:safe_encode(NextSeed), StartIntervalNumber, NextVDFDifficulty]),
 	?LOG_INFO([{event, new_mining_session}, 
 		{session_key, big_nonce_limiter:encode_session_key(SessionKey)}]),
 	add_sessions(AddedSessions, add_seed(SessionKey, State)).
@@ -688,10 +688,10 @@ prepare_solution(steps, Candidate, Solution) ->
 					LogData = [
 						{start_step_number, PrevStepNumber},
 						{next_step_number, StepNumber},
-						{next_seed, ar_util:safe_encode(PrevNextSeed)},
+						{next_seed, big_util:safe_encode(PrevNextSeed)},
 						{next_vdf_difficulty, PrevNextVDFDifficulty},
-						{h1, ar_util:safe_encode(Candidate#mining_candidate.h1)},
-						{h2, ar_util:safe_encode(Candidate#mining_candidate.h2)}],
+						{h1, big_util:safe_encode(Candidate#mining_candidate.h1)},
+						{h2, big_util:safe_encode(Candidate#mining_candidate.h2)}],
 					?LOG_INFO([{event, found_solution_but_failed_to_find_checkpoints}
 						| LogData]),
 					may_be_leave_it_to_exit_peer(
@@ -706,10 +706,10 @@ prepare_solution(steps, Candidate, Solution) ->
 			log_prepare_solution_failure(Solution, stale_step_number, [
 					{start_step_number, PrevStepNumber},
 					{next_step_number, StepNumber},
-					{next_seed, ar_util:safe_encode(PrevNextSeed)},
+					{next_seed, big_util:safe_encode(PrevNextSeed)},
 					{next_vdf_difficulty, PrevNextVDFDifficulty},
-					{h1, ar_util:safe_encode(Candidate#mining_candidate.h1)},
-					{h2, ar_util:safe_encode(Candidate#mining_candidate.h2)}
+					{h1, big_util:safe_encode(Candidate#mining_candidate.h1)},
+					{h2, big_util:safe_encode(Candidate#mining_candidate.h2)}
 					]),
 			error
 	end;
@@ -869,7 +869,7 @@ prepare_poa(PoAType, Candidate, CurrentPoA) ->
 									{recall_byte, RecallByte},
 									{nonce, Nonce},
 									{partition, PartitionNumber},
-									{mining_address, ar_util:safe_encode(MiningAddress)},
+									{mining_address, big_util:safe_encode(MiningAddress)},
 									{packing, big_serialize:encode_packing(Packing, true)},
 									{packing_difficulty, PackingDifficulty}]),
 							{error, Error};
@@ -928,11 +928,11 @@ post_solution(not_set, Solution, State) ->
 			?LOG_WARNING([{event, failed_to_validate_solution},
 					{partition, PartitionNumber},
 					{step_number, StepNumber},
-					{mining_address, ar_util:safe_encode(MiningAddress)},
+					{mining_address, big_util:safe_encode(MiningAddress)},
 					{recall_byte1, RecallByte1},
 					{recall_byte2, RecallByte2},
-					{solution_h, ar_util:safe_encode(H)},
-					{nonce_limiter_output, ar_util:safe_encode(NonceLimiterOutput)}]),
+					{solution_h, big_util:safe_encode(H)},
+					{nonce_limiter_output, big_util:safe_encode(NonceLimiterOutput)}]),
 			big:console("WARNING: we failed to validate our solution. Check logs for more "
 					"details~n");
 		{false, Reason} ->
@@ -940,11 +940,11 @@ post_solution(not_set, Solution, State) ->
 					{reason, Reason},
 					{partition, PartitionNumber},
 					{step_number, StepNumber},
-					{mining_address, ar_util:safe_encode(MiningAddress)},
+					{mining_address, big_util:safe_encode(MiningAddress)},
 					{recall_byte1, RecallByte1},
 					{recall_byte2, RecallByte2},
-					{solution_h, ar_util:safe_encode(H)},
-					{nonce_limiter_output, ar_util:safe_encode(NonceLimiterOutput)}]),
+					{solution_h, big_util:safe_encode(H)},
+					{nonce_limiter_output, big_util:safe_encode(NonceLimiterOutput)}]),
 			big:console("WARNING: the solution we found is invalid. Check logs for more "
 					"details~n");
 		{true, PoACache, PoA2Cache} ->
@@ -986,7 +986,7 @@ fetch_poa_from_peers(RecallByte, _PackingDifficulty) ->
 			spawn(
 				fun() ->
 					?LOG_INFO([{event, last_moment_proof_search},
-							{peer, ar_util:format_peer(Peer)}, {recall_byte, RecallByte}]),
+							{peer, big_util:format_peer(Peer)}, {recall_byte, RecallByte}]),
 					case fetch_poa_from_peer(Peer, RecallByte) of
 						not_found ->
 							ok;
@@ -1053,7 +1053,7 @@ handle_computed_output(SessionKey, StepNumber, Output, PartitionUpperBound,
 			},
 			distribute_output(Candidate, State3),
 			?LOG_DEBUG([{event, mining_debug_processing_vdf_output},
-				{step_number, StepNumber}, {output, ar_util:safe_encode(Output)},
+				{step_number, StepNumber}, {output, big_util:safe_encode(Output)},
 				{start_interval_number, StartIntervalNumber},
 				{session_key, big_nonce_limiter:encode_session_key(SessionKey)},
 				{partition_upper_bound, PartitionUpperBound}])
@@ -1106,7 +1106,7 @@ read_poa(RecallByte, ChunkOrSubChunk, Packing, Nonce) ->
 
 dump_invalid_solution_data(Data) ->
 	{ok, Config} = application:get_env(bigfile, config),
-	ID = binary_to_list(ar_util:encode(crypto:strong_rand_bytes(16))),
+	ID = binary_to_list(big_util:encode(crypto:strong_rand_bytes(16))),
 	File = filename:join(Config#config.data_dir, "invalid_solution_data_dump_" ++ ID),
 	file:write_file(File, term_to_binary(Data)).
 
@@ -1242,7 +1242,7 @@ validate_solution(Solution, DiffPair) ->
 reset_gc_timer(GarbageCollectionFrequency, State) ->
 	State2 = maybe_cancel_gc_timer(State),
 	Ref = erlang:make_ref(),
-	ar_util:cast_after(GarbageCollectionFrequency, ?MODULE,
+	big_util:cast_after(GarbageCollectionFrequency, ?MODULE,
 			{manual_garbage_collect, Ref}),
 	State2#state{ gc_process_ref = Ref, gc_frequency_ms = GarbageCollectionFrequency }.
 

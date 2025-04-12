@@ -101,8 +101,8 @@ add(Tab,
 			insert(Tab, {{block, H}, {B, CurrentStatus, CurrentTimestamp, Children}});
 		_ ->
 			?LOG_WARNING([{event, attempt_to_update_already_validated_cached_block},
-					{h, ar_util:encode(H)}, {height, Height},
-					{previous_block, ar_util:encode(PrevH)}]),
+					{h, big_util:encode(H)}, {height, Height},
+					{previous_block, big_util:encode(PrevH)}]),
 			ok
 	end.
 
@@ -628,7 +628,7 @@ is_valid_fork(Tab, B, Status) ->
 
 is_valid_fork(_Tab, #block{ height = Height, indep_hash = H }, _Status, CheckpointHeight)
   		when Height < CheckpointHeight ->
-	?LOG_WARNING([{event, found_invalid_heavy_fork}, {hash, ar_util:encode(H)},
+	?LOG_WARNING([{event, found_invalid_heavy_fork}, {hash, big_util:encode(H)},
 				{height, Height}, {checkpoint_height, CheckpointHeight}]),
 	false;
 is_valid_fork(_Tab, _B, on_chain, _CheckpointHeight) ->

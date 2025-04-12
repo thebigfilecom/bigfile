@@ -47,7 +47,7 @@ account_tree_initialized(Blocks) ->
 	gen_server:cast(?MODULE, {account_tree_initialized, Blocks}).
 
 encode_session_key({NextSeed, StartIntervalNumber, NextVDFDifficulty}) ->
-	{ar_util:safe_encode(NextSeed), StartIntervalNumber, NextVDFDifficulty};
+	{big_util:safe_encode(NextSeed), StartIntervalNumber, NextVDFDifficulty};
 encode_session_key(SessionKey) ->
 	SessionKey.
 
@@ -269,7 +269,7 @@ request_validation(H, #nonce_limiter_info{ output = Output,
 	{StartStepNumber, StartOutput, ComputedSteps} =
 		skip_already_computed_steps(PrevStepNumber, StepNumber, PrevOutput,
 			StepsToValidate, SessionSteps),
-	?LOG_INFO([{event, vdf_validation_start}, {block, ar_util:encode(H)},
+	?LOG_INFO([{event, vdf_validation_start}, {block, big_util:encode(H)},
 			{session_key, encode_session_key(SessionKey)},
 			{next_session_key, encode_session_key(NextSessionKey)},
 			{prev_step_number, PrevStepNumber}, {step_number, StepNumber},
@@ -346,10 +346,10 @@ request_validation(H, #nonce_limiter_info{ output = Output,
 									EntropyResetPoint, crypto:hash(sha256, Seed),
 									ThreadCount, VDFDifficulty}),
 								?LOG_ERROR([{event, nonce_limiter_validation_failed},
-										{block, ar_util:encode(H)},
+										{block, big_util:encode(H)},
 										{start_step_number, StartStepNumber2},
 										{error_id, ErrorID},
-										{prev_output, ar_util:encode(StartOutput2)},
+										{prev_output, big_util:encode(StartOutput2)},
 										{exception, io_lib:format("~p", [Exc])}]),
 								big_events:send(nonce_limiter, {validation_error, H});
 							false ->
@@ -564,7 +564,7 @@ handle_call(Request, _From, State) ->
 
 handle_cast(check_external_vdf_server_input,
 		#state{ last_external_update = {_, 0} } = State) ->
-	ar_util:cast_after(1000, ?MODULE, check_external_vdf_server_input),
+	big_util:cast_after(1000, ?MODULE, check_external_vdf_server_input),
 	{noreply, State};
 handle_cast(check_external_vdf_server_input,
 		#state{ last_external_update = {_, Time} } = State) ->
@@ -573,9 +573,9 @@ handle_cast(check_external_vdf_server_input,
 		true ->
 			?LOG_WARNING([{event, no_message_from_any_vdf_servers},
 					{last_message_seconds_ago, (Now - Time) div 1000}]),
-			ar_util:cast_after(30000, ?MODULE, check_external_vdf_server_input);
+			big_util:cast_after(30000, ?MODULE, check_external_vdf_server_input);
 		false ->
-			ar_util:cast_after(1000, ?MODULE, check_external_vdf_server_input)
+			big_util:cast_after(1000, ?MODULE, check_external_vdf_server_input)
 	end,
 	{noreply, State};
 
@@ -708,7 +708,7 @@ handle_info({computed, Args}, State) ->
 					ok;
 				false ->
 					?LOG_WARNING([{event, computed_for_outdated_key}, {step_number, StepNumber},
-						{output, ar_util:encode(Output)}])
+						{output, big_util:encode(Output)}])
 			end,
 			{noreply, State};
 		true ->
@@ -766,7 +766,7 @@ send_output(SessionKey, Session) ->
 
 dump_error(Data) ->
 	{ok, Config} = application:get_env(bigfile, config),
-	ErrorID = binary_to_list(ar_util:encode(crypto:strong_rand_bytes(8))),
+	ErrorID = binary_to_list(big_util:encode(crypto:strong_rand_bytes(8))),
 	ErrorDumpFile = filename:join(Config#config.data_dir, "error_dump_" ++ ErrorID),
 	file:write_file(ErrorDumpFile, term_to_binary(Data)),
 	ErrorID.
@@ -1078,7 +1078,7 @@ apply_external_update2(Update, State) ->
 					%% Inform the peer we are ahead.
 					?LOG_DEBUG([{event, apply_external_vdf},
 							{result, ahead_of_server},
-							{vdf_server, ar_util:format_peer(Peer)},
+							{vdf_server, big_util:format_peer(Peer)},
 							{session_key, encode_session_key(SessionKey)},
 							{client_step_number, CurrentStepNumber},
 							{server_step_number, StepNumber}]),
@@ -1101,7 +1101,7 @@ apply_external_update_session_not_found(Update, State) ->
 			%% Inform the peer we have not initialized the corresponding session yet.
 			?LOG_DEBUG([{event, apply_external_vdf},
 				{result, session_not_found},
-				{vdf_server, ar_util:format_peer(Peer)},
+				{vdf_server, big_util:format_peer(Peer)},
 				{is_partial, IsPartial},
 				{session_key, encode_session_key(SessionKey)},
 				{server_step_number, StepNumber}]),
@@ -1153,7 +1153,7 @@ apply_external_update3(Update, CurrentSession, State) ->
 					%% Inform the peer we miss some steps.
 					?LOG_DEBUG([{event, apply_external_vdf},
 							{result, missing_steps},
-							{vdf_server, ar_util:format_peer(Peer)},
+							{vdf_server, big_util:format_peer(Peer)},
 							{is_partial, IsPartial},
 							{session_key, encode_session_key(SessionKey)},
 							{client_step_number, CurrentStepNumber},
@@ -1184,7 +1184,7 @@ apply_external_update4(State, SessionKey, Session, Steps) ->
 	#state{ last_external_update = {Peer, _} } = State,
 
 	?LOG_DEBUG([{event, new_vdf_step}, {source, apply_external_vdf},
-			{vdf_server, ar_util:format_peer(Peer)},
+			{vdf_server, big_util:format_peer(Peer)},
 			{session_key, encode_session_key(SessionKey)},
 			{step_number, Session#vdf_session.step_number},
 			{length, length(Steps)}]),
@@ -1321,7 +1321,7 @@ debug_double_check(Label, Result, Func, Args) ->
 				true ->
 					Result;
 				false ->
-					ID = ar_util:encode(crypto:strong_rand_bytes(16)),
+					ID = big_util:encode(crypto:strong_rand_bytes(16)),
 					file:write_file(Label ++ "_" ++ binary_to_list(ID),
 							term_to_binary(Args)),
 					Event = "nonce_limiter_" ++ Label ++ "_mismatch",
@@ -1414,7 +1414,7 @@ reorg_after_join_test_() ->
 	{timeout, 120, fun test_reorg_after_join/0}.
 
 test_reorg_after_join() ->
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:connect_to_peer(peer1),
@@ -1431,7 +1431,7 @@ reorg_after_join2_test_() ->
 	{timeout, 120, fun test_reorg_after_join2/0}.
 
 test_reorg_after_join2() ->
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:connect_to_peer(peer1),

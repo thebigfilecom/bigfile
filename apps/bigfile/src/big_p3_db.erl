@@ -148,7 +148,7 @@ terminate(_Reason, _State) ->
 %%%===================================================================
 
 create_account(Address, PublicKey, Asset) ->
-	DatabaseId = binary_to_list(ar_util:encode(Address)),
+	DatabaseId = binary_to_list(big_util:encode(Address)),
 	BasicOpts = [{max_open_files, 10000}],
 
 	ColumnFamilyDescriptors = [

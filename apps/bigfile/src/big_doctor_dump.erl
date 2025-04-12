@@ -28,7 +28,7 @@ dump([IncludeTXs, H, MinHeight, DataDir, OutputDir]) ->
 	big_kv_sup:start_link(),
 	big_storage_sup:start_link(),
 
-	dump_blocks(ar_util:decode(H),
+	dump_blocks(big_util:decode(H),
 		list_to_integer(MinHeight),
 		OutputDir,
 		list_to_boolean(IncludeTXs)),
@@ -41,7 +41,7 @@ list_to_boolean("false") -> false;
 list_to_boolean(_) -> false.
 
 dump_blocks(BH, MinHeight, OutputDir, IncludeTXs) ->
-	H = ar_util:encode(BH),
+	H = big_util:encode(BH),
 	case big_kv:get(block_db, BH) of
 		{ok, Bin} ->
 			try
@@ -50,7 +50,7 @@ dump_blocks(BH, MinHeight, OutputDir, IncludeTXs) ->
 						case B#block.height >= MinHeight of
 							true ->
 								io:format("Block: ~p / ~p", [B#block.height, H]),
-								JsonFilename = io_lib:format("~s.json", [ar_util:encode(B#block.indep_hash)]),
+								JsonFilename = io_lib:format("~s.json", [big_util:encode(B#block.indep_hash)]),
 								OutputFilePath = filename:join([OutputDir, "blocks", JsonFilename]),
 								case file:read_file_info(OutputFilePath) of
 									{ok, _FileInfo} ->
@@ -93,7 +93,7 @@ dump_txs([TXID | TXIDs], OutputDir) ->
 			{ok, TX} = big_serialize:binary_to_tx(Bin),
 			Json = big_serialize:tx_to_json_struct(TX),
 			JsonString = big_serialize:jsonify(Json),
-			JsonFilename = io_lib:format("~s.json", [ar_util:encode(TXID)]),
+			JsonFilename = io_lib:format("~s.json", [big_util:encode(TXID)]),
 			OutputFilePath = filename:join([OutputDir, "txs", JsonFilename]),
 			file:write_file(OutputFilePath, JsonString);
 		_ ->

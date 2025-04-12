@@ -100,7 +100,7 @@ handle_cast(update_network_data_map, #state{ peers_pending = N } = State)
 		when N < ?DATA_DISCOVERY_PARALLEL_PEER_REQUESTS ->
 	case queue:out(State#state.peer_queue) of
 		{empty, _} ->
-			ar_util:cast_after(200, ?MODULE, update_network_data_map),
+			big_util:cast_after(200, ?MODULE, update_network_data_map),
 			{noreply, State};
 		{{value, Peer}, Queue} ->
 			monitor(process, spawn_link(
@@ -113,7 +113,7 @@ handle_cast(update_network_data_map, #state{ peers_pending = N } = State)
 							get_sync_buckets(Peer);
 						Error ->
 							?LOG_DEBUG([{event, failed_to_fetch_sync_buckets},
-								{peer, ar_util:format_peer(Peer)},
+								{peer, big_util:format_peer(Peer)},
 								{reason, io_lib:format("~p", [Error])}])
 					end
 				end
@@ -122,7 +122,7 @@ handle_cast(update_network_data_map, #state{ peers_pending = N } = State)
 			{noreply, State#state{ peers_pending = N + 1, peer_queue = Queue }}
 	end;
 handle_cast(update_network_data_map, State) ->
-	ar_util:cast_after(200, ?MODULE, update_network_data_map),
+	big_util:cast_after(200, ?MODULE, update_network_data_map),
 	{noreply, State};
 
 handle_cast({add_peer_sync_buckets, Peer, SyncBuckets}, State) ->
@@ -195,11 +195,11 @@ pick_peers(Peers, PeerLen, N) ->
 	{Best, Other} = lists:split(max(PeerLen div 5, 1), Peers),
 	%% TakeBest: Select 80% of N worth of Best - or all of Best if Best is short.
 	TakeBest = max((8 * N) div 10, 1),
-	Part1 = ar_util:pick_random(Best, min(length(Best), TakeBest)),
+	Part1 = big_util:pick_random(Best, min(length(Best), TakeBest)),
 	%% TakeOther: rather than strictly take 20% of N, take enough to ensure we're
 	%% getting the full N of picked peers.
 	TakeOther = N - length(Part1),
-	Part2 = ar_util:pick_random(Other, min(length(Other), TakeOther)),
+	Part2 = big_util:pick_random(Other, min(length(Other), TakeOther)),
 	Part1 ++ Part2.
 
 collect_peers() ->
@@ -221,7 +221,7 @@ get_sync_buckets(Peer) ->
 			gen_server:cast(?MODULE, {add_peer_sync_buckets, Peer, SyncBuckets2});
 		Error ->
 			?LOG_DEBUG([{event, failed_to_fetch_sync_record_from_peer},
-					{peer, ar_util:format_peer(Peer)}, {reason, io_lib:format("~p", [Error])}])
+					{peer, big_util:format_peer(Peer)}, {reason, io_lib:format("~p", [Error])}])
 	end.
 
 refresh_expiration_timer(Peer, State) ->
@@ -232,5 +232,5 @@ refresh_expiration_timer(Peer, State) ->
 		Timer ->
 			timer:cancel(Timer)
 	end,
-	Timer2 = ar_util:cast_after(?PEER_EXPIRATION_TIME_MS, ?MODULE, {remove_peer, Peer}),
+	Timer2 = big_util:cast_after(?PEER_EXPIRATION_TIME_MS, ?MODULE, {remove_peer, Peer}),
 	State#state{ expiration_map = maps:put(Peer, Timer2, Map) }.
