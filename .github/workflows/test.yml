@@ -255,10 +255,10 @@ jobs:
       max-parallel: 4
       matrix:
         core_test_mod: [
-            ar,
-            ar_block,
+            big,
+            big_block,
             big_block_cache,
-            ar_chain_stats,
+            big_chain_stats,
             big_chunk_copy,
             big_chunk_storage,
             big_data_sync_worker_master,

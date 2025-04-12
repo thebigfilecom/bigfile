@@ -1,53 +1,28 @@
 -module(big_peer_intervals).
 
--export([fetch/3]).
+-export([fetch/4]).
 
--include("big.hrl").
--include("big_config.hrl").
--include("big_data_discovery.hrl").
-
-%% The size of the span of the weave we search at a time.
-%% By searching we mean asking peers about the intervals they have in the given span
-%% and finding the intersection with the unsynced intervals.
--ifdef(BIG_TEST).
--define(QUERY_RANGE_STEP_SIZE, 1_000_000_000). % 1 GB
--else.
--define(QUERY_RANGE_STEP_SIZE, 1_000_000_000). % 1 GB
--endif.
-
-%% Fetch at most this many sync intervals from a peer at a time.
--ifdef(BIG_TEST).
--define(QUERY_SYNC_INTERVALS_COUNT_LIMIT, 1000).
--else.
--define(QUERY_SYNC_INTERVALS_COUNT_LIMIT, 1000).
--endif.
-
-%% The number of peers to fetch sync intervals from in parallel at a time.
--define(GET_SYNC_RECORD_BATCH_SIZE, 2).
-
-%% The number of the release adding support for the
-%% GET /data_sync_record/[start]/[end]/[limit] endpoint.
--define(GET_SYNC_RECORD_RIGHT_BOUND_SUPPORT_RELEASE, 82).
+-include_lib("bigfile/include/big.hrl").
+-include_lib("bigfile/include/big_config.hrl").
+-include_lib("bigfile/include/big_data_discovery.hrl").
 
 %%%===================================================================
 %%% Public interface.
 %%%===================================================================
 
-fetch(Start, End, StoreID) when Start >= End ->
-	?LOG_DEBUG([{event, fetch_peer_intervals_end},
-			{store_id, StoreID},
-			{range_start, Start},
-			{range_end, End}]),
-	gen_server:cast(big_data_sync:name(StoreID), {collect_peer_intervals, Start, End});
-fetch(Start, End, StoreID) ->
-	Parent = big_data_sync:name(StoreID),
+fetch(Start, End, StoreID, _AllPeersIntervals) when Start >= End ->
+	%% We've reached the end of the range, next time through we'll start with a clear cache.
+	?LOG_DEBUG([{event, fetch_peer_intervals_end}, {pid, StoreID}, {store_id, StoreID},
+		{start, Start}]),
+	gen_server:cast(big_data_sync:name(StoreID), {update_all_peers_intervals, #{}});
+fetch(Start, End, StoreID, AllPeersIntervals) ->
 	spawn_link(fun() ->
 		try
-			End2 = min(Start + ?QUERY_RANGE_STEP_SIZE, End),
+			End2 = min(ar_util:ceil_int(Start, ?NETWORK_DATA_BUCKET_SIZE), End),
 			UnsyncedIntervals = get_unsynced_intervals(Start, End2, StoreID),
 
 			Bucket = Start div ?NETWORK_DATA_BUCKET_SIZE,
-			{ok, Config} = application:get_env(arweave, config),
+			{ok, Config} = application:get_env(bigfile, config),
 			Peers =
 				case Config#config.sync_from_local_peers_only of
 					true ->
@@ -56,26 +31,21 @@ fetch(Start, End, StoreID) ->
 						big_data_discovery:get_bucket_peers(Bucket)
 				end,
 
-			End3 =
-				case big_intervals:is_empty(UnsyncedIntervals) of
-					true ->
-						End2;
-					false ->
-						min(End2,
-							fetch_peer_intervals(Parent, Start, Peers, UnsyncedIntervals))
-				end,
+			%% The updated AllPeersIntervals cache is returned so it can be added to the State
+			Parent = big_data_sync:name(StoreID),
+			case big_intervals:is_empty(UnsyncedIntervals) of
+				true ->
+					ok;
+				false ->
+					fetch_peer_intervals(Parent, Start, Peers, UnsyncedIntervals, AllPeersIntervals)
+			end,
 
 			%% Schedule the next sync bucket. The cast handler logic will pause collection if needed.
-			gen_server:cast(Parent, {collect_peer_intervals, End3, End})
+			gen_server:cast(Parent, {collect_peer_intervals, End2, End})
 		catch
 			Class:Reason ->
-				?LOG_WARNING([{event, fetch_peers_process_exit},
-						{store_id, StoreID},
-						{range_start, Start},
-						{range_end, End},
-						{class, Class},
-						{reason, Reason}]),
-				gen_server:cast(Parent, {collect_peer_intervals, Start, End})
+				?LOG_INFO([{event, fetch_peers_process_exit}, {pid, StoreID},
+					{store_id, StoreID}, {start, Start}, {class, Class}, {reason, Reason}])
 		end
 	end).
 
@@ -107,13 +77,13 @@ get_unsynced_intervals(Start, End, Intervals, StoreID) ->
 			end
 	end.
 
-fetch_peer_intervals(Parent, Start, Peers, UnsyncedIntervals) ->
+fetch_peer_intervals(Parent, Start, Peers, UnsyncedIntervals, AllPeersIntervals) ->
 	Intervals =
-		ar_util:batch_pmap(
+		ar_util:pmap(
 			fun(Peer) ->
-				case get_peer_intervals(Peer, Start, UnsyncedIntervals) of
-					{ok, SoughtIntervals, PeerRightBound} ->
-						{Peer, SoughtIntervals, PeerRightBound};
+				case get_peer_intervals(Peer, Start, UnsyncedIntervals, AllPeersIntervals) of
+					{ok, SoughtIntervals, PeerIntervals, Left} ->
+						{Peer, SoughtIntervals, PeerIntervals, Left};
 					{error, Reason} ->
 						?LOG_DEBUG([{event, failed_to_fetch_peer_intervals},
 								{peer, ar_util:format_peer(Peer)},
@@ -121,57 +91,61 @@ fetch_peer_intervals(Parent, Start, Peers, UnsyncedIntervals) ->
 						ok
 				end
 			end,
-			Peers,
-			?GET_SYNC_RECORD_BATCH_SIZE % fetch sync intervals from so many peers at a time
+			Peers
 		),
-	{EnqueueIntervals, MinRightBound} =
+	EnqueueIntervals =
 		lists:foldl(
-			fun	({Peer, SoughtIntervals, RightBound}, {IntervalsAcc, RightBoundAcc}) ->
+			fun	({Peer, SoughtIntervals, _, _}, Acc) ->
 					case big_intervals:is_empty(SoughtIntervals) of
 						true ->
-							{IntervalsAcc, RightBoundAcc};
+							Acc;
 						false ->
-							{[{Peer, SoughtIntervals} | IntervalsAcc],
-								min(RightBound, RightBoundAcc)}
+							[{Peer, SoughtIntervals} | Acc]
 					end;
 				(_, Acc) ->
 					Acc
 			end,
-			{[], infinity},
+			[],
 			Intervals
 		),
 	gen_server:cast(Parent, {enqueue_intervals, EnqueueIntervals}),
-	MinRightBound.
+
+	AllPeersIntervals2 = lists:foldl(
+		fun	({Peer, _, PeerIntervals, Left}, Acc) ->
+				case big_intervals:is_empty(PeerIntervals) of
+					true ->
+						Acc;
+					false ->
+						Right = element(1, big_intervals:largest(PeerIntervals)),
+						maps:put(Peer, {Right, Left, PeerIntervals}, Acc)
+				end;
+			(_, Acc) ->
+				Acc
+		end,
+		AllPeersIntervals,
+		Intervals
+	),
+	gen_server:cast(Parent, {update_all_peers_intervals, AllPeersIntervals2}).
 
 %% @doc
-%% @return {ok, Intervals, PeerRightBound} | Error
+%% @return {ok, Intervals, PeerIntervals, Left} | Error
 %% Intervals: the intersection of the intervals we are looking for and the intervals that
-%%            the peer advertised inside the recently queried range
-%% PeerRightBound: the right bound of the intervals the peer advertised; for example,
-%%                 we may ask for at most 100 continuous intervals inside the given gigabyte,
-%%                 but the peer may have this region very fractured and 100 intervals will
-%%                 not be all intervals covering this gigabyte, so we take the right bound
-%%                 to know where to query next
-get_peer_intervals(Peer, Left, SoughtIntervals) ->
-	Limit = ?QUERY_SYNC_INTERVALS_COUNT_LIMIT,
+%%            the peer advertises
+%% PeerIntervals: all of the intervals (up to ?MAX_SHARED_SYNCED_INTERVALS_COUNT total
+%%                intervals) that the peer advertises starting at offset Left.
+get_peer_intervals(Peer, Left, SoughtIntervals, AllPeersIntervals) ->
+	Limit = ?MAX_SHARED_SYNCED_INTERVALS_COUNT,
 	Right = element(1, big_intervals:largest(SoughtIntervals)),
-	PeerReply =
-		case big_peers:get_peer_release(Peer) >= ?GET_SYNC_RECORD_RIGHT_BOUND_SUPPORT_RELEASE of
-			true ->
-				big_http_iface_client:get_sync_record(Peer, Left + 1, Right, Limit);
-			false ->
-				big_http_iface_client:get_sync_record(Peer, Left + 1, Limit)
-		end,
-	case PeerReply of
-		{ok, PeerIntervals2} ->
-			PeerRightBound =
-				case big_intervals:is_empty(PeerIntervals2) of
-					true ->
-						infinity;
-					false ->
-						element(1, big_intervals:largest(PeerIntervals2))
-				end,
-			{ok, big_intervals:intersection(PeerIntervals2, SoughtIntervals), PeerRightBound};
-		Error ->
-			Error
+	case maps:get(Peer, AllPeersIntervals, not_found) of
+		{Right2, Left2, PeerIntervals} when Right2 >= Right, Left2 =< Left ->
+			{ok, big_intervals:intersection(PeerIntervals, SoughtIntervals), PeerIntervals,
+					Left2};
+		_ ->
+			case big_http_iface_client:get_sync_record(Peer, Left + 1, Limit) of
+				{ok, PeerIntervals2} ->
+					{ok, big_intervals:intersection(PeerIntervals2, SoughtIntervals),
+							PeerIntervals2, Left};
+				Error ->
+					Error
+			end
 	end.

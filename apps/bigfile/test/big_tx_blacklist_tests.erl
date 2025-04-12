@@ -271,7 +271,7 @@ create_files(BadTXIDs, [{Start1, End1}, {Start2, End2}, {Start3, End3}]) ->
 random_filename() ->
 	{ok, Config} = big_test_node:remote_call(peer1, application, get_env, [bigfile, config]),
 	filename:join(Config#config.data_dir,
-		"ar-tx-blacklist-tests-transaction-blacklist-"
+		"big-tx-blacklist-tests-transaction-blacklist-"
 		++
 		binary_to_list(ar_util:encode(crypto:strong_rand_bytes(32)))).
 

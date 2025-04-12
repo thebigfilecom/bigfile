@@ -242,7 +242,7 @@ upload_chunks([Proof | Proofs]) ->
 random_tx_blacklist_filename() ->
 	{ok, Config} = application:get_env(bigfile, config),
 	filename:join(Config#config.data_dir,
-		"ar-webhook-tests-transaction-blacklist-"
+		"big-webhook-tests-transaction-blacklist-"
 		++
 		binary_to_list(ar_util:encode(crypto:strong_rand_bytes(32)))).
 
