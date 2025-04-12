@@ -134,19 +134,19 @@ test_addresses_with_checksum({_, Wallet1, {_, Pub2}, _}) ->
 	{JSON3} = big_serialize:tx_to_json_struct(TX2),
 	InvalidPayloads = [
 		[{<<"target">>, <<":">>} | JSON2],
-		[{<<"target">>, << <<":">>/binary, (ar_util:encode(<< 0:32 >>))/binary >>} | JSON2],
-		[{<<"target">>, << (ar_util:encode(Address19))/binary, <<":">>/binary,
-				(ar_util:encode(<< (erlang:crc32(Address19)):32 >> ))/binary >>} | JSON2],
-		[{<<"target">>, << (ar_util:encode(Address65))/binary, <<":">>/binary,
-				(ar_util:encode(<< (erlang:crc32(Address65)):32 >>))/binary >>} | JSON2],
-		[{<<"target">>, << (ar_util:encode(Address32))/binary, <<":">>/binary,
-				(ar_util:encode(<< 0:32 >>))/binary >>} | JSON2],
-		[{<<"target">>, << (ar_util:encode(Address20))/binary, <<":">>/binary,
-				(ar_util:encode(<< 1:32 >>))/binary >>} | JSON2],
-		[{<<"target">>, << (ar_util:encode(Address32))/binary, <<":">>/binary,
-				(ar_util:encode(<< (erlang:crc32(Address32)):32 >>))/binary,
+		[{<<"target">>, << <<":">>/binary, (big_util:encode(<< 0:32 >>))/binary >>} | JSON2],
+		[{<<"target">>, << (big_util:encode(Address19))/binary, <<":">>/binary,
+				(big_util:encode(<< (erlang:crc32(Address19)):32 >> ))/binary >>} | JSON2],
+		[{<<"target">>, << (big_util:encode(Address65))/binary, <<":">>/binary,
+				(big_util:encode(<< (erlang:crc32(Address65)):32 >>))/binary >>} | JSON2],
+		[{<<"target">>, << (big_util:encode(Address32))/binary, <<":">>/binary,
+				(big_util:encode(<< 0:32 >>))/binary >>} | JSON2],
+		[{<<"target">>, << (big_util:encode(Address20))/binary, <<":">>/binary,
+				(big_util:encode(<< 1:32 >>))/binary >>} | JSON2],
+		[{<<"target">>, << (big_util:encode(Address32))/binary, <<":">>/binary,
+				(big_util:encode(<< (erlang:crc32(Address32)):32 >>))/binary,
 				<<":">>/binary >>} | JSON2],
-		[{<<"target">>, << (ar_util:encode(Address32))/binary, <<":">>/binary >>} | JSON3]
+		[{<<"target">>, << (big_util:encode(Address32))/binary, <<":">>/binary >>} | JSON3]
 	],
 	lists:foreach(
 		fun(Struct) ->
@@ -157,8 +157,8 @@ test_addresses_with_checksum({_, Wallet1, {_, Pub2}, _}) ->
 		InvalidPayloads
 	),
 	ValidPayloads = [
-		[{<<"target">>, << (ar_util:encode(Address32))/binary, <<":">>/binary,
-				(ar_util:encode(<< (erlang:crc32(Address32)):32 >>))/binary >>} | JSON3],
+		[{<<"target">>, << (big_util:encode(Address32))/binary, <<":">>/binary,
+				(big_util:encode(<< (erlang:crc32(Address32)):32 >>))/binary >>} | JSON3],
 		JSON
 	],
 	lists:foreach(
@@ -173,17 +173,17 @@ test_addresses_with_checksum({_, Wallet1, {_, Pub2}, _}) ->
 	big_test_node:mine(),
 	[{H, _, _} | _] = big_test_node:wait_until_height(peer1, RemoteHeight + 1),
 	B = read_block_when_stored(H),
-	ChecksumAddr = << (ar_util:encode(Address32))/binary, <<":">>/binary,
-			(ar_util:encode(<< (erlang:crc32(Address32)):32 >>))/binary >>,
+	ChecksumAddr = << (big_util:encode(Address32))/binary, <<":">>/binary,
+			(big_util:encode(<< (erlang:crc32(Address32)):32 >>))/binary >>,
 	?assertEqual(2, length(B#block.txs)),
-	Balance = get_balance(ar_util:encode(Address32)),
+	Balance = get_balance(big_util:encode(Address32)),
 	?assertEqual(Balance, get_balance(ChecksumAddr)),
-	LastTX = get_last_tx(ar_util:encode(Address32)),
+	LastTX = get_last_tx(big_util:encode(Address32)),
 	?assertEqual(LastTX, get_last_tx(ChecksumAddr)),
-	Price = get_price(ar_util:encode(Address32)),
+	Price = get_price(big_util:encode(Address32)),
 	?assertEqual(Price, get_price(ChecksumAddr)),
 	ServeTXTarget = maps:get(<<"target">>, jiffy:decode(get_tx(TX2#tx.id), [return_maps])),
-	?assertEqual(ar_util:encode(TX2#tx.target), ServeTXTarget).
+	?assertEqual(big_util:encode(TX2#tx.target), ServeTXTarget).
 
 get_balance(EncodedAddr) ->
 	Peer = big_test_node:peer_ip(main),
@@ -228,7 +228,7 @@ get_tx(ID) ->
 		big_http:req(#{
 			method => get,
 			peer => Peer,
-			path => "/tx/" ++ binary_to_list(ar_util:encode(ID)),
+			path => "/tx/" ++ binary_to_list(big_util:encode(ID)),
 			headers => [{<<"x-p2p-port">>, integer_to_binary(Port)}]
 		}),
 	Reply.
@@ -245,7 +245,7 @@ test_get_info(_) ->
 		?CLIENT_VERSION,
 		big_http_iface_client:get_info(big_test_node:peer_ip(main), version)),
 	?assertEqual(1, big_http_iface_client:get_info(big_test_node:peer_ip(main), peers)),
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			1 == big_http_iface_client:get_info(big_test_node:peer_ip(main), blocks)
 		end,
@@ -323,7 +323,7 @@ get_fun_msg_pair(send_tx_binary) ->
 
 %% @doc Frame to test spamming an endpoint.
 %% TODO: Perform the requests in parallel. Just changing the lists:map/2 call
-%% to an ar_util:pmap/2 call fails the tests currently.
+%% to an big_util:pmap/2 call fails the tests currently.
 -spec node_blacklisting_test_frame(fun(), any(), non_neg_integer(), non_neg_integer()) -> ok.
 node_blacklisting_test_frame(RequestFun, ErrorResponse, NRequests, ExpectedErrors) ->
 	big_blacklist_middleware:reset(),
@@ -368,7 +368,7 @@ group(Grouper, [Item | List], Acc) ->
 %% @doc Check that balances can be retreived over the network.
 test_get_balance({B0, _, _, {_, Pub1}}) ->
 	LocalHeight = big_node:get_height(),
-	Addr = binary_to_list(ar_util:encode(big_wallet:to_address(Pub1))),
+	Addr = binary_to_list(big_util:encode(big_wallet:to_address(Pub1))),
 	{ok, {{<<"200">>, _}, _, Body, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -376,7 +376,7 @@ test_get_balance({B0, _, _, {_, Pub1}}) ->
 			path => "/wallet/" ++ Addr ++ "/balance"
 		}),
 	?assertEqual(?BIG(10), binary_to_integer(Body)),
-	RootHash = binary_to_list(ar_util:encode(B0#block.wallet_list)),
+	RootHash = binary_to_list(big_util:encode(B0#block.wallet_list)),
 	{ok, {{<<"200">>, _}, _, Body, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -396,7 +396,7 @@ test_get_wallet_list_in_chunks({B0, {_, Pub1}, {_, Pub2}, {_, StaticPub}}) ->
 	Addr1 = big_wallet:to_address(Pub1),
 	Addr2 = big_wallet:to_address(Pub2),
 	StaticAddr = big_wallet:to_address(StaticPub),
-	NonExistentRootHash = binary_to_list(ar_util:encode(crypto:strong_rand_bytes(32))),
+	NonExistentRootHash = binary_to_list(big_util:encode(crypto:strong_rand_bytes(32))),
 	{ok, {{<<"404">>, _}, _, <<"Root hash not found.">>, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -413,7 +413,7 @@ test_get_wallet_list_in_chunks({B0, {_, Pub1}, {_, Pub2}, {_, StaticPub}}) ->
 			{StaticAddr, {?BIG(10), <<"TEST_ID">>}},
 			{GenesisAddr, {0, TXID}}]),
 	{ExpectedWallets1, ExpectedWallets2} = lists:split(2, ExpectedWallets),
-	RootHash = binary_to_list(ar_util:encode(B0#block.wallet_list)),
+	RootHash = binary_to_list(big_util:encode(B0#block.wallet_list)),
 	{ok, {{<<"200">>, _}, _, Body1, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -430,7 +430,7 @@ test_get_wallet_list_in_chunks({B0, {_, Pub1}, {_, Pub2}, {_, StaticPub}}) ->
 		big_http:req(#{
 			method => get,
 			peer => big_test_node:peer_ip(main),
-			path => "/wallet_list/" ++ RootHash ++ "/" ++ ar_util:encode(Cursor)
+			path => "/wallet_list/" ++ RootHash ++ "/" ++ big_util:encode(Cursor)
 		}),
 	?assertEqual(#{
 			next_cursor => last,
@@ -446,14 +446,14 @@ test_get_height(_) ->
 
 %% @doc Test that last tx associated with a wallet can be fetched.
 test_get_last_tx_single({_, _, _, {_, StaticPub}}) ->
-	Addr = binary_to_list(ar_util:encode(big_wallet:to_address(StaticPub))),
+	Addr = binary_to_list(big_util:encode(big_wallet:to_address(StaticPub))),
 	{ok, {{<<"200">>, _}, _, Body, _, _}} =
 		big_http:req(#{
 			method => get,
 			peer => big_test_node:peer_ip(main),
 			path => "/wallet/" ++ Addr ++ "/last_tx"
 		}),
-	?assertEqual(<<"TEST_ID">>, ar_util:decode(Body)).
+	?assertEqual(<<"TEST_ID">>, big_util:decode(Body)).
 
 %% @doc Ensure that blocks can be received via a hash.
 test_get_block_by_hash({B0, _, _, _}) ->
@@ -481,7 +481,7 @@ test_get_current_block({B0, _, _, _}) ->
 	{ok, {{<<"200">>, _}, _, Body, _, _}} =
 		big_http:req(#{ method => get, peer => big_test_node:peer_ip(main), path => "/block/current" }),
 	{JSONStruct} = jiffy:decode(Body),
-	?assertEqual(ar_util:encode(B0#block.indep_hash),
+	?assertEqual(big_util:encode(B0#block.indep_hash),
 			proplists:get_value(<<"indep_hash">>, JSONStruct)).
 
 %% @doc Test that the various different methods of GETing a block all perform
@@ -517,9 +517,9 @@ test_get_format_2_tx(_) ->
 			data_root = DataRoot },
 	InvalidDataRootTX = #tx{ id = InvalidTXID } = (big_tx:new(<<"DATA">>))#tx{ format = 2 },
 	EmptyTX = #tx{ id = EmptyTXID } = (big_tx:new())#tx{ format = 2 },
-	EncodedTXID = binary_to_list(ar_util:encode(TXID)),
-	EncodedInvalidTXID = binary_to_list(ar_util:encode(InvalidTXID)),
-	EncodedEmptyTXID = binary_to_list(ar_util:encode(EmptyTXID)),
+	EncodedTXID = binary_to_list(big_util:encode(TXID)),
+	EncodedInvalidTXID = binary_to_list(big_util:encode(InvalidTXID)),
+	EncodedEmptyTXID = binary_to_list(big_util:encode(EmptyTXID)),
 	big_http_iface_client:send_tx_json(big_test_node:peer_ip(main), ValidTX#tx.id,
 			big_serialize:jsonify(big_serialize:tx_to_json_struct(ValidTX))),
 	{ok, {{<<"400">>, _}, _, <<"The attached data is split in an unknown way.">>, _, _}} =
@@ -551,7 +551,7 @@ test_get_format_2_tx(_) ->
 		}, big_serialize:json_struct_to_tx(Body)),
 	%% Ensure data can be fetched for format=2 transactions via /tx/[ID]/data.
 	{ok, Data} = wait_until_syncs_tx_data(TXID),
-	?assertEqual(ar_util:encode(<<"DATA">>), Data),
+	?assertEqual(big_util:encode(<<"DATA">>), Data),
 	{ok, {{<<"404">>, _}, _, _, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -581,14 +581,14 @@ test_get_format_2_tx(_) ->
 test_get_format_1_tx(_) ->
 	LocalHeight = big_node:get_height(),
 	TX = #tx{ id = TXID } = big_tx:new(<<"DATA">>),
-	EncodedTXID = binary_to_list(ar_util:encode(TXID)),
+	EncodedTXID = binary_to_list(big_util:encode(TXID)),
 	big_http_iface_client:send_tx_binary(big_test_node:peer_ip(main), TX#tx.id,
 			big_serialize:tx_to_binary(TX)),
 	wait_until_receives_txs([TX]),
 	big_test_node:mine(),
 	wait_until_height(main, LocalHeight + 1),
 	{ok, Body} =
-		ar_util:do_until(
+		big_util:do_until(
 			fun() ->
 				case big_http:req(#{
 					method => get,
@@ -639,7 +639,7 @@ test_find_external_tx(_) ->
 	big_test_node:mine(),
 	wait_until_height(main, LocalHeight + 1),
 	{ok, FoundTXID} =
-		ar_util:do_until(
+		big_util:do_until(
 			fun() ->
 				case big_http_iface_client:get_tx([big_test_node:peer_ip(main)], TX#tx.id) of
 					not_found ->
@@ -674,10 +674,10 @@ test_add_tx_and_get_last({_B0, Wallet1, Wallet2, _StaticWallet}) ->
 			method => get,
 			peer => big_test_node:peer_ip(main),
 			path => "/wallet/"
-					++ binary_to_list(ar_util:encode(big_wallet:to_address(Pub1)))
+					++ binary_to_list(big_util:encode(big_wallet:to_address(Pub1)))
 					++ "/last_tx"
 		}),
-	?assertEqual(ID, ar_util:decode(Body)).
+	?assertEqual(ID, big_util:decode(Body)).
 
 %% @doc Post a tx to the network and ensure that its subfields can be gathered
 test_get_subfields_of_tx(_) ->
@@ -690,7 +690,7 @@ test_get_subfields_of_tx(_) ->
 	wait_until_height(main, LocalHeight + 1),
 	{ok, Body} = wait_until_syncs_tx_data(TX#tx.id),
 	Orig = TX#tx.data,
-	?assertEqual(Orig, ar_util:decode(Body)).
+	?assertEqual(Orig, big_util:decode(Body)).
 
 %% @doc Correctly check the status of pending is returned for a pending transaction
 test_get_pending_tx(_) ->
@@ -702,7 +702,7 @@ test_get_pending_tx(_) ->
 		big_http:req(#{
 			method => get,
 			peer => big_test_node:peer_ip(main),
-			path => "/tx/" ++ binary_to_list(ar_util:encode(TX#tx.id))
+			path => "/tx/" ++ binary_to_list(big_util:encode(TX#tx.id))
 		}),
 	?assertEqual(<<"Pending">>, Body).
 
@@ -715,7 +715,7 @@ test_get_tx_body(_) ->
 	big_test_node:mine(),
 	wait_until_height(main, LocalHeight + 1),
 	{ok, Data} = wait_until_syncs_tx_data(TX#tx.id),
-	?assertEqual(<<"TEST DATA">>, ar_util:decode(Data)).
+	?assertEqual(<<"TEST DATA">>, big_util:decode(Data)).
 
 test_get_tx_status(_) ->
 	big_test_node:connect_to_peer(peer1),
@@ -728,7 +728,7 @@ test_get_tx_status(_) ->
 		big_http:req(#{
 			method => get,
 			peer => big_test_node:peer_ip(main),
-			path => "/tx/" ++ binary_to_list(ar_util:encode(TX#tx.id)) ++ "/status"
+			path => "/tx/" ++ binary_to_list(big_util:encode(TX#tx.id)) ++ "/status"
 		})
 	end,
 	?assertMatch({ok, {{<<"202">>, _}, _, <<"Pending">>, _, _}}, FetchStatus()),
@@ -740,20 +740,20 @@ test_get_tx_status(_) ->
 	?assertEqual(
 		#{
 			<<"block_height">> => length(BI) - 1,
-			<<"block_indep_hash">> => ar_util:encode(element(1, hd(BI))),
+			<<"block_indep_hash">> => big_util:encode(element(1, hd(BI))),
 			<<"number_of_confirmations">> => 1
 		},
 		maps:from_list(Res)
 	),
 	big_test_node:mine(),
 	wait_until_height(main, Height + 2),
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			{ok, {{<<"200">>, _}, _, Body2, _, _}} = FetchStatus(),
 			{Res2} = big_serialize:dejsonify(Body2),
 			#{
 				<<"block_height">> => length(BI) - 1,
-				<<"block_indep_hash">> => ar_util:encode(element(1, hd(BI))),
+				<<"block_indep_hash">> => big_util:encode(element(1, hd(BI))),
 				<<"number_of_confirmations">> => 2
 			} == maps:from_list(Res2)
 		end,
@@ -805,7 +805,7 @@ test_post_unsigned_tx({_B0, Wallet1, _Wallet2, _StaticWallet}) ->
 		%% Top up the new wallet.
 		TopUpTX = big_test_node:sign_tx(Wallet, #{
 			owner => Pub,
-			target => ar_util:decode(Address),
+			target => big_util:decode(Address),
 			quantity => ?BIG(100),
 			reward => ?BIG(1)
 			}),
@@ -895,7 +895,7 @@ test_get_error_of_data_limit(_) ->
 		big_http:req(#{
 			method => get,
 			peer => big_test_node:peer_ip(main),
-			path => "/tx/" ++ binary_to_list(ar_util:encode(TX#tx.id)) ++ "/data",
+			path => "/tx/" ++ binary_to_list(big_util:encode(TX#tx.id)) ++ "/data",
 			limit => Limit
 		}),
 	?assertEqual({error, too_much_data}, Resp).
@@ -994,12 +994,12 @@ test_get_total_supply(_Args) ->
 			big_http:req(#{ method => get, peer => big_test_node:peer_ip(main), path => "/total_supply" })).
 
 wait_until_syncs_tx_data(TXID) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			case big_http:req(#{
 				method => get,
 				peer => big_test_node:peer_ip(main),
-				path => "/tx/" ++ binary_to_list(ar_util:encode(TXID)) ++ "/data"
+				path => "/tx/" ++ binary_to_list(big_util:encode(TXID)) ++ "/data"
 			}) of
 				{ok, {{<<"404">>, _}, _, _, _, _}} ->
 					false;

@@ -387,7 +387,7 @@ parse_cli_args(["mine" | Rest], C) ->
 parse_cli_args(["verify" | Rest], C) ->
 	parse_cli_args(Rest, C#config{ verify = true });
 parse_cli_args(["peer", Peer | Rest], C = #config{ peers = Ps }) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ peers = [ValidPeer|Ps] });
 		{error, _} ->
@@ -396,7 +396,7 @@ parse_cli_args(["peer", Peer | Rest], C = #config{ peers = Ps }) ->
 	end;
 parse_cli_args(["block_gossip_peer", Peer | Rest],
 		C = #config{ block_gossip_peers = Peers }) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ block_gossip_peers = [ValidPeer | Peers] });
 		{error, _} ->
@@ -404,7 +404,7 @@ parse_cli_args(["block_gossip_peer", Peer | Rest],
 			parse_cli_args(Rest, C)
 	end;
 parse_cli_args(["local_peer", Peer | Rest], C = #config{ local_peers = Peers }) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ local_peers = [ValidPeer | Peers] });
 		{error, _} ->
@@ -463,7 +463,7 @@ parse_cli_args(["diff", N | Rest], C) ->
 parse_cli_args(["mining_addr", Addr | Rest], C) ->
 	case C#config.mining_addr of
 		not_set ->
-			case ar_util:safe_decode(Addr) of
+			case big_util:safe_decode(Addr) of
 				{ok, DecodedAddr} when byte_size(DecodedAddr) == 32 ->
 					parse_cli_args(Rest, C#config{ mining_addr = DecodedAddr });
 				_ ->
@@ -503,7 +503,7 @@ parse_cli_args(["disk_space_check_frequency", Frequency | Rest], C) ->
 parse_cli_args(["start_from_block_index" | Rest], C) ->
 	parse_cli_args(Rest, C#config{ start_from_latest_state = true });
 parse_cli_args(["start_from_block", H | Rest], C) ->
-	case ar_util:safe_decode(H) of
+	case big_util:safe_decode(H) of
 		{ok, Decoded} when byte_size(Decoded) == 48 ->
 			parse_cli_args(Rest, C#config{ start_from_block = Decoded });
 		_ ->
@@ -610,11 +610,11 @@ parse_cli_args(["defragment_module", DefragModuleString | Rest], C) ->
 	end;
 parse_cli_args(["tls_cert_file", CertFilePath | Rest], C) ->
     AbsCertFilePath = filename:absname(CertFilePath),
-    ar_util:assert_file_exists_and_readable(AbsCertFilePath),
+    big_util:assert_file_exists_and_readable(AbsCertFilePath),
     parse_cli_args(Rest, C#config{ tls_cert_file = AbsCertFilePath });
 parse_cli_args(["tls_key_file", KeyFilePath | Rest], C) ->
     AbsKeyFilePath = filename:absname(KeyFilePath),
-    ar_util:assert_file_exists_and_readable(AbsKeyFilePath),
+    big_util:assert_file_exists_and_readable(AbsKeyFilePath),
     parse_cli_args(Rest, C#config{ tls_key_file = AbsKeyFilePath });
 parse_cli_args(["coordinated_mining" | Rest], C) ->
 	parse_cli_args(Rest, C#config{ coordinated_mining = true });
@@ -628,7 +628,7 @@ parse_cli_args(["cm_api_secret", _ | _], _) ->
 parse_cli_args(["cm_poll_interval", Num | Rest], C) ->
 	parse_cli_args(Rest, C#config{ cm_poll_interval = list_to_integer(Num) });
 parse_cli_args(["cm_peer", Peer | Rest], C = #config{ cm_peers = Ps }) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ cm_peers = [ValidPeer|Ps] });
 		{error, _} ->
@@ -636,7 +636,7 @@ parse_cli_args(["cm_peer", Peer | Rest], C = #config{ cm_peers = Ps }) ->
 			parse_cli_args(Rest, C)
 	end;
 parse_cli_args(["cm_exit_peer", Peer | Rest], C) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ValidPeer} ->
 			parse_cli_args(Rest, C#config{ cm_exit_peer = ValidPeer });
 		{error, _} ->
@@ -732,7 +732,7 @@ set_mining_address(#config{ mining_addr = not_set } = C) ->
 			erlang:halt();
 		W ->
 			Addr = big_wallet:to_address(W),
-			big:console("~nSetting the mining address to ~s.~n", [ar_util:encode(Addr)]),
+			big:console("~nSetting the mining address to ~s.~n", [big_util:encode(Addr)]),
 			C2 = C#config{ mining_addr = Addr },
 			application:set_env(bigfile, config, C2),
 			set_mining_address(C2)
@@ -750,7 +750,7 @@ set_mining_address(#config{ mining_addr = Addr, cm_exit_peer = CmExitPeer,
 						" [data_dir]/~s/bigfile_keyfile_[mining_addr].json or "
 						"[data_dir]/~s/bigfile_keyfile_[mining_addr].json file)."
 						" Do not specify \"mining_addr\" if you want one to be generated.~n~n",
-						[ar_util:encode(Addr), ?WALLET_DIR, ?WALLET_DIR, ?WALLET_DIR]),
+						[big_util:encode(Addr), ?WALLET_DIR, ?WALLET_DIR, ?WALLET_DIR]),
 					erlang:halt();
 				_ ->
 					ok
@@ -786,7 +786,7 @@ create_wallet(DataDir, KeyType) ->
 					erlang:halt();
 				W ->
 					Addr = big_wallet:to_address(W),
-					big:console("Created a wallet with address ~s.~n", [ar_util:encode(Addr)]),
+					big:console("Created a wallet with address ~s.~n", [big_util:encode(Addr)]),
 					erlang:halt()
 			end
 	end.
@@ -948,7 +948,7 @@ commandline_parser_test_() ->
 				{"mine", #config.mine, true},
 				{"port 22", #config.port, 22},
 				{"mining_addr "
-					++ binary_to_list(ar_util:encode(Addr)), #config.mining_addr, Addr}
+					++ binary_to_list(big_util:encode(Addr)), #config.mining_addr, Addr}
 			],
 		X = string:split(string:join([ L || {L, _, _} <- Tests ], " "), " ", all),
 		C = parse_cli_args(X, #config{}),

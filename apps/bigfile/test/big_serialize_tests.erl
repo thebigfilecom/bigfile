@@ -33,7 +33,7 @@ test_block_to_binary([], _TXFixtureDir) ->
 test_block_to_binary([Fixture | Fixtures], TXFixtureDir) ->
 	{ok, Bin} = file:read_file(Fixture),
 	B = big_storage:migrate_block_record(binary_to_term(Bin)),
-	?debugFmt("Block ~s, height ~B.~n", [ar_util:encode(B#block.indep_hash),
+	?debugFmt("Block ~s, height ~B.~n", [big_util:encode(B#block.indep_hash),
 			B#block.height]),
 	test_block_to_binary(B),
 	RandomTags = [crypto:strong_rand_bytes(rand:uniform(2))
@@ -418,7 +418,7 @@ partial_solution_response_to_json_struct_test() ->
 			{Struct} = big_serialize:dejsonify(big_serialize:jsonify(
 					big_serialize:partial_solution_response_to_json_struct(Case))),
 			?assertEqual(ExpectedH,
-					ar_util:decode(proplists:get_value(<<"indep_hash">>, Struct))),
+					big_util:decode(proplists:get_value(<<"indep_hash">>, Struct))),
 			?assertEqual(ExpectedStatus, proplists:get_value(<<"status">>, Struct))
 		end,
 		TestCases

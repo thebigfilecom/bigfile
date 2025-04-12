@@ -266,8 +266,8 @@ init([]) ->
 	
 	big:console("~nInitialising RandomX datasets. Keys: ~p, ~p. "
 			"The process may take several minutes.~n",
-			[ar_util:encode(?RANDOMX_PACKING_KEY),
-				ar_util:encode(?RANDOMX_PACKING_KEY)]),
+			[big_util:encode(?RANDOMX_PACKING_KEY),
+				big_util:encode(?RANDOMX_PACKING_KEY)]),
 	{RandomXState512, _RandomXState4096, _RandomXStateSharedEntropy}
 			= PackingState = init_packing_state(),
 	big:console("RandomX dataset initialisation complete.~n", []),
@@ -288,7 +288,7 @@ init([]) ->
 				Free = proplists:get_value(free_memory, memsup:get_system_memory_data(),
 						2000000000),
 				Limit2 = min(1200, erlang:ceil(Free * 0.9 / 3 / 262144)),
-				Limit3 = ar_util:ceil_int(Limit2, 100),
+				Limit3 = big_util:ceil_int(Limit2, 100),
 				Limit3;
 			Limit ->
 				Limit

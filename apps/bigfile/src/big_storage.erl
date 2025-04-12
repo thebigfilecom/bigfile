@@ -57,7 +57,7 @@ read_block_index_from_map(Map, Height, End, PrevH, BI) ->
 				{_, _, _, PrevH2} ->
 					big:console("The stored block index is invalid. Height: ~B, "
 							"stored previous hash: ~s, expected previous hash: ~s.~n",
-							[Height, ar_util:encode(PrevH2), ar_util:encode(PrevH)]),
+							[Height, big_util:encode(PrevH2), big_util:encode(PrevH)]),
 					not_found
 			end
 	end.
@@ -74,7 +74,7 @@ read_reward_history([{H, _WeaveSize, _TXRoot} | BI]) ->
 				not_found ->
 					?LOG_DEBUG([{event, read_reward_history_not_found},
 							{reason, missing_block},
-							{block, ar_util:encode(H)}]),
+							{block, big_util:encode(H)}]),
 					not_found;
 				{ok, Bin} ->
 					Element = binary_to_term(Bin),
@@ -128,8 +128,8 @@ store_block_index(BI) ->
 					?LOG_ERROR([{event, failed_to_store_block_index},
 							{reason, no_intersection},
 							{height, RootHeight},
-							{stored_hash, ar_util:encode(H2)},
-							{expected_hash, ar_util:encode(H)}]),
+							{stored_hash, big_util:encode(H2)},
+							{expected_hash, big_util:encode(H)}]),
 					{error, block_index_no_recent_intersection}
 			end;
 		Error ->
@@ -231,7 +231,7 @@ store_reward_history_part2([{H, El} | History]) ->
 		Error ->
 			?LOG_ERROR([{event, failed_to_update_reward_history},
 					{reason, io_lib:format("~p", [Error])},
-					{block, ar_util:encode(H)}]),
+					{block, big_util:encode(H)}]),
 			{error, not_found}
 	end.
 
@@ -251,7 +251,7 @@ store_block_time_history_part2([{H, El} | History]) ->
 		Error ->
 			?LOG_ERROR([{event, failed_to_update_block_time_history},
 					{reason, io_lib:format("~p", [Error])},
-					{block, ar_util:encode(H)}]),
+					{block, big_util:encode(H)}]),
 			{error, not_found}
 	end.
 
@@ -359,7 +359,7 @@ read_block(BH) ->
 					parse_block_kv_binary(V);
 				{error, Reason} ->
 					?LOG_WARNING([{event, error_reading_block_from_kv_storage},
-							{block, ar_util:encode(BH)},
+							{block, big_util:encode(BH)},
 							{error, io_lib:format("~p", [Reason])}])
 			end
 	end.
@@ -438,7 +438,7 @@ wallet_list_chunk_relative_filepath(Position, RootHash) ->
 	binary_to_list(iolist_to_binary([
 		?WALLET_LIST_DIR,
 		"/",
-		ar_util:encode(RootHash),
+		big_util:encode(RootHash),
 		"-",
 		integer_to_binary(Position),
 		"-",
@@ -484,7 +484,7 @@ read_account2(Addr, RootHash, Pos, Left, _Right, DataDir, L, _RightFileFound) ->
 lookup_block_filename(H) ->
 	{ok, Config} = application:get_env(bigfile, config),
 	Name = filename:join([Config#config.data_dir, ?BLOCK_DIR,
-			binary_to_list(ar_util:encode(H))]),
+			binary_to_list(big_util:encode(H))]),
 	NameJSON = iolist_to_binary([Name, ".json"]),
 	case is_file(NameJSON) of
 		true ->
@@ -624,7 +624,7 @@ write_tx(#tx{ format = Format, id = TXID } = TX) ->
 					case {DataSize == TX#tx.data_size, Format} of
 						{false, 2} ->
 							?LOG_ERROR([{event, failed_to_store_tx_data},
-									{reason, size_mismatch}, {tx, ar_util:encode(TX#tx.id)}]),
+									{reason, size_mismatch}, {tx, big_util:encode(TX#tx.id)}]),
 							ok;
 						{true, 1} ->
 							case write_tx_data(no_expected_data_root, TX#tx.data, TXID) of
@@ -632,7 +632,7 @@ write_tx(#tx{ format = Format, id = TXID } = TX) ->
 									ok;
 								{error, Reason} ->
 									?LOG_WARNING([{event, failed_to_store_tx_data},
-											{reason, Reason}, {tx, ar_util:encode(TX#tx.id)}]),
+											{reason, Reason}, {tx, big_util:encode(TX#tx.id)}]),
 									%% We have stored the data in the tx_db table
 									%% so we return ok here.
 									ok
@@ -651,7 +651,7 @@ write_tx(#tx{ format = Format, id = TXID } = TX) ->
 											%% the attached data.
 											?LOG_WARNING([{event, failed_to_store_tx_data},
 													{reason, Reason},
-													{tx, ar_util:encode(TX#tx.id)}]),
+													{tx, big_util:encode(TX#tx.id)}]),
 											ok
 									end
 							end
@@ -708,7 +708,7 @@ write_tx_data(DataRoot, DataTree, Data, SizeTaggedChunks, TXID) ->
 						Acc;
 					{error, Reason} ->
 						?LOG_WARNING([{event, failed_to_write_tx_chunk},
-								{tx, ar_util:encode(TXID)},
+								{tx, big_util:encode(TXID)},
 								{reason, io_lib:format("~p", [Reason])}]),
 						[Reason | Acc]
 				end
@@ -752,7 +752,7 @@ read_tx2(ID) ->
 							TX#tx{ data = Data };
 						Error ->
 							?LOG_WARNING([{event, error_reading_tx_from_kv_storage},
-									{tx, ar_util:encode(ID)},
+									{tx, big_util:encode(ID)},
 									{error, io_lib:format("~p", [Error])}]),
 							unavailable
 					end;
@@ -860,7 +860,7 @@ read_tx_data_from_kv_storage(ID) ->
 read_tx_data(TX) ->
 	case read_file_raw(tx_data_filepath(TX)) of
 		{ok, Data} ->
-			{ok, ar_util:decode(Data)};
+			{ok, big_util:decode(Data)};
 		Error ->
 			Error
 	end.
@@ -941,7 +941,7 @@ read_wallet_list_chunk(RootHash, Position, Tree) ->
 			"/",
 			?WALLET_LIST_DIR,
 			"/",
-			ar_util:encode(RootHash),
+			big_util:encode(RootHash),
 			"-",
 			integer_to_binary(Position),
 			"-",
@@ -1088,7 +1088,7 @@ write_block(B) ->
 	case lists:member(disk_logging, Config#config.enable) of
 		true ->
 			?LOG_INFO([{event, writing_block_to_disk},
-					{block, ar_util:encode(B#block.indep_hash)}]);
+					{block, big_util:encode(B#block.indep_hash)}]);
 		_ ->
 			do_nothing
 	end,
@@ -1186,13 +1186,13 @@ tx_data_filepath(ID) ->
 tx_filename(TX) when is_record(TX, tx) ->
 	tx_filename(TX#tx.id);
 tx_filename(TXID) when is_binary(TXID) ->
-	iolist_to_binary([ar_util:encode(TXID), ".json"]).
+	iolist_to_binary([big_util:encode(TXID), ".json"]).
 
 tx_data_filename(TXID) ->
-	iolist_to_binary([ar_util:encode(TXID), "_data.json"]).
+	iolist_to_binary([big_util:encode(TXID), "_data.json"]).
 
 wallet_list_filepath(Hash) when is_binary(Hash) ->
-	filepath([?WALLET_LIST_DIR, iolist_to_binary([ar_util:encode(Hash), ".json"])]).
+	filepath([?WALLET_LIST_DIR, iolist_to_binary([big_util:encode(Hash), ".json"])]).
 
 write_file_atomic(Filename, Data) ->
 	SwapFilename = Filename ++ ".swp",
@@ -1264,7 +1264,7 @@ delete_term(Name) ->
 
 store_account_tree_update(Height, RootHash, Map) ->
 	?LOG_INFO([{event, storing_account_tree_update}, {updated_key_count, map_size(Map)},
-			{height, Height}, {root_hash, ar_util:encode(RootHash)}]),
+			{height, Height}, {root_hash, big_util:encode(RootHash)}]),
 	maps:map(
 		fun({H, Prefix} = Key, Value) ->
 			Prefix2 = case Prefix of root -> <<>>; _ -> Prefix end,
@@ -1276,22 +1276,22 @@ store_account_tree_update(Height, RootHash, Map) ->
 							ok;
 						{error, Reason} ->
 							?LOG_ERROR([{event, failed_to_store_account_tree_key},
-									{key_hash, ar_util:encode(element(1, Key))},
+									{key_hash, big_util:encode(element(1, Key))},
 									{key_prefix, case element(2, Key) of root -> root;
-											Prefix -> ar_util:encode(Prefix) end},
+											Prefix -> big_util:encode(Prefix) end},
 									{height, Height},
-									{root_hash, ar_util:encode(RootHash)},
+									{root_hash, big_util:encode(RootHash)},
 									{reason, io_lib:format("~p", [Reason])}])
 					end;
 				{ok, _} ->
 					ok;
 				{error, Reason} ->
 					?LOG_ERROR([{event, failed_to_read_account_tree_key},
-							{key_hash, ar_util:encode(element(1, Key))},
+							{key_hash, big_util:encode(element(1, Key))},
 							{key_prefix, case element(2, Key) of root -> root;
-									Prefix -> ar_util:encode(Prefix) end},
+									Prefix -> big_util:encode(Prefix) end},
 							{height, Height},
-							{root_hash, ar_util:encode(RootHash)},
+							{root_hash, big_util:encode(RootHash)},
 							{reason, io_lib:format("~p", [Reason])}])
 			end
 		end,
@@ -1336,7 +1336,7 @@ test_store_and_retrieve_block() ->
 	big_test_node:mine(),
 	BI1 = big_test_node:wait_until_height(main, 2),
 	[{_, BlockCount}] = ets:lookup(big_header_sync, synced_blocks),
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			3 == BlockCount
 		end,

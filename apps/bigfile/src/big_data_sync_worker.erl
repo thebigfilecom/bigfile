@@ -97,16 +97,16 @@ read_range({Start, End, _OriginStoreID, TargetStoreID} = Args) ->
 						{size_mb, (End - Start) / ?MiB}, {args, Args}]),
 					read_range2(?READ_RANGE_MESSAGES_PER_BATCH, Args);
 				_ ->
-					ar_util:cast_after(30000, self(), {read_range, Args}),
+					big_util:cast_after(30000, self(), {read_range, Args}),
 					recast
 			end;
 		_ ->
-			ar_util:cast_after(200, self(), {read_range, Args}),
+			big_util:cast_after(200, self(), {read_range, Args}),
 			recast
 	end.
 
 read_range2(0, Args) ->
-	ar_util:cast_after(1000, self(), {read_range, Args}),
+	big_util:cast_after(1000, self(), {read_range, Args}),
 	recast;
 read_range2(_MessagesRemaining,
 		{Start, End, _OriginStoreID, _TargetStoreID})
@@ -182,7 +182,7 @@ read_range2(MessagesRemaining, {Start, End, OriginStoreID, TargetStoreID}) ->
 				{error, Error} ->
 					?LOG_ERROR([{event, failed_to_read_chunk},
 							{absolute_end_offset, AbsoluteOffset},
-							{chunk_data_key, ar_util:encode(ChunkDataKey)},
+							{chunk_data_key, big_util:encode(ChunkDataKey)},
 							{reason, io_lib:format("~p", [Error])}]),
 					read_range2(MessagesRemaining,
 							{Start + ChunkSize, End, OriginStoreID, TargetStoreID});
@@ -224,14 +224,14 @@ sync_range({Start, End, _Peer, _TargetStoreID, _RetryCount}, _State) when Start 
 	ok;
 sync_range({Start, End, Peer, _TargetStoreID, 0}, _State) ->
 	?LOG_DEBUG([{event, sync_range_retries_exhausted},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{start_offset, Start}, {end_offset, End}]),
 	{error, timeout};
 sync_range({Start, End, Peer, TargetStoreID, RetryCount} = Args, State) ->
 	IsChunkCacheFull =
 		case big_data_sync:is_chunk_cache_full() of
 			true ->
-				ar_util:cast_after(500, self(), {sync_range, Args}),
+				big_util:cast_after(500, self(), {sync_range, Args}),
 				true;
 			false ->
 				false
@@ -243,7 +243,7 @@ sync_range({Start, End, Peer, TargetStoreID, RetryCount} = Args, State) ->
 					true ->
 						true;
 					_ ->
-						ar_util:cast_after(30000, self(), {sync_range, Args}),
+						big_util:cast_after(30000, self(), {sync_range, Args}),
 						false
 				end;
 			true ->
@@ -274,14 +274,14 @@ sync_range({Start, End, Peer, TargetStoreID, RetryCount} = Args, State) ->
 							sync_range({Start3, End, Peer, TargetStoreID, RetryCount}, State);
 						{error, timeout} ->
 							?LOG_DEBUG([{event, timeout_fetching_chunk},
-									{peer, ar_util:format_peer(Peer)},
+									{peer, big_util:format_peer(Peer)},
 									{start_offset, Start2}, {end_offset, End}]),
 							Args2 = {Start, End, Peer, TargetStoreID, RetryCount - 1},
-							ar_util:cast_after(1000, self(), {sync_range, Args2}),
+							big_util:cast_after(1000, self(), {sync_range, Args2}),
 							recast;
 						{error, Reason} ->
 							?LOG_DEBUG([{event, failed_to_fetch_chunk},
-									{peer, ar_util:format_peer(Peer)},
+									{peer, big_util:format_peer(Peer)},
 									{start_offset, Start2}, {end_offset, End},
 									{reason, io_lib:format("~p", [Reason])}]),
 							{error, Reason}

@@ -304,7 +304,7 @@ get_chunk_byte_from_bucket_end(BucketEndOffset) ->
                     BucketEndOffset - ?DATA_CHUNK_SIZE;
                 _ ->
                     ?STRICT_DATA_SPLIT_THRESHOLD
-                    + ar_util:floor_int(RelativeBucketEndOffset, ?DATA_CHUNK_SIZE)
+                    + big_util:floor_int(RelativeBucketEndOffset, ?DATA_CHUNK_SIZE)
             end;
         false ->
             BucketEndOffset - 1
@@ -327,7 +327,7 @@ record_entropy(ChunkEntropy, BucketEndOffset, StoreID, RewardAddr) ->
             {_IntervalEnd, IntervalStart} ->
                 EndOffset2 =
                     IntervalStart
-                    + ar_util:floor_int(Byte - IntervalStart, ?DATA_CHUNK_SIZE)
+                    + big_util:floor_int(Byte - IntervalStart, ?DATA_CHUNK_SIZE)
                     + ?DATA_CHUNK_SIZE,
                 case big_chunk_storage:get_chunk_bucket_end(EndOffset2) of
                     BucketEndOffset ->

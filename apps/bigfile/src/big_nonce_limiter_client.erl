@@ -69,7 +69,7 @@ handle_cast(pull, State) ->
 	RotatedServers = queue:in({RawPeer, Now}, Q2),
 	case Now < Timestamp + ?PULL_THROTTLE_MS of
 		true ->
-			ar_util:cast_after(?PULL_THROTTLE_MS, ?MODULE, pull),
+			big_util:cast_after(?PULL_THROTTLE_MS, ?MODULE, pull),
 			{noreply, State};
 		false ->
 			case big_peers:resolve_and_cache_peer(RawPeer, vdf_server_peer) of
@@ -108,14 +108,14 @@ handle_cast(pull, State) ->
 											{noreply, State2#state{
 													remote_servers = RotatedServers }};
 										_ ->
-											ar_util:cast_after(?PULL_FREQUENCY_MS,
+											big_util:cast_after(?PULL_FREQUENCY_MS,
 													?MODULE, pull),
 											{noreply, State2#state{ request_sessions = false }}
 									end;
 								false ->
 									case UpdateResponse of
 										ok ->
-											ar_util:cast_after(?PULL_FREQUENCY_MS, ?MODULE, pull),
+											big_util:cast_after(?PULL_FREQUENCY_MS, ?MODULE, pull),
 											{noreply, State2};
 										#nonce_limiter_update_response{ step_number = StepNumber }
 												when StepNumber > SessionStepNumber ->
@@ -129,7 +129,7 @@ handle_cast(pull, State) ->
 										#nonce_limiter_update_response{ step_number = StepNumber }
 												when StepNumber == SessionStepNumber ->
 											%% We are in sync with the server. Re-try soon.
-											ar_util:cast_after(?NO_UPDATE_PULL_FREQUENCY_MS,
+											big_util:cast_after(?NO_UPDATE_PULL_FREQUENCY_MS,
 													?MODULE, pull),
 											{noreply, State2};
 										_ ->
@@ -142,7 +142,7 @@ handle_cast(pull, State) ->
 													{noreply, State2#state{
 															remote_servers = RotatedServers }};
 												_ ->
-													ar_util:cast_after(?PULL_FREQUENCY_MS,
+													big_util:cast_after(?PULL_FREQUENCY_MS,
 															?MODULE, pull),
 													{noreply, State2}
 											end
@@ -150,7 +150,7 @@ handle_cast(pull, State) ->
 							end;
 						{error, not_found} ->
 							?LOG_WARNING([{event, failed_to_fetch_vdf_update},
-									{peer, ar_util:format_peer(Peer)},
+									{peer, big_util:format_peer(Peer)},
 									{error, not_found}]),
 							%% The server might be restarting.
 							%% Try another one, if there are any.
@@ -158,7 +158,7 @@ handle_cast(pull, State) ->
 							{noreply, State#state{ remote_servers = RotatedServers }};
 						{error, Reason} ->
 							?LOG_WARNING([{event, failed_to_fetch_vdf_update},
-									{peer, ar_util:format_peer(Peer)},
+									{peer, big_util:format_peer(Peer)},
 									{error, io_lib:format("~p", [Reason])}]),
 							%% Try another server, if there are any.
 							gen_server:cast(?MODULE, pull),
@@ -217,13 +217,13 @@ fetch_and_apply_session_and_previous_session(Peer) ->
 					fetch_and_apply_session_and_previous_session(Peer);
 				{error, Reason} = Error ->
 					?LOG_WARNING([{event, failed_to_fetch_previous_vdf_session},
-						{peer, ar_util:format_peer(Peer)},
+						{peer, big_util:format_peer(Peer)},
 						{error, io_lib:format("~p", [Reason])}]),
 					Error
 			end;
 		{error, Reason2} = Error2 ->
 			?LOG_WARNING([{event, failed_to_fetch_vdf_session},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{error, io_lib:format("~p", [Reason2])}]),
 			Error2
 	end.
@@ -234,7 +234,7 @@ fetch_and_apply_session(Peer) ->
 			big_nonce_limiter:apply_external_update(Update, Peer);
 		{error, Reason} = Error ->
 			?LOG_WARNING([{event, failed_to_fetch_vdf_session},
-					{peer, ar_util:format_peer(Peer)},
+					{peer, big_util:format_peer(Peer)},
 					{error, io_lib:format("~p", [Reason])}]),
 			Error
 	end.

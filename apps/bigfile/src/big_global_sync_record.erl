@@ -91,7 +91,7 @@ init([]) ->
 	{SyncBuckets2, SerializedSyncBuckets} = big_sync_buckets:serialize(SyncBuckets,
 					?MAX_SYNC_BUCKETS_SIZE),
 	ets:insert(?MODULE, {serialized_sync_buckets, SerializedSyncBuckets}),
-	ar_util:cast_after(?UPDATE_SERIALIZED_SYNC_BUCKETS_FREQUENCY_S * 1000,
+	big_util:cast_after(?UPDATE_SERIALIZED_SYNC_BUCKETS_FREQUENCY_S * 1000,
 			?MODULE, update_serialized_sync_buckets),
 	gen_server:cast(?MODULE, record_v2_index_data_size_metric),
 	{ok, #state{ sync_record = SyncRecord, sync_buckets = SyncBuckets2 }}.
@@ -111,14 +111,14 @@ handle_cast(update_serialized_sync_buckets, State) ->
 	{SyncBuckets2, SerializedSyncBuckets} = big_sync_buckets:serialize(SyncBuckets,
 			?MAX_SYNC_BUCKETS_SIZE),
 	ets:insert(?MODULE, {serialized_sync_buckets, SerializedSyncBuckets}),
-	ar_util:cast_after(?UPDATE_SERIALIZED_SYNC_BUCKETS_FREQUENCY_S * 1000,
+	big_util:cast_after(?UPDATE_SERIALIZED_SYNC_BUCKETS_FREQUENCY_S * 1000,
 			?MODULE, update_serialized_sync_buckets),
 	{noreply, State#state{ sync_buckets = SyncBuckets2 }};
 
 handle_cast(record_v2_index_data_size_metric, State) ->
 	#state{ sync_record = SyncRecord } = State,
 	big_mining_stats:set_total_data_size(big_intervals:sum(SyncRecord)),
-	ar_util:cast_after(?UPDATE_SIZE_METRIC_FREQUENCY_MS, ?MODULE,
+	big_util:cast_after(?UPDATE_SIZE_METRIC_FREQUENCY_MS, ?MODULE,
 			record_v2_index_data_size_metric),
 	{noreply, State};
 

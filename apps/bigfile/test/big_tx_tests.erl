@@ -536,7 +536,7 @@ test_does_not_allow_to_replay_empty_wallet_txs() ->
 	big_test_node:assert_post_tx_to_peer(peer1, TX1),
 	big_test_node:mine(peer1),
 	assert_wait_until_height(peer1, 1),
-	GetBalancePath = binary_to_list(ar_util:encode(big_wallet:to_address(Pub2))),
+	GetBalancePath = binary_to_list(big_util:encode(big_wallet:to_address(Pub2))),
 	{ok, {{<<"200">>, _}, _, Body, _, _}} =
 		big_http:req(#{
 			method => get,
@@ -602,7 +602,7 @@ mines_blocks_under_the_size_limit(B0, TXGroups) ->
 	).
 
 assert_wait_until_txs_are_stored(TXIDs) ->
-	ar_util:do_until(
+	big_util:do_until(
 		fun() ->
 			lists:all(fun(TX) -> is_record(TX, tx) end, big_storage:read_tx(TXIDs))
 		end,
@@ -757,7 +757,7 @@ joins_network_successfully() ->
 			big_test_node:assert_post_tx_to_peer(peer1, TX),
 			big_test_node:mine(peer1),
 			assert_wait_until_height(peer1, Height),
-			ar_util:do_until(
+			big_util:do_until(
 				fun() ->
 					big_test_node:remote_call(peer1, big_mempool, get_all_txids, []) == []
 				end,
@@ -779,7 +779,7 @@ joins_network_successfully() ->
 	lists:foreach(
 		fun({TX, _}) ->
 			?assert(
-				ar_util:do_until(
+				big_util:do_until(
 					fun() ->
 						big_test_node:get_tx_confirmations(main, TX#tx.id) > 0
 					end,
@@ -942,7 +942,7 @@ recovers_from_forks(ForkHeight) ->
 	lists:foreach(
 		fun(TX) ->
 			?assert(
-				ar_util:do_until(
+				big_util:do_until(
 					fun() ->
 						big_test_node:get_tx_confirmations(main, TX#tx.id) > 0
 					end,

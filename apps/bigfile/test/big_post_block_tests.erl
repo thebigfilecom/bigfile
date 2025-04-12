@@ -172,7 +172,7 @@ test_cached_poa({Key, B, PrevB}) ->
 %% The banning process is asynchronous now so we may have to wait a little until
 %% the peer gets banned.
 assert_banned(Peer) ->
-	case ar_util:do_until(
+	case big_util:do_until(
 		fun() ->
 			banned == big_blacklist_middleware:is_peer_banned(Peer)
 		end,
@@ -501,7 +501,7 @@ test_reject_block_invalid_double_signing_proof(KeyType) ->
 	Key0 = big_wallet:new(),
 	Addr0 = big_wallet:to_address(Key0),
 	[B0] = big_weave:init([{Addr0, ?BIG(1000), <<>>}], big_retarget:switch_to_linear_diff(2)),
-	?debugFmt("Genesis address: ~s, initial balance: ~B BIG.~n", [ar_util:encode(Addr0), 1000]),
+	?debugFmt("Genesis address: ~s, initial balance: ~B BIG.~n", [big_util:encode(Addr0), 1000]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0, MiningAddr),
 	big_test_node:disconnect_from(peer1),
@@ -560,7 +560,7 @@ test_reject_block_invalid_double_signing_proof(KeyType) ->
 	post_block(B7, valid),
 	post_block(B7_2, valid),
 	%% Wait until the node records conflicting proofs.
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			map_size(maps:get(double_signing_proofs,
 					sys:get_state(big_node_worker), #{})) > 0

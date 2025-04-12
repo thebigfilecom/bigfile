@@ -177,7 +177,7 @@ handle_cast(prepare_entropy, State) ->
         active ->
             do_prepare_entropy(State2);
         paused ->
-            ar_util:cast_after(?DEVICE_LOCK_WAIT, self(), prepare_entropy),
+            big_util:cast_after(?DEVICE_LOCK_WAIT, self(), prepare_entropy),
             State2;
         _ ->
             State2
@@ -337,7 +337,7 @@ do_prepare_entropy(State) ->
                     {cursor, Start},
                     {range_start, RangeStart},
                     {range_end, RangeEnd}]),
-            ar_util:cast_after(10000, self(), prepare_entropy),
+            big_util:cast_after(10000, self(), prepare_entropy),
             State;
         is_recorded ->
             gen_server:cast(self(), prepare_entropy),
@@ -347,7 +347,7 @@ do_prepare_entropy(State) ->
                     {cursor, Start},
                     {store_id, StoreID},
                     {reason, io_lib:format("~p", [Error])}]),
-            ar_util:cast_after(500, self(), prepare_entropy),
+            big_util:cast_after(500, self(), prepare_entropy),
             State;
         ok ->
             gen_server:cast(self(), prepare_entropy),

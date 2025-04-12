@@ -20,14 +20,14 @@ handle([<<"empty">>], Req, State) ->
 	{ok, cowboy_req:reply(200, #{}, <<>>, Req), State};
 
 handle([<<"good">>], Req, State) ->
-	{ok, cowboy_req:reply(200, #{}, ar_util:encode(hd(State)), Req), State};
+	{ok, cowboy_req:reply(200, #{}, big_util:encode(hd(State)), Req), State};
 
 handle([<<"bad">>, <<"and">>, <<"good">>], Req, State) ->
 	Reply =
 		list_to_binary(
 			io_lib:format(
 				"~s\nbad base64url \n~s\n",
-				lists:map(fun ar_util:encode/1, State)
+				lists:map(fun big_util:encode/1, State)
 			)
 		),
 	{ok, cowboy_req:reply(200, #{}, Reply, Req), State}.
@@ -97,9 +97,9 @@ test_uses_blacklists() ->
 		assert_does_not_accept_offsets(BadOffsets),
 		%% Add a new transaction to the blacklist, add a blacklisted transaction to whitelist.
 		ok = file:write_file(lists:nth(3, BlacklistFiles), <<>>),
-		ok = file:write_file(WhitelistFile, ar_util:encode(lists:nth(2, BadTXIDs))),
+		ok = file:write_file(WhitelistFile, big_util:encode(lists:nth(2, BadTXIDs))),
 		ok = file:write_file(lists:nth(4, BlacklistFiles), io_lib:format("~s~n~s",
-				[ar_util:encode(hd(GoodTXIDs)), ar_util:encode(V1TX#tx.id)])),
+				[big_util:encode(hd(GoodTXIDs)), big_util:encode(V1TX#tx.id)])),
 		[UnblacklistedOffsets, WhitelistOffsets | BadOffsets2] = BadOffsets,
 		RestoredOffsets = [UnblacklistedOffsets, WhitelistOffsets] ++
 				[lists:nth(6, lists:reverse(BadOffsets))],
@@ -124,7 +124,7 @@ test_uses_blacklists() ->
 		big_test_node:mine(),
 		[{_, WeaveSize, _} | _] = wait_until_height(main, length(TXs) + 1),
 		assert_present_offsets([[WeaveSize]]),
-		ok = file:write_file(lists:nth(3, BlacklistFiles), ar_util:encode(TX#tx.id)),
+		ok = file:write_file(lists:nth(3, BlacklistFiles), big_util:encode(TX#tx.id)),
 		assert_removed_offsets([[WeaveSize]]),
 		TX2 = sign_v1_tx(Wallet, #{ data => random_v1_data(2 * ?DATA_CHUNK_SIZE),
 				last_tx => big_test_node:get_tx_anchor(peer1) }),
@@ -248,12 +248,12 @@ create_files(BadTXIDs, [{Start1, End1}, {Start2, End2}, {Start3, End3}]) ->
 	Files = [
 		{random_filename(), <<>>},
 		{random_filename(), <<"bad base64url ">>},
-		{random_filename(), ar_util:encode(lists:nth(2, BadTXIDs))},
+		{random_filename(), big_util:encode(lists:nth(2, BadTXIDs))},
 		{random_filename(),
 			list_to_binary(
 				io_lib:format(
 					"~s\nbad base64url \n~s\n~s\n~B,~B\n",
-					lists:map(fun ar_util:encode/1, BadTXIDs) ++ [Start1, End1]
+					lists:map(fun big_util:encode/1, BadTXIDs) ++ [Start1, End1]
 				)
 			)},
 		{random_filename(), list_to_binary(io_lib:format("~B,~B\n~B,~B",
@@ -273,13 +273,13 @@ random_filename() ->
 	filename:join(Config#config.data_dir,
 		"big-tx-blacklist-tests-transaction-blacklist-"
 		++
-		binary_to_list(ar_util:encode(crypto:strong_rand_bytes(32)))).
+		binary_to_list(big_util:encode(crypto:strong_rand_bytes(32)))).
 
 encode_chunk(Proof) ->
 	big_serialize:jsonify(#{
-		chunk => ar_util:encode(maps:get(chunk, Proof)),
-		data_path => ar_util:encode(maps:get(data_path, Proof)),
-		data_root => ar_util:encode(maps:get(data_root, Proof)),
+		chunk => big_util:encode(maps:get(chunk, Proof)),
+		data_path => big_util:encode(maps:get(data_path, Proof)),
+		data_root => big_util:encode(maps:get(data_root, Proof)),
 		data_size => integer_to_binary(maps:get(data_size, Proof)),
 		offset => integer_to_binary(maps:get(offset, Proof))
 	}).
@@ -316,8 +316,8 @@ upload_data(TXs, DataTrees) ->
 
 assert_present_txs(GoodTXIDs) ->
 	?debugFmt("Waiting until these txids are stored: ~p.",
-			[[ar_util:encode(TXID) || TXID <- GoodTXIDs]]),
-	true = ar_util:do_until(
+			[[big_util:encode(TXID) || TXID <- GoodTXIDs]]),
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(TXID) ->
@@ -338,8 +338,8 @@ assert_present_txs(GoodTXIDs) ->
 
 assert_removed_txs(BadTXIDs) ->
 	?debugFmt("Waiting until these txids are removed: ~p.",
-			[[ar_util:encode(TXID) || TXID <- BadTXIDs]]),
-	true = ar_util:do_until(
+			[[big_util:encode(TXID) || TXID <- BadTXIDs]]),
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(TXID) ->
@@ -364,7 +364,7 @@ assert_removed_txs(BadTXIDs) ->
 	).
 
 assert_present_offsets(GoodOffsets) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(Offset) ->
@@ -384,7 +384,7 @@ assert_present_offsets(GoodOffsets) ->
 	).
 
 assert_removed_offsets(BadOffsets) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(Offset) ->
@@ -404,7 +404,7 @@ assert_removed_offsets(BadOffsets) ->
 	).
 
 assert_does_not_accept_offsets(BadOffsets) ->
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			lists:all(
 				fun(Offset) ->

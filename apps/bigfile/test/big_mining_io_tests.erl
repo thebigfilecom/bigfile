@@ -140,7 +140,7 @@ default_candidate() ->
 	}.
 
 wait_for_io(NumChunks) ->
-	Result = ar_util:do_until(
+	Result = big_util:do_until(
 		fun() ->
 			NumChunks == length(ets:tab2list(?MODULE))
 		end,

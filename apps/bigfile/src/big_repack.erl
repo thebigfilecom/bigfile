@@ -106,7 +106,7 @@ repack_batch(Cursor, RangeStart, RangeEnd, RequiredPacking, StoreID) ->
 						{range_start, RangeStart},
 						{range_end, RangeEnd},
 						{required_packing, big_serialize:encode_packing(RequiredPacking, true)}]),
-				ar_util:cast_after(200, Server,
+				big_util:cast_after(200, Server,
 						{repack, Cursor, RangeStart, RangeEnd, RequiredPacking}),
 				continue;
 			false ->
@@ -271,7 +271,7 @@ send_chunk_for_repacking(AbsoluteOffset, ChunkMeta, Args) ->
 							DataRoot, TXPath, none, none},
 					gen_server:cast(Server,
 							{register_packing_ref, Ref, RepackArgs}),
-					ar_util:cast_after(300000, Server,
+					big_util:cast_after(300000, Server,
 							{expire_repack_request, Ref}),
 					big_packing_server:request_repack(Ref, whereis(Server),
 							{RequiredPacking2, Packing, Chunk,

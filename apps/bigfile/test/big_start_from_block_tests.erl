@@ -153,7 +153,7 @@ get_reward_history(Peer, H) ->
     case big_http:req(#{
         peer => PeerIP,
         method => get,
-        path => "/reward_history/" ++ binary_to_list(ar_util:encode(H)),
+        path => "/reward_history/" ++ binary_to_list(big_util:encode(H)),
         timeout => 30000
     }) of
         {ok, {{<<"200">>, _}, _, Body, _, _}} ->

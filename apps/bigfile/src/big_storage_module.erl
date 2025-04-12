@@ -39,12 +39,12 @@ id({BucketSize, Bucket, Packing}) ->
 	PackingString =
 		case Packing of
 			{spora_2_6, Addr} ->
-				ar_util:encode(Addr);
+				big_util:encode(Addr);
 			{composite, Addr, PackingDiff} ->
-				<< (ar_util:encode(Addr))/binary, ".",
+				<< (big_util:encode(Addr))/binary, ".",
 						(integer_to_binary(PackingDiff))/binary >>;
 			{replica_2_9, Addr} ->
-				<< (ar_util:encode(Addr))/binary, ".replica.2.9" >>;
+				<< (big_util:encode(Addr))/binary, ".replica.2.9" >>;
 			_ ->
 				atom_to_list(Packing)
 		end,

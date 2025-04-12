@@ -75,7 +75,7 @@ basic_parse_test() ->
 		}
 	}">>,
 	{ok, ParsedConfig} = big_config:parse(Config),
-	ExpectedConfig = sample_p3_config(ar_util:decode(<<?DEPOSIT_ADDRESS>>), -1000000, 2),
+	ExpectedConfig = sample_p3_config(big_util:decode(<<?DEPOSIT_ADDRESS>>), -1000000, 2),
 	?assertEqual(ExpectedConfig, ParsedConfig#config.p3).
 
 checksum_parse_test() ->
@@ -109,7 +109,7 @@ checksum_parse_test() ->
 		}
 	}">>,
 	{ok, ParsedConfig} = big_config:parse(Config),
-	ExpectedConfig = sample_p3_config(ar_util:decode(<<?DEPOSIT_ADDRESS>>), -1000000, 2),
+	ExpectedConfig = sample_p3_config(big_util:decode(<<?DEPOSIT_ADDRESS>>), -1000000, 2),
 	?assertEqual(ExpectedConfig, ParsedConfig#config.p3).
 
 unsupported_payments_asset_parse_error_test() ->
@@ -283,7 +283,7 @@ basic_validate_test() ->
 	P3Config = #p3_config{
 		payments = #{
 			?BIGFILE_BIG => #p3_payment{
-				address = ar_util:decode(<<?DEPOSIT_ADDRESS>>),
+				address = big_util:decode(<<?DEPOSIT_ADDRESS>>),
 				minimum_balance = -1000000,
 				confirmations = 2	
 			}
@@ -341,7 +341,7 @@ empty_services_validate_test() ->
 	P3Config = #p3_config{
 		payments = #{
 			?BIGFILE_BIG => #p3_payment{
-				address = ar_util:decode(<<?DEPOSIT_ADDRESS>>),
+				address = big_util:decode(<<?DEPOSIT_ADDRESS>>),
 				minimum_balance = -1000000,
 				confirmations = 2	
 			}
@@ -356,7 +356,7 @@ bad_payments_asset_validate_test() ->
 	P3Config = #p3_config{
 		payments = #{
 			<<"bitcon/BTC">> => #p3_payment{
-				address = ar_util:decode(<<?DEPOSIT_ADDRESS>>),
+				address = big_util:decode(<<?DEPOSIT_ADDRESS>>),
 				minimum_balance = -1000000,
 				confirmations = 2	
 			}
@@ -385,7 +385,7 @@ bad_minimum_balance_validate_test() ->
 	P3Config = #p3_config{
 		payments = #{
 			?BIGFILE_BIG => #p3_payment{
-				address = ar_util:decode(<<?DEPOSIT_ADDRESS>>),
+				address = big_util:decode(<<?DEPOSIT_ADDRESS>>),
 				minimum_balance = <<"-1000000">>,
 				confirmations = 2	
 			}
@@ -400,7 +400,7 @@ float_minimum_balance_validate_test() ->
 	P3Config = #p3_config{
 		payments = #{
 			?BIGFILE_BIG => #p3_payment{
-				address = ar_util:decode(<<?DEPOSIT_ADDRESS>>),
+				address = big_util:decode(<<?DEPOSIT_ADDRESS>>),
 				minimum_balance = -2.5,
 				confirmations = 2	
 			}
@@ -415,7 +415,7 @@ bad_confirmations_validate_test() ->
 	P3Config = #p3_config{
 		payments = #{
 			?BIGFILE_BIG => #p3_payment{
-				address = ar_util:decode(<<?DEPOSIT_ADDRESS>>),
+				address = big_util:decode(<<?DEPOSIT_ADDRESS>>),
 				minimum_balance = -1000000,
 				confirmations = "2"
 			}
@@ -430,7 +430,7 @@ float_confirmations_validate_test() ->
 	P3Config = #p3_config{
 		payments = #{
 			?BIGFILE_BIG => #p3_payment{
-				address = ar_util:decode(<<?DEPOSIT_ADDRESS>>),
+				address = big_util:decode(<<?DEPOSIT_ADDRESS>>),
 				minimum_balance = -1000000,
 				confirmations = 2.5
 			}
@@ -763,7 +763,7 @@ test_rates_endpoint() ->
 	{_, Pub1} = big_wallet:new(),
 	RewardAddress = big_wallet:to_address(big_wallet:new_keyfile()),
 	DepositAddress = big_wallet:to_address(Pub1),
-	EncodedDepositAddress = ar_util:encode(DepositAddress),
+	EncodedDepositAddress = big_util:encode(DepositAddress),
 	[B0] = big_weave:init(),
 	{ok, BaseConfig} = application:get_env(bigfile, config),
 	try
@@ -832,7 +832,7 @@ config_fixture(P3Config) ->
 	#config{ p3 = P3Config }.
 
 sample_p3_config() ->
-	sample_p3_config(ar_util:decode(<<?DEPOSIT_ADDRESS>>)).
+	sample_p3_config(big_util:decode(<<?DEPOSIT_ADDRESS>>)).
 sample_p3_config(Address) ->
 	sample_p3_config(Address, 0, 2, 1000).
 sample_p3_config(Address, MinimumBalance, Confirmations) ->

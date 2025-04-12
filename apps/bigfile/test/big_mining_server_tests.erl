@@ -45,7 +45,7 @@ setup_pool_client() ->
 	],
 	big_test_node:start(B0, RewardAddr,
 		Config#config{
-			nonce_limiter_server_trusted_peers = [ ar_util:format_peer(vdf_server()) ],
+			nonce_limiter_server_trusted_peers = [ big_util:format_peer(vdf_server()) ],
 			is_pool_client=true,
 			pool_server_address= <<"http://localhost:2002">>,
 			pool_api_key = <<"pool_secret">>
@@ -273,7 +273,7 @@ do_test_chunk_cache_size_with_mocks(H1s, H2s, RecallRange2s, FirstChunks) ->
 		big_test_node:mine(),
 		big_test_node:wait_until_height(main, Height),
 		%% wait until the mining has stopped
-		?assert(ar_util:do_until(fun() -> get_chunk_cache_size() == 0 end, 200, 10000))
+		?assert(big_util:do_until(fun() -> get_chunk_cache_size() == 0 end, 200, 10000))
 	after
 		Cleanup(Functions)
 	end.

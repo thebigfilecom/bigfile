@@ -175,7 +175,7 @@ test_persisted_mempool() ->
 	SignedTX = big_test_node:sign_tx(Wallet, #{ last_tx => big_test_node:get_tx_anchor(main) }),
 	{ok, {{<<"200">>, _}, _, <<"OK">>, _, _}} = big_test_node:post_tx_to_peer(main, SignedTX, false),
 	Mempool = big_mempool:get_map(),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			maps:is_key(SignedTX#tx.id, Mempool)
 		end,

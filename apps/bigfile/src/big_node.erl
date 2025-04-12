@@ -257,7 +257,7 @@ get_recent_partition_upper_bound_by_prev_h(H, Diff) ->
 					get_recent_partition_upper_bound_by_prev_h(PrevH, Diff + 1)
 			end;
 		not_found ->
-			?LOG_INFO([{event, prev_block_not_found}, {h, ar_util:encode(H)}, {depth, Diff}]),
+			?LOG_INFO([{event, prev_block_not_found}, {h, big_util:encode(H)}, {depth, Diff}]),
 			not_found
 	end.
 
@@ -281,7 +281,7 @@ get_recent_partition_upper_bound_by_prev_h(H, Diff, [_ | BI], Genesis) ->
 	get_recent_partition_upper_bound_by_prev_h(H, Diff, BI, Genesis);
 get_recent_partition_upper_bound_by_prev_h(H, Diff, [], _Genesis) ->
 	?LOG_INFO([{event, prev_block_not_found_when_scanning_recent_block_index},
-			{h, ar_util:encode(H)}, {depth, Diff}]),
+			{h, big_util:encode(H)}, {depth, Diff}]),
 	not_found.
 
 get_partition_number(undefined) ->

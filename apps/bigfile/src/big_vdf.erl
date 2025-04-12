@@ -67,7 +67,7 @@ verify2(StartStepNumber, PrevOutput, NumCheckpointsBetweenHashes, Hashes,
 		false ->
 			false;
 		{true, CheckpointBuffer} ->
-			{true, ar_util:take_every_nth(?VDF_CHECKPOINT_COUNT_IN_STEP,
+			{true, big_util:take_every_nth(?VDF_CHECKPOINT_COUNT_IN_STEP,
 					checkpoint_buffer_to_checkpoints(CheckpointBuffer))}
 	end.
 

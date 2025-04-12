@@ -42,7 +42,7 @@ bench_read(Args) ->
 	Duration = list_to_integer(DurationString),
 
 	{StorageModules, Address} = parse_storage_modules(StorageModuleConfigs, [], undefined),
-	big:console("Assuming mining address: ~p~n", [ar_util:safe_encode(Address)]),
+	big:console("Assuming mining address: ~p~n", [big_util:safe_encode(Address)]),
 	{ok, Config} = application:get_env(bigfile, config),
 	Config2 = Config#config{
 		data_dir = DataDir,
@@ -62,7 +62,7 @@ bench_read(Args) ->
 
 	StopTime = erlang:monotonic_time() + erlang:convert_time_unit(Duration, second, native),
 
-	Results = ar_util:pmap(
+	Results = big_util:pmap(
 		fun(StorageModule) ->
 			read_storage_module(DataDir, StorageModule, StopTime)
 		end,
@@ -271,7 +271,7 @@ get_mounted_device(FilePath) ->
 	
 open_files(DataDir, StoreID) ->
 	AllFilepaths = big_chunk_storage:list_files(DataDir, StoreID),
-	Filepaths = lists:sublist(ar_util:shuffle_list(AllFilepaths), ?NUM_FILES),
+	Filepaths = lists:sublist(big_util:shuffle_list(AllFilepaths), ?NUM_FILES),
 	lists:foldl(
 		fun(Filepath, Acc) ->
 			{ok, FileInfo} = file:read_file_info(Filepath),

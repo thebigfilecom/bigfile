@@ -294,7 +294,7 @@ jobs:
             big_sync_record,
             big_tx_db,
             big_unbalanced_merkle,
-            ar_util,
+            big_util,
             big_verify_chunks,
             big_wallet,
             big_webhook,

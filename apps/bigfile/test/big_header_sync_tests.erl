@@ -24,7 +24,7 @@ test_syncs_headers() ->
 	BI = assert_wait_until_height(peer1, ?MAX_TX_ANCHOR_DEPTH + 5),
 	lists:foreach(
 		fun(Height) ->
-			{ok, B} = ar_util:do_until(
+			{ok, B} = big_util:do_until(
 				fun() ->
 					case big_test_node:remote_call(peer1, big_storage, read_block, [Height, BI]) of
 						unavailable ->
@@ -61,7 +61,7 @@ test_syncs_headers() ->
 	?assertMatch({ok, _}, big_storage:read_wallet_list(NoSpaceB#block.wallet_list)),
 	ets:new(test_syncs_header, [set, named_table]),
 	ets:insert(test_syncs_header, {height, NoSpaceHeight + 1}),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			%% Keep mining blocks. At some point the cleanup procedure will
 			%% kick in and remove the oldest files.

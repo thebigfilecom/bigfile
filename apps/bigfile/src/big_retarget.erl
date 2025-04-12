@@ -186,7 +186,7 @@ calculate_difficulty_after_2_4_before_2_5(OldDiff, TS, Last, Height) ->
 			MaxDiff = ?MAX_DIFF,
 			MinDiff = big_difficulty:min_difficulty(Height),
 			DiffInverse = erlang:trunc((MaxDiff - OldDiff) * TimeDelta),
-			ar_util:between(
+			big_util:between(
 				MaxDiff - DiffInverse,
 				MinDiff,
 				MaxDiff
@@ -205,7 +205,7 @@ calculate_difficulty_at_2_4(OldDiff, TS, Last, Height) ->
 	MaxDiff = ?MAX_DIFF,
 	MinDiff = big_difficulty:min_difficulty(Height),
 	DiffInverse = erlang:trunc((MaxDiff - OldDiff) * TimeDelta),
-	ar_util:between(
+	big_util:between(
 		MaxDiff - DiffInverse,
 		MinDiff,
 		MaxDiff
@@ -221,13 +221,13 @@ calculate_difficulty_at_and_after_1_9_before_2_4(OldDiff, TS, Last, Height) ->
 		false ->
 			MaxDiff = ?MAX_DIFF,
 			MinDiff = big_difficulty:min_difficulty(Height),
-			EffectiveTimeDelta = ar_util:between(
+			EffectiveTimeDelta = big_util:between(
 				ActualTime / TargetTime,
 				1 / ?DIFF_ADJUSTMENT_UP_LIMIT,
 				?DIFF_ADJUSTMENT_DOWN_LIMIT
 			),
 			DiffInverse = erlang:trunc((MaxDiff - OldDiff) * EffectiveTimeDelta),
-			ar_util:between(
+			big_util:between(
 				MaxDiff - DiffInverse,
 				MinDiff,
 				MaxDiff
@@ -244,7 +244,7 @@ calculate_difficulty_after_1_8_before_1_9(OldDiff, TS, Last, Height) ->
 		false ->
 			MaxDiff = ?MAX_DIFF,
 			MinDiff = big_difficulty:min_difficulty(Height),
-			ar_util:between(
+			big_util:between(
 				MaxDiff - (MaxDiff - OldDiff) * ActualTime div TargetTime,
 				max(MinDiff, OldDiff div 2),
 				min(MaxDiff, OldDiff * 4)
@@ -281,7 +281,7 @@ simple_retarget_test_() ->
 			end,
 			lists:seq(1, ?RETARGET_BLOCKS + 1)
 		),
-		true = ar_util:do_until(
+		true = big_util:do_until(
 			fun() ->
 				[BH | _] = big_node:get_blocks(),
 				B = big_storage:read_block(BH),

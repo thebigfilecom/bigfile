@@ -77,7 +77,7 @@ run_benchmark({Format, Dirs, Threads, DataMiB}) ->
 			big:console("~n~nRunning ~p threads (~p iterations per thread) to pack and write ~.1f MiB of data~n", [Threads, Iterations, PackedData]),
 			big:console("Directories: ~p~n", [Dirs])
 	end,
-	Times = ar_util:pmap(
+	Times = big_util:pmap(
 		fun({Thread, Dir}) ->
 			Start = erlang:monotonic_time(millisecond),
 			pack_chunks(Format, Thread, Dir, Context, Iterations),

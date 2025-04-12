@@ -153,7 +153,7 @@ parse_options([{<<"start_from_latest_state">>, Opt} | _], _) ->
 	{error, {bad_type, start_from_latest_state, boolean}, Opt};
 
 parse_options([{<<"start_from_block">>, H} | Rest], Config) when is_binary(H) ->
-	case ar_util:safe_decode(H) of
+	case big_util:safe_decode(H) of
 		{ok, Decoded} when byte_size(Decoded) == 48 ->
 			parse_options(Rest, Config#config{ start_from_block = Decoded });
 		_ ->
@@ -268,7 +268,7 @@ parse_options([{<<"diff">>, Diff} | _], _) ->
 parse_options([{<<"mining_addr">>, Addr} | Rest], Config) when is_binary(Addr) ->
 	case Config#config.mining_addr of
 		not_set ->
-			case ar_util:safe_decode(Addr) of
+			case big_util:safe_decode(Addr) of
 				{ok, D} when byte_size(D) == 32 ->
 					parse_options(Rest, Config#config{ mining_addr = D });
 				_ -> {error, bad_mining_addr, Addr}
@@ -630,7 +630,7 @@ parse_options([{<<"cm_peers">>, Peers} | Rest], Config) when is_list(Peers) ->
 	end;
 
 parse_options([{<<"cm_exit_peer">>, Peer} | Rest], Config) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ParsedPeer} ->
 			parse_options(Rest, Config#config{ cm_exit_peer = ParsedPeer });
 		{error, _} ->
@@ -708,15 +708,15 @@ parse_storage_module(RangeNumber, RangeSize, PackingBin) ->
 			<<"unpacked">> ->
 				unpacked;
 			<< MiningAddr:43/binary, ".replica.2.9" >> ->
-				{replica_2_9, ar_util:decode(MiningAddr)};
+				{replica_2_9, big_util:decode(MiningAddr)};
 			<< MiningAddr:43/binary, ".", PackingDifficultyBin/binary >> ->
 				PackingDifficulty = binary_to_integer(PackingDifficultyBin),
 				true = PackingDifficulty >= 1
 						andalso PackingDifficulty =< ?MAX_PACKING_DIFFICULTY
 						andalso PackingDifficulty /= ?REPLICA_2_9_PACKING_DIFFICULTY,
-				{composite, ar_util:decode(MiningAddr), PackingDifficulty};
+				{composite, big_util:decode(MiningAddr), PackingDifficulty};
 			MiningAddr when byte_size(MiningAddr) == 43 ->
-				{spora_2_6, ar_util:decode(MiningAddr)}
+				{spora_2_6, big_util:decode(MiningAddr)}
 		end,
 	{ok, {RangeSize, RangeNumber, Packing}}.
 
@@ -730,23 +730,23 @@ parse_storage_module(RangeNumber, RangeSize, PackingBin, ToPackingBin) ->
 				PackingDifficulty = binary_to_integer(PackingDifficultyBin),
 				true = PackingDifficulty >= 1
 						andalso PackingDifficulty =< ?MAX_PACKING_DIFFICULTY,
-				{composite, ar_util:decode(MiningAddr), PackingDifficulty};
+				{composite, big_util:decode(MiningAddr), PackingDifficulty};
 			MiningAddr when byte_size(MiningAddr) == 43 ->
-				{spora_2_6, ar_util:decode(MiningAddr)}
+				{spora_2_6, big_util:decode(MiningAddr)}
 		end,
 	ToPacking =
 		case ToPackingBin of
 			<<"unpacked">> ->
 				unpacked;
 			<< ToMiningAddr:43/binary, ".replica.2.9" >> ->
-				{replica_2_9, ar_util:decode(ToMiningAddr)};
+				{replica_2_9, big_util:decode(ToMiningAddr)};
 			<< ToMiningAddr:43/binary, ".", ToPackingDifficultyBin/binary >> ->
 				ToPackingDifficulty = binary_to_integer(ToPackingDifficultyBin),
 				true = ToPackingDifficulty >= 1
 						andalso ToPackingDifficulty =< ?MAX_PACKING_DIFFICULTY,
-				{composite, ar_util:decode(ToMiningAddr), ToPackingDifficulty};
+				{composite, big_util:decode(ToMiningAddr), ToPackingDifficulty};
 			ToMiningAddr when byte_size(ToMiningAddr) == 43 ->
-				{spora_2_6, ar_util:decode(ToMiningAddr)}
+				{spora_2_6, big_util:decode(ToMiningAddr)}
 		end,
 	{repack_in_place, {{RangeSize, RangeNumber, Packing}, ToPacking}}.
 
@@ -758,7 +758,7 @@ safe_map(Fun, List) ->
 	end.
 
 parse_peers([Peer | Rest], ParsedPeers) ->
-	case ar_util:safe_parse_peer(Peer) of
+	case big_util:safe_parse_peer(Peer) of
 		{ok, ParsedPeer} -> parse_peers(Rest, [ParsedPeer | ParsedPeers]);
 		{error, _} -> error
 	end;
@@ -823,7 +823,7 @@ parse_requests_per_minute_limit_by_ip(Input) ->
 	parse_requests_per_minute_limit_by_ip(Input, #{}).
 
 parse_requests_per_minute_limit_by_ip({[{IP, Object} | Pairs]}, Parsed) ->
-	case ar_util:safe_parse_peer(IP) of
+	case big_util:safe_parse_peer(IP) of
 		{error, invalid} ->
 			error;
 		{ok, {A, B, C, D, _Port}} ->
@@ -891,9 +891,9 @@ log_config_value(_, FieldValue) ->
 	FieldValue.
 
 format_peers(Peers) ->
-	[ar_util:format_peer(Peer) || Peer <- Peers].
+	[big_util:format_peer(Peer) || Peer <- Peers].
 format_binary(Address) ->
-	ar_util:encode(Address).
+	big_util:encode(Address).
 format_storage_module({RangeSize, RangeNumber, {spora_2_6, MiningAddress}}) ->
 	{RangeSize, RangeNumber, {spora_2_6, format_binary(MiningAddress)}};
 format_storage_module({RangeSize, RangeNumber, {composite, MiningAddress, PackingDiff}}) ->

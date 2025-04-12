@@ -124,7 +124,7 @@ handle_call(Request, _From, State) ->
 handle_cast(initialize_state, State) ->
 	State2 = case big_node:is_joined() of
 		false ->
-			ar_util:cast_after(1000, self(), initialize_state),
+			big_util:cast_after(1000, self(), initialize_state),
 			State;
 		true ->
 			initialize_state(State)
@@ -142,7 +142,7 @@ handle_cast({release_lock, Mode, StoreID}, State) ->
 	end;
 handle_cast(log_device_locks, State) ->
 	log_device_locks(State),
-	ar_util:cast_after(?DEVICE_LOCK_LOG_INTERVAL_MS, ?MODULE, log_device_locks), 
+	big_util:cast_after(?DEVICE_LOCK_LOG_INTERVAL_MS, ?MODULE, log_device_locks), 
 	{noreply, State};
 handle_cast(Request, State) ->
 	?LOG_WARNING([{event, unhandled_cast}, {module, ?MODULE}, {request, Request}]),
@@ -179,7 +179,7 @@ initialize_state(State) ->
 	},
 	
 	log_device_locks(State2),
-	ar_util:cast_after(?DEVICE_LOCK_LOG_INTERVAL_MS, ?MODULE, log_device_locks), 
+	big_util:cast_after(?DEVICE_LOCK_LOG_INTERVAL_MS, ?MODULE, log_device_locks), 
 
 	State2.
 
@@ -187,7 +187,7 @@ get_system_device(StorageModule) ->
 	{ok, Config} = application:get_env(bigfile, config),
 	StoreID = big_storage_module:id(StorageModule),
 	Path = big_chunk_storage:get_chunk_storage_path(Config#config.data_dir, StoreID),
-	Device = ar_util:get_system_device(Path),
+	Device = big_util:get_system_device(Path),
 	case Device of
 		"" -> StoreID;  % If the command fails or returns an empty string, return StoreID
 		_ -> Device

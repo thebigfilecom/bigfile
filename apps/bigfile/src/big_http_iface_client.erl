@@ -80,7 +80,7 @@ send_tx_json(Peer, TXID, Bin, Opts) ->
 		method => post,
 		peer => Peer,
 		path => "/tx",
-		headers => add_header(<<"bigfile-tx-id">>, ar_util:encode(TXID), p2p_headers()),
+		headers => add_header(<<"bigfile-tx-id">>, big_util:encode(TXID), p2p_headers()),
 		body => Bin,
 		connect_timeout => ConnectTimeout * 1000,
 		timeout => Timeout * 1000
@@ -106,7 +106,7 @@ send_tx_binary(Peer, TXID, Bin, Opts) ->
 		method => post,
 		peer => Peer,
 		path => "/tx2",
-		headers => add_header(<<"bigfile-tx-id">>, ar_util:encode(TXID), p2p_headers()),
+		headers => add_header(<<"bigfile-tx-id">>, big_util:encode(TXID), p2p_headers()),
 		body => Bin,
 		connect_timeout => ConnectTimeout * 1000,
 		timeout => Timeout * 1000
@@ -129,7 +129,7 @@ send_block_json(Peer, H, Payload) ->
 		method => post,
 		peer => Peer,
 		path => "/block",
-		headers => add_header(<<"bigfile-block-hash">>, ar_util:encode(H), p2p_headers()),
+		headers => add_header(<<"bigfile-block-hash">>, big_util:encode(H), p2p_headers()),
 		body => Payload,
 		connect_timeout => 5000,
 		timeout => 120 * 1000
@@ -140,7 +140,7 @@ send_block_binary(Peer, H, Payload) ->
 	send_block_binary(Peer, H, Payload, undefined).
 
 send_block_binary(Peer, H, Payload, RecallByte) ->
-	Headers = add_header(<<"bigfile-block-hash">>, ar_util:encode(H), p2p_headers()),
+	Headers = add_header(<<"bigfile-block-hash">>, big_util:encode(H), p2p_headers()),
 	%% The way of informing the recipient about the recall byte used before the fork
 	%% 2.6. Since the fork 2.6 blocks have a "recall_byte" field.
 	Headers2 = case RecallByte of undefined -> Headers; _ ->
@@ -172,11 +172,11 @@ get_block(Peer, H, TXIndices) ->
 			big_http:req(#{
 				method => get,
 				peer => Peer,
-				path => "/block2/hash/" ++ binary_to_list(ar_util:encode(H)),
+				path => "/block2/hash/" ++ binary_to_list(big_util:encode(H)),
 				headers => p2p_headers(),
 				connect_timeout => 1000,
 				timeout => 15 * 1000,
-				body => ar_util:encode_list_indices(TXIndices),
+				body => big_util:encode_list_indices(TXIndices),
 				limit => ?MAX_BODY_SIZE
 			})) of
 		not_found ->
@@ -234,9 +234,9 @@ get_block_path({ID, _, _}, Encoding) ->
 get_block_path(ID, Encoding) when is_binary(ID) ->
 	case Encoding of
 		binary ->
-			"/block2/hash/" ++ binary_to_list(ar_util:encode(ID));
+			"/block2/hash/" ++ binary_to_list(big_util:encode(ID));
 		json ->
-			"/block/hash/" ++ binary_to_list(ar_util:encode(ID))
+			"/block/hash/" ++ binary_to_list(big_util:encode(ID))
 	end;
 get_block_path(ID, Encoding) when is_integer(ID) ->
 	case Encoding of
@@ -253,13 +253,13 @@ get_wallet_list_chunk(Peers, H) ->
 get_wallet_list_chunk([], _H, _Cursor) ->
 	{error, not_found};
 get_wallet_list_chunk([Peer | Peers], H, Cursor) ->
-	BasePath = "/wallet_list/" ++ binary_to_list(ar_util:encode(H)),
+	BasePath = "/wallet_list/" ++ binary_to_list(big_util:encode(H)),
 	Path =
 		case Cursor of
 			start ->
 				BasePath;
 			_ ->
-				BasePath ++ "/" ++ binary_to_list(ar_util:encode(Cursor))
+				BasePath ++ "/" ++ binary_to_list(big_util:encode(Cursor))
 		end,
 	Response =
 		big_http:req(#{
@@ -304,7 +304,7 @@ get_wallet_list(Peer, H) ->
 		big_http:req(#{
 			method => get,
 			peer => Peer,
-			path => "/block/hash/" ++ binary_to_list(ar_util:encode(H)) ++ "/wallet_list",
+			path => "/block/hash/" ++ binary_to_list(big_util:encode(H)) ++ "/wallet_list",
 			headers => p2p_headers()
 		}),
 	case Response of
@@ -415,7 +415,7 @@ get_chunk_binary(Peer, Offset, RequestedPacking) ->
 		http_client_get_chunk_duration_seconds,
 		[
 			big_metrics:get_status_class(Response),
-			ar_util:format_peer(Peer)
+			big_util:format_peer(Peer)
 		],
 		erlang:monotonic_time() - StartTime),
 
@@ -429,7 +429,7 @@ get_mempool([Peer | Peers]) ->
             {ok, TXIDs};
         {error, Error} ->
 			?LOG_DEBUG([{event, failed_to_get_mempool_txids_from_peer},
-					{peer, ar_util:format_peer(Peer)},
+					{peer, big_util:format_peer(Peer)},
 					{error, io_lib:format("~p", [Error])}
 			]),
             get_mempool(Peers -- [Peer])
@@ -499,7 +499,7 @@ get_reward_history([Peer | Peers], B, ExpectedRewardHistoryHashes) ->
 	case big_http:req(#{
 				peer => Peer,
 				method => get,
-				path => "/reward_history/" ++ binary_to_list(ar_util:encode(H)),
+				path => "/reward_history/" ++ binary_to_list(big_util:encode(H)),
 				timeout => 30000,
 				headers => p2p_headers()
 			}) of
@@ -511,7 +511,7 @@ get_reward_history([Peer | Peers], B, ExpectedRewardHistoryHashes) ->
 						true ->
 							?LOG_DEBUG([
 								{event, received_valid_reward_history},
-								{peer, ar_util:format_peer(Peer)},
+								{peer, big_util:format_peer(Peer)},
 								{height, Height},
 								{expected_length, ExpectedLength},
 								{length, length(RewardHistory)}
@@ -519,22 +519,22 @@ get_reward_history([Peer | Peers], B, ExpectedRewardHistoryHashes) ->
 							{ok, RewardHistory};
 						false ->
 							?LOG_WARNING([{event, received_invalid_reward_history},
-									{peer, ar_util:format_peer(Peer)}]),
+									{peer, big_util:format_peer(Peer)}]),
 							get_reward_history(Peers, B, ExpectedRewardHistoryHashes)
 					end;
 				% {ok, L} ->
 				% 	?LOG_WARNING([{event, received_reward_history_of_unexpected_length},
 				% 			{expected_length, ExpectedLength}, {received_length, length(L)},
-				% 			{peer, ar_util:format_peer(Peer)}]),
+				% 			{peer, big_util:format_peer(Peer)}]),
 				% 	get_reward_history(Peers, B, ExpectedRewardHistoryHashes);
 				{error, _} ->
 					?LOG_WARNING([{event, failed_to_parse_reward_history},
-							{peer, ar_util:format_peer(Peer)}]),
+							{peer, big_util:format_peer(Peer)}]),
 					get_reward_history(Peers, B, ExpectedRewardHistoryHashes)
 			end;
 		Reply ->
 			?LOG_WARNING([{event, failed_to_fetch_reward_history},
-					{peer, ar_util:format_peer(Peer)},
+					{peer, big_util:format_peer(Peer)},
 					{reply, io_lib:format("~p", [Reply])}]),
 			get_reward_history(Peers, B, ExpectedRewardHistoryHashes)
 	end;
@@ -552,7 +552,7 @@ get_block_time_history([Peer | Peers], B, ExpectedBlockTimeHistoryHashes) ->
 	case big_http:req(#{
 				peer => Peer,
 				method => get,
-				path => "/block_time_history/" ++ binary_to_list(ar_util:encode(H)),
+				path => "/block_time_history/" ++ binary_to_list(big_util:encode(H)),
 				timeout => 30000,
 				headers => p2p_headers()
 			}) of
@@ -565,22 +565,22 @@ get_block_time_history([Peer | Peers], B, ExpectedBlockTimeHistoryHashes) ->
 							{ok, BlockTimeHistory};
 						false ->
 							?LOG_WARNING([{event, received_invalid_block_time_history},
-									{peer, ar_util:format_peer(Peer)}]),
+									{peer, big_util:format_peer(Peer)}]),
 							get_block_time_history(Peers, B, ExpectedBlockTimeHistoryHashes)
 					end;
 				{ok, L} ->
 					?LOG_WARNING([{event, received_block_time_history_of_unexpected_length},
 							{expected_length, ExpectedLength}, {received_length, length(L)},
-							{peer, ar_util:format_peer(Peer)}]),
+							{peer, big_util:format_peer(Peer)}]),
 					get_block_time_history(Peers, B, ExpectedBlockTimeHistoryHashes);
 				{error, _} ->
 					?LOG_WARNING([{event, failed_to_parse_block_time_history},
-							{peer, ar_util:format_peer(Peer)}]),
+							{peer, big_util:format_peer(Peer)}]),
 					get_block_time_history(Peers, B, ExpectedBlockTimeHistoryHashes)
 			end;
 		Reply ->
 			?LOG_WARNING([{event, failed_to_fetch_block_time_history},
-					{peer, ar_util:format_peer(Peer)},
+					{peer, big_util:format_peer(Peer)},
 					{reply, io_lib:format("~p", [Reply])}]),
 			get_block_time_history(Peers, B, ExpectedBlockTimeHistoryHashes)
 	end;
@@ -687,11 +687,11 @@ cm_h2_send(Peer, Candidate) ->
 	handle_cm_noop_response(big_http:req(Req)).
 
 cm_publish_send(Peer, Solution) ->
-	?LOG_DEBUG([{event, cm_publish_send}, {peer, ar_util:format_peer(Peer)},
-		{solution, ar_util:encode(Solution#mining_solution.solution_hash)},
+	?LOG_DEBUG([{event, cm_publish_send}, {peer, big_util:format_peer(Peer)},
+		{solution, big_util:encode(Solution#mining_solution.solution_hash)},
 		{step_number, Solution#mining_solution.step_number},
 		{start_interval_number, Solution#mining_solution.start_interval_number},
-		{seed, ar_util:encode(Solution#mining_solution.seed)}]),
+		{seed, big_util:encode(Solution#mining_solution.seed)}]),
 	JSON = big_serialize:jsonify(big_serialize:solution_to_json_struct(Solution)),
 	Req = build_cm_or_pool_request(post, Peer, "/coordinated_mining/publish", JSON),
 	handle_cm_noop_response(big_http:req(Req)).
@@ -700,7 +700,7 @@ cm_publish_send(Peer, Solution) ->
 get_jobs(Peer, PrevOutput) ->
 	prometheus_counter:inc(pool_job_request_count),
 	Req = build_cm_or_pool_request(get, Peer,
-		"/jobs/" ++ binary_to_list(ar_util:encode(PrevOutput))),
+		"/jobs/" ++ binary_to_list(big_util:encode(PrevOutput))),
 	handle_get_jobs_response(big_http:req(Req)).
 
 %% @doc Post the partial solution to the pool or coordinated mining exit peer.
@@ -879,7 +879,7 @@ handle_chunk_response({ok, {{<<"200">>, _}, _, Body, Start, End}}, RequestedPack
 					?LOG_WARNING([{event, peer_served_proof_with_wrong_packing},
 						{requested_packing, big_serialize:encode_packing(RequestedPacking, false)},
 						{got_packing, big_serialize:encode_packing(Packing, false)},
-						{peer, ar_util:format_peer(Peer)}]),
+						{peer, big_util:format_peer(Peer)}]),
 					{error, wrong_packing}
 			end
 	end;
@@ -899,7 +899,7 @@ handle_mempool_response({ok, {{<<"200">>, _}, _, Body, _, _}}) ->
 				fun	(_, {error, Reason}) ->
 						{error, Reason};
 					(EncodedTXID, {ok, Acc}) ->
-						case ar_util:safe_decode(EncodedTXID) of
+						case big_util:safe_decode(EncodedTXID) of
 							{ok, TXID} when byte_size(TXID) /= 32 ->
 								?LOG_WARNING([{event, failed_to_parse_peer_mempool},
 									{reason, invalid_txid},
@@ -979,7 +979,7 @@ decode_hash_list(HL) ->
 	decode_hash_list(HL, []).
 
 decode_hash_list([H | HL], DecodedHL) ->
-	case ar_util:safe_decode(H) of
+	case big_util:safe_decode(H) of
 		{ok, DecodedH} ->
 			decode_hash_list(HL, [DecodedH | DecodedHL]);
 		Error ->
@@ -1131,8 +1131,8 @@ get_tx_from_remote_peer(Peer, TXID, RatePeer) ->
 				false ->
 					?LOG_WARNING([
 						{event, peer_served_invalid_tx},
-						{peer, ar_util:format_peer(Peer)},
-						{tx, ar_util:encode(TXID)}
+						{peer, big_util:format_peer(Peer)},
+						{tx, big_util:encode(TXID)}
 					]),
 					big_peers:issue_warning(Peer, tx, invalid),
 					{error, invalid_tx};
@@ -1150,9 +1150,9 @@ get_tx_from_remote_peer(Peer, TXID, RatePeer) ->
 	end.
 
 get_tx_path(TXID, json) ->
-	"/unconfirmed_tx/" ++ binary_to_list(ar_util:encode(TXID));
+	"/unconfirmed_tx/" ++ binary_to_list(big_util:encode(TXID));
 get_tx_path(TXID, binary) ->
-	"/unconfirmed_tx2/" ++ binary_to_list(ar_util:encode(TXID)).
+	"/unconfirmed_tx2/" ++ binary_to_list(big_util:encode(TXID)).
 
 %% @doc Retreive only the data associated with a transaction.
 %% The function must only be used when it is known that the transaction
@@ -1172,7 +1172,7 @@ get_tx_data(Peer, Hash) ->
 		big_http:req(#{
 			method => get,
 			peer => Peer,
-			path => "/tx/" ++ binary_to_list(ar_util:encode(Hash)) ++ "/data",
+			path => "/tx/" ++ binary_to_list(big_util:encode(Hash)) ++ "/data",
 			headers => p2p_headers(),
 			connect_timeout => 500,
 			timeout => 120 * 1000,
@@ -1182,7 +1182,7 @@ get_tx_data(Peer, Hash) ->
 		{ok, {{<<"200">>, _}, _, <<>>, _, _}} ->
 			unavailable;
 		{ok, {{<<"200">>, _}, _, EncodedData, _, _}} ->
-			case ar_util:safe_decode(EncodedData) of
+			case big_util:safe_decode(EncodedData) of
 				{ok, Data} ->
 					Data;
 				{error, invalid} ->
@@ -1249,7 +1249,7 @@ get_peers(Peer) ->
 					timeout => 2 * 1000
 				}),
 			PeerArray = big_serialize:dejsonify(Body),
-			lists:map(fun ar_util:parse_peer/1, PeerArray)
+			lists:map(fun big_util:parse_peer/1, PeerArray)
 		end
 	catch _:_ -> unavailable
 	end.
@@ -1269,7 +1269,7 @@ handle_block_response(Peer, Encoding, {ok, {{<<"200">>, _}, _, Body, Start, End}
 		{'EXIT', Reason} ->
 			?LOG_INFO(
 				"event: failed_to_parse_block_response, peer: ~s, reason: ~p",
-				[ar_util:format_peer(Peer), Reason]),
+				[big_util:format_peer(Peer), Reason]),
 			big_peers:issue_warning(Peer, block, Reason),
 			not_found;
 		{ok, B} ->
@@ -1279,7 +1279,7 @@ handle_block_response(Peer, Encoding, {ok, {{<<"200">>, _}, _, Body, Start, End}
 		Error ->
 			?LOG_INFO(
 				"event: failed_to_parse_block_response, peer: ~s, error: ~p",
-				[ar_util:format_peer(Peer), Error]),
+				[big_util:format_peer(Peer), Error]),
 			big_peers:issue_warning(Peer, block, Error),
 			not_found
 	end;
@@ -1345,7 +1345,7 @@ handle_cm_partition_table_response({ok, {{<<"200">>, _}, _, Body, _, _}}) ->
 								DecodedPartition = {
 									Bucket,
 									BucketSize,
-									ar_util:decode(EncodedAddr),
+									big_util:decode(EncodedAddr),
 									0
 								},
 								{ok, [DecodedPartition | Acc]};
@@ -1362,7 +1362,7 @@ handle_cm_partition_table_response({ok, {{<<"200">>, _}, _, Body, _, _}}) ->
 								DecodedPartition = {
 									Bucket,
 									BucketSize,
-									ar_util:decode(EncodedAddr),
+									big_util:decode(EncodedAddr),
 									PackingDifficulty
 								},
 								{ok, [DecodedPartition | Acc]};

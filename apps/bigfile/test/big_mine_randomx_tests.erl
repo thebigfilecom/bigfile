@@ -568,10 +568,10 @@ test_composite_repack({_FastState512, _LightState512, FastState4096, _LightState
 test_hash({
 		FastState512, LightState512,
 		FastState4096, LightState4096}) ->
-    ExpectedHash512 = ar_util:decode(?ENCODED_RX512_HASH),
-	ExpectedHash4096 = ar_util:decode(?ENCODED_RX4096_HASH),
-    Nonce = ar_util:decode(?ENCODED_NONCE),
-    Segment = ar_util:decode(?ENCODED_SEGMENT),
+    ExpectedHash512 = big_util:decode(?ENCODED_RX512_HASH),
+	ExpectedHash4096 = big_util:decode(?ENCODED_RX4096_HASH),
+    Nonce = big_util:decode(?ENCODED_NONCE),
+    Segment = big_util:decode(?ENCODED_SEGMENT),
     Input = << Nonce/binary, Segment/binary >>,
 	?assertEqual(ExpectedHash512,
 		big_mine_randomx:hash(FastState512, Input, 0, 0, 0)),

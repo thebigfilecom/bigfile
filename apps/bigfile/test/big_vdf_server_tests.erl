@@ -39,8 +39,8 @@ setup_external_update() ->
 	_ = big_test_node:start(
 		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_server_trusted_peers = [
-			ar_util:format_peer(vdf_server_1()),
-			ar_util:format_peer(vdf_server_2()) ],
+			big_util:format_peer(vdf_server_1()),
+			big_util:format_peer(vdf_server_2()) ],
 			mine = true}),
 	ets:new(computed_output, [named_table, ordered_set, public]),
 	ets:new(add_task, [named_table, bag, public]),
@@ -288,12 +288,12 @@ test_vdf_client_fast_block() ->
 	_ = big_test_node:start_peer(peer1,
 		B0, PeerAddress,
 		PeerConfig#config{ nonce_limiter_server_trusted_peers = [
-			ar_util:format_peer(big_test_node:peer_ip(main)) ] }),
+			big_util:format_peer(big_test_node:peer_ip(main)) ] }),
 	%% Start main as a VDF server
 	_ = big_test_node:start(
 		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_client_peers = [
-			ar_util:format_peer(big_test_node:peer_ip(peer1)) ]}),
+			big_util:format_peer(big_test_node:peer_ip(peer1)) ]}),
 	big_test_node:connect_to_peer(peer1),
 
 	%% Post the block to the VDF client. It won't be able to validate it since the VDF server

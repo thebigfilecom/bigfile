@@ -207,7 +207,7 @@ get_peer_performances(Peers) ->
 resolve_peers([]) ->
 	[];
 resolve_peers([RawPeer | Peers]) ->
-	case ar_util:safe_parse_peer(RawPeer) of
+	case big_util:safe_parse_peer(RawPeer) of
 		{ok, Peer} ->
 			[Peer | resolve_peers(Peers)];
 		{error, invalid} ->
@@ -327,7 +327,7 @@ discover_peers() ->
 		[] ->
 			ok;
 		Peers ->
-			Peer = ar_util:pick_random(Peers),
+			Peer = big_util:pick_random(Peers),
 			discover_peers(get_peer_peers(Peer))
 	end.
 
@@ -339,7 +339,7 @@ resolve_and_cache_peer(RawPeer, Type) ->
 	Now = os:system_time(second),
 	case ets:lookup(?MODULE, {raw_peer, RawPeer}) of
 		[] ->
-			case ar_util:safe_parse_peer(RawPeer) of
+			case big_util:safe_parse_peer(RawPeer) of
 				{ok, Peer} ->
 					ets:insert(?MODULE, {{raw_peer, RawPeer}, {Peer, Now}}),
 					ets:insert(?MODULE, {{Type, Peer}, RawPeer}),
@@ -350,7 +350,7 @@ resolve_and_cache_peer(RawPeer, Type) ->
 		[{_, {Peer, Timestamp}}] ->
 			case Timestamp + ?STORE_RESOLVED_DOMAIN_S < Now of
 				true ->
-					case ar_util:safe_parse_peer(RawPeer) of
+					case big_util:safe_parse_peer(RawPeer) of
 						{ok, Peer2} ->
 							%% The cache entry has expired.
 							ets:delete(?MODULE, {Type, {Peer, Timestamp}}),
@@ -400,7 +400,7 @@ handle_cast(rank_peers, State) ->
 	prometheus_gauge:set(bigfile_peer_count, length(LifetimePeers)),
 	set_ranked_peers(lifetime, rank_peers(LifetimePeers)),
 	set_ranked_peers(current, rank_peers(CurrentPeers)),
-	ar_util:cast_after(?RANK_PEERS_FREQUENCY_MS, ?MODULE, rank_peers),
+	big_util:cast_after(?RANK_PEERS_FREQUENCY_MS, ?MODULE, rank_peers),
 	{noreply, State};
 
 handle_cast(ping_peers, State) ->
@@ -551,13 +551,13 @@ format_stats(lifetime, Peer, Perf) ->
 	KB = Perf#performance.total_bytes / 1024,
 	io:format(
 		"\t~s ~.2f kB/s (~.2f kB, ~.2f success, ~p transfers)~n",
-		[string:pad(ar_util:format_peer(Peer), 21, trailing, $\s),
+		[string:pad(big_util:format_peer(Peer), 21, trailing, $\s),
 			float(Perf#performance.lifetime_rating), KB,
 			Perf#performance.average_success, Perf#performance.total_transfers]);
 format_stats(current, Peer, Perf) ->
 	io:format(
 		"\t~s ~.2f kB/s (~.2f success)~n",
-		[string:pad(ar_util:format_peer(Peer), 21, trailing, $\s),
+		[string:pad(big_util:format_peer(Peer), 21, trailing, $\s),
 			float(Perf#performance.current_rating),
 			Perf#performance.average_success]).
 
@@ -585,16 +585,16 @@ load_peers() ->
 	end.
 
 load_peers(Peers) when length(Peers) < 20 ->
-	ar_util:pmap(fun load_peer/1, Peers);
+	big_util:pmap(fun load_peer/1, Peers);
 load_peers(Peers) ->
 	{Peers2, Peers3} = lists:split(20, Peers),
-	ar_util:pmap(fun load_peer/1, Peers2),
+	big_util:pmap(fun load_peer/1, Peers2),
 	load_peers(Peers3).
 
 load_peer({Peer, Performance}) ->
 	case big_http_iface_client:get_info(Peer, network) of
 		info_unavailable ->
-			?LOG_DEBUG([{event, peer_unavailable}, {peer, ar_util:format_peer(Peer)}]),
+			?LOG_DEBUG([{event, peer_unavailable}, {peer, big_util:format_peer(Peer)}]),
 			ok;
 		<<?NETWORK_NAME>> ->
 			maybe_rotate_peer_ports(Peer),
@@ -632,7 +632,7 @@ load_peer({Peer, Performance}) ->
 			ok;
 		Network ->
 			?LOG_DEBUG([{event, peer_from_the_wrong_network},
-					{peer, ar_util:format_peer(Peer)}, {network, Network}]),
+					{peer, big_util:format_peer(Peer)}, {network, Network}]),
 			ok
 	end.
 
@@ -692,10 +692,10 @@ shift_port_map_left(PortMap, Max, N) ->
 	shift_port_map_left(PortMap2, Max, N + 1).
 
 ping_peers(Peers) when length(Peers) < 100 ->
-	ar_util:pmap(fun big_http_iface_client:add_peer/1, Peers);
+	big_util:pmap(fun big_http_iface_client:add_peer/1, Peers);
 ping_peers(Peers) ->
 	{Send, Rest} = lists:split(100, Peers),
-	ar_util:pmap(fun big_http_iface_client:add_peer/1, Send),
+	big_util:pmap(fun big_http_iface_client:add_peer/1, Send),
 	ping_peers(Rest).
 
 -ifdef(BIG_TEST).
@@ -830,7 +830,7 @@ update_rating(Peer, LatencyMilliseconds, DataSize, Concurrency, IsSuccess) ->
 		undefined -> TotalTransfers;
 		_ -> TotalTransfers + 1
 	end,
-	AverageSuccess2 = calculate_ema(AverageSuccess, ar_util:bool_to_int(IsSuccess), ?SUCCESS_ALPHA),
+	AverageSuccess2 = calculate_ema(AverageSuccess, big_util:bool_to_int(IsSuccess), ?SUCCESS_ALPHA),
 	%% Rating is an estimate of the peer's effective throughput in bytes per millisecond.
 	%% 'lifetime' considers all data ever received from this peer
 	%% 'current' considers recently received data
@@ -887,7 +887,7 @@ maybe_add_peer(Peer, Release) ->
 remove_peer(Reason, RemovedPeer) ->
 	?LOG_DEBUG([
 		{event, remove_peer},
-		{peer, ar_util:format_peer(RemovedPeer)},
+		{peer, big_util:format_peer(RemovedPeer)},
 		{reason, Reason}
 	]),
 	Performance = get_or_init_performance(RemovedPeer),

@@ -46,12 +46,12 @@ test_syncs_data() ->
 	lists:foreach(
 		fun({B, #tx{ id = TXID }, Chunks, {_, Proof}}) ->
 			TXSize = byte_size(binary:list_to_bin(Chunks)),
-			TXOffset = big_merkle:extract_note(ar_util:decode(maps:get(tx_path, Proof))),
+			TXOffset = big_merkle:extract_note(big_util:decode(maps:get(tx_path, Proof))),
 			AbsoluteTXOffset = B#block.weave_size - B#block.block_size + TXOffset,
 			ExpectedOffsetInfo = big_serialize:jsonify(#{
 					offset => integer_to_binary(AbsoluteTXOffset),
 					size => integer_to_binary(TXSize) }),
-			true = ar_util:do_until(
+			true = big_util:do_until(
 				fun() ->
 					case big_test_data_sync:get_tx_offset(peer1, TXID) of
 						{ok, {{<<"200">>, _}, _, ExpectedOffsetInfo, _, _}} ->
@@ -63,7 +63,7 @@ test_syncs_data() ->
 				100,
 				120 * 1000
 			),
-			ExpectedData = ar_util:encode(binary:list_to_bin(Chunks)),
+			ExpectedData = big_util:encode(binary:list_to_bin(Chunks)),
 			big_test_node:assert_get_tx_data(main, TXID, ExpectedData),
 			case AbsoluteTXOffset > DiskPoolThreshold of
 				true ->
@@ -133,8 +133,8 @@ test_mines_off_only_last_chunks() ->
 			big_test_node:post_and_mine(#{ miner => main, await_on => peer1 }, [TX]),
 			Offset = ?DATA_CHUNK_SIZE + 1,
 				DataPath = big_merkle:generate_path(DataRoot, Offset, DataTree),
-			Proof = #{ data_root => ar_util:encode(DataRoot),
-					data_path => ar_util:encode(DataPath), chunk => ar_util:encode(Chunk),
+			Proof = #{ data_root => big_util:encode(DataRoot),
+					data_path => big_util:encode(DataPath), chunk => big_util:encode(Chunk),
 					offset => integer_to_binary(Offset),
 					data_size => integer_to_binary(DataSize) },
 			?assertMatch({ok, {{<<"200">>, _}, _, _, _, _}},
@@ -145,7 +145,7 @@ test_mines_off_only_last_chunks() ->
 					%% the new entropy reset source.
 					[{_, Info}] = ets:lookup(node_state, nonce_limiter_info),
 					PrevStepNumber = Info#nonce_limiter_info.global_step_number,
-					true = ar_util:do_until(
+					true = big_util:do_until(
 						fun() ->
 							big_nonce_limiter:get_current_step_number()
 									> PrevStepNumber + big_nonce_limiter:get_reset_frequency()
@@ -196,8 +196,8 @@ test_mines_off_only_second_last_chunks() ->
 			big_test_node:post_and_mine(#{ miner => main, await_on => peer1 }, [TX]),
 			Offset = 0,
 			DataPath = big_merkle:generate_path(DataRoot, Offset, DataTree),
-			Proof = #{ data_root => ar_util:encode(DataRoot),
-					data_path => ar_util:encode(DataPath), chunk => ar_util:encode(Chunk),
+			Proof = #{ data_root => big_util:encode(DataRoot),
+					data_path => big_util:encode(DataPath), chunk => big_util:encode(Chunk),
 					offset => integer_to_binary(Offset),
 					data_size => integer_to_binary(DataSize) },
 			?assertMatch({ok, {{<<"200">>, _}, _, _, _, _}},
@@ -247,9 +247,9 @@ test_disk_pool_rotation() ->
 	Offset = ?DATA_CHUNK_SIZE,
 	DataSize = ?DATA_CHUNK_SIZE,
 	DataPath = big_merkle:generate_path(DataRoot, Offset, DataTree),
-	Proof = #{ data_root => ar_util:encode(DataRoot),
-			data_path => ar_util:encode(DataPath),
-			chunk => ar_util:encode(hd(Chunks)),
+	Proof = #{ data_root => big_util:encode(DataRoot),
+			data_path => big_util:encode(DataPath),
+			chunk => big_util:encode(hd(Chunks)),
 			offset => integer_to_binary(Offset),
 			data_size => integer_to_binary(DataSize) },
 	?assertMatch({ok, {{<<"200">>, _}, _, _, _, _}},
@@ -273,7 +273,7 @@ test_disk_pool_rotation() ->
 	assert_wait_until_height(main, 4),
 	%% The new chunk has been confirmed but there is not storage module to take it.
 	?assertEqual(3, ?SEARCH_SPACE_UPPER_BOUND_DEPTH),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			{ok, Binary3} = big_global_sync_record:get_serialized_sync_record(Options),
 			{ok, Global3} = big_intervals:safe_from_etf(Binary3),

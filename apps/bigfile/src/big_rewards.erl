@@ -241,7 +241,7 @@ log_reward_history(Message, RewardHistory, N) ->
 	Length = length(RewardHistory),
 	LimitedRewardHistory = lists:sublist(RewardHistory, N),
 	LogEntries = lists:map(fun({Addr, HashRate, Reward, Denomination}) ->
-		EncodedAddr = ar_util:encode(Addr),
+		EncodedAddr = big_util:encode(Addr),
 		LogHashRate = math:log10(HashRate),
 		io_lib:format("{~s, ~p, ~p, ~p}", 
 						[EncodedAddr, LogHashRate, Reward, Denomination])

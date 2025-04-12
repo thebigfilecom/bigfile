@@ -1,4 +1,4 @@
--module(ar_util).
+-module(big_util).
 
 -export([bool_to_int/1, int_to_bool/1, ceil_int/2, floor_int/2, between/3,
 		integer_to_binary/1, binary_to_integer/1, pick_random/1, pick_random/2,
@@ -219,7 +219,7 @@ genesis_wallets() ->
 		fun(Line) ->
 			[Addr, RawQty] = string:tokens(Line, ","),
 			{
-				ar_util:decode(Addr),
+				big_util:decode(Addr),
 				erlang:trunc(math:ceil(list_to_integer(RawQty))) * ?WEI_PER_BIG,
 				<<>>
 			}

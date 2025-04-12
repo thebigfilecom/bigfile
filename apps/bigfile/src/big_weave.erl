@@ -168,7 +168,7 @@ add_mainnet_v1_genesis_txs() ->
 					SourcePath = "genesis_data/genesis_txs/" ++ F,
 					TargetPath = Config#config.data_dir ++ "/" ++ ?TX_DIR ++ "/" ++ F,
 					file:copy(SourcePath, TargetPath),
-					[ar_util:decode(hd(string:split(F, ".")))|Acc]
+					[big_util:decode(hd(string:split(F, ".")))|Acc]
 				end,
 				[],
 				Files
@@ -197,6 +197,6 @@ create_mainnet_genesis_txs() ->
 	),
 	big_storage:write_file_atomic(
 		"genesis_wallets.csv",
-		lists:map(fun(T) -> binary_to_list(ar_util:encode(T#tx.id)) ++ "," end, TXs)
+		lists:map(fun(T) -> binary_to_list(big_util:encode(T#tx.id)) ++ "," end, TXs)
 	),
 	[T#tx.id || T <- TXs].
