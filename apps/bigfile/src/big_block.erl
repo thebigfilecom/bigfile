@@ -818,7 +818,7 @@ hash_list_gen_test_() ->
 	{timeout, 60, fun test_hash_list_gen/0}.
 
 test_hash_list_gen() ->
-	[B0] = ar_weave:init([]),
+	[B0] = big_weave:init([]),
 	big_test_node:start(B0),
 	big_test_node:mine(),
 	BI1 = big_test_node:wait_until_height(main, 1),

@@ -127,7 +127,7 @@ init([]) ->
 			Config2 = Config#config{ init = false },
 			application:set_env(bigfile, config, Config2),
 			InitialBalance = ?BIG(?LOCALNET_BALANCE),
-			[B0] = ar_weave:init([{Config#config.mining_addr, InitialBalance, <<>>}],
+			[B0] = big_weave:init([{Config#config.mining_addr, InitialBalance, <<>>}],
 					big_retarget:switch_to_linear_diff(Config#config.diff)),
 			RootHash0 = B0#block.wallet_list,
 			RootHash0 = big_storage:write_wallet_list(0, B0#block.account_tree),

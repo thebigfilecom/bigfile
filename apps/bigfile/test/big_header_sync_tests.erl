@@ -17,7 +17,7 @@ syncs_headers_test_() ->
 
 test_syncs_headers() ->
 	Wallet = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(2000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(2000), <<>>}]),
 	big_test_node:start(B0),
 	post_random_blocks(Wallet, ?MAX_TX_ANCHOR_DEPTH + 5, B0),
 	big_test_node:join_on(#{ node => peer1, join_on => main }),

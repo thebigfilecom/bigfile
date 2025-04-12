@@ -39,7 +39,7 @@ webhooks_test_() ->
 
 test_webhooks() ->
 	{_, Pub} = Wallet = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 	{ok, Config} = application:get_env(bigfile, config),
 	try
 		Port = big_test_node:get_unused_port(),

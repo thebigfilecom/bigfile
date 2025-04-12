@@ -165,7 +165,7 @@ test_bad_secret() ->
 	end.
 
 test_partition_table() ->
-	[B0] = ar_weave:init([], big_test_node:get_difficulty_for_invalid_hash(), 5 * ?PARTITION_SIZE),
+	[B0] = big_weave:init([], big_test_node:get_difficulty_for_invalid_hash(), 5 * ?PARTITION_SIZE),
 	Config = big_test_node:base_cm_config([]),
 	
 	MiningAddr = Config#config.mining_addr,
@@ -230,7 +230,7 @@ test_partition_table() ->
 
 test_peers_by_partition() ->
 	PartitionUpperBound = 6 * ?PARTITION_SIZE,
-	[B0] = ar_weave:init([], big_test_node:get_difficulty_for_invalid_hash(),
+	[B0] = big_weave:init([], big_test_node:get_difficulty_for_invalid_hash(),
 			PartitionUpperBound),
 
 	Peer1 = big_test_node:peer_ip(peer1),

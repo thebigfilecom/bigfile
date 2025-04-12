@@ -13,7 +13,7 @@
 		test_with_mocked_functions/2]).
 
 start_node() ->
-	[B0] = ar_weave:init([], 0), %% Set difficulty to 0 to speed up tests
+	[B0] = big_weave:init([], 0), %% Set difficulty to 0 to speed up tests
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:connect_to_peer(peer1).
@@ -297,7 +297,7 @@ rejects_invalid_blocks_test_() ->
 	{timeout, 120, fun test_rejects_invalid_blocks/0}.
 
 test_rejects_invalid_blocks() ->
-	[B0] = ar_weave:init([], big_retarget:switch_to_linear_diff(2)),
+	[B0] = big_weave:init([], big_retarget:switch_to_linear_diff(2)),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
@@ -474,7 +474,7 @@ rejects_blocks_with_small_rsa_keys_test_() ->
 	{timeout, 60, fun test_rejects_blocks_with_small_rsa_keys/0}.
 
 test_rejects_blocks_with_small_rsa_keys() ->
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	ok = big_events:subscribe(block),
 	big_test_node:mine(main),
@@ -500,7 +500,7 @@ test_reject_block_invalid_double_signing_proof(KeyType) ->
 	MiningAddr = big_wallet:to_address(FullKey),
 	Key0 = big_wallet:new(),
 	Addr0 = big_wallet:to_address(Key0),
-	[B0] = ar_weave:init([{Addr0, ?BIG(1000), <<>>}], big_retarget:switch_to_linear_diff(2)),
+	[B0] = big_weave:init([{Addr0, ?BIG(1000), <<>>}], big_retarget:switch_to_linear_diff(2)),
 	?debugFmt("Genesis address: ~s, initial balance: ~B BIG.~n", [ar_util:encode(Addr0), 1000]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0, MiningAddr),
@@ -597,7 +597,7 @@ send_block2_test_() ->
 
 test_send_block2() ->
 	{_, Pub} = Wallet = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(100), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(100), <<>>}]),
 	MainWallet = big_wallet:new_keyfile(),
 	MainAddress = big_wallet:to_address(MainWallet),
 	PeerWallet = big_test_node:remote_call(peer1, big_wallet, new_keyfile, []),
@@ -728,7 +728,7 @@ resigned_solution_test_() ->
 		fun() -> test_resigned_solution() end).
 
 test_resigned_solution() ->
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:connect_to_peer(peer1),

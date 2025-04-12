@@ -215,7 +215,7 @@ setup(Node) ->
 	{ok, Config} = big_test_node:get_config(Node),
 	Wallet = {_, Pub} = big_test_node:remote_call(Node, big_wallet, new_keyfile, []),
 	RewardAddr = big_wallet:to_address(Pub),
-	[B0] = ar_weave:init([{RewardAddr, ?BIG(100000000), <<>>}]),
+	[B0] = big_weave:init([{RewardAddr, ?BIG(100000000), <<>>}]),
 	big_test_node:start_peer(Node, B0, RewardAddr, Config#config{
 		enable = [pack_served_chunks | Config#config.enable]
 	}),

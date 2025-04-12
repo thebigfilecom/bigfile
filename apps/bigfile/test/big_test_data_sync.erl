@@ -34,7 +34,7 @@ setup_nodes2(#{ peer_addr := PeerAddr } = Options) ->
 	{B0, Options2} =
 		case maps:get(b0, Options, not_set) of
 			not_set ->
-				[Genesis] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(200000), <<>>}]),
+				[Genesis] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(200000), <<>>}]),
 				{Genesis, Options#{ b0 => Genesis }};
 			Value ->
 				{Value, Options}

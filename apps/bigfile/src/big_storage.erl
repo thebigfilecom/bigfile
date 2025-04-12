@@ -1035,7 +1035,7 @@ init([]) ->
 	{ok, Config} = application:get_env(bigfile, config),
 	ensure_directories(Config#config.data_dir),
 	%% Copy genesis transactions (snapshotted in the repo) into data_dir/txs
-	ar_weave:add_mainnet_v1_genesis_txs(),
+	big_weave:add_mainnet_v1_genesis_txs(),
 	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "ar_storage_tx_confirmation_db"),
 			tx_confirmation_db),
 	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "ar_storage_tx_db"), tx_db),
@@ -1319,7 +1319,7 @@ store_and_retrieve_block_test_() ->
 	{timeout, 60, fun test_store_and_retrieve_block/0}.
 
 test_store_and_retrieve_block() ->
-	[B0] = ar_weave:init([]),
+	[B0] = big_weave:init([]),
 	big_test_node:start(B0),
 	TXIDs = [TX#tx.id || TX <- B0#block.txs],
 	FetchedB0 = read_block(B0#block.indep_hash),
@@ -1359,7 +1359,7 @@ store_and_retrieve_wallet_list_test_() ->
 	].
 
 test_store_and_retrieve_wallet_list() ->
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	[TX] = B0#block.txs,
 	Addr = big_wallet:to_address(TX#tx.owner, {?RSA_SIGN_ALG, 65537}),
 	write_block(B0),

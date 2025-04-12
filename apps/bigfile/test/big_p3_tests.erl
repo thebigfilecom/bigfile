@@ -470,7 +470,7 @@ e2e_deposit_before_charge() ->
 	EncodedSender2Address = ar_util:encode(Sender2Address),
 	DepositAddress = big_wallet:to_address(Pub3),
 	OtherAddress = big_wallet:to_address(Pub4),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{Sender1Address, ?BIG(10000), <<>>},
 		{Sender2Address, ?BIG(10000), <<>>},
 		{DepositAddress, ?BIG(10000), <<>>}
@@ -698,7 +698,7 @@ e2e_charge_before_deposit() ->
 	EncodedAddress1 = ar_util:encode(Address1),
 	Address2 = big_wallet:to_address(Pub2),
 	DepositAddress = big_wallet:to_address(Pub3),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{Address1, ?BIG(10000), <<>>}
 	]),
 	{ok, BaseConfig} = application:get_env(bigfile, config),
@@ -785,7 +785,7 @@ e2e_restart_p3_service() ->
 	RewardAddress = big_wallet:to_address(big_wallet:new_keyfile()),
 	Sender1Address = big_wallet:to_address(Pub1),
 	DepositAddress = big_wallet:to_address(Pub3),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{Sender1Address, ?BIG(10000), <<>>},
 		{DepositAddress, ?BIG(10000), <<>>}
 	]),
@@ -862,7 +862,7 @@ e2e_concurrent_requests() ->
 	Address1 = big_wallet:to_address(Pub1),
 	EncodedAddress1 = ar_util:encode(Address1),
 	DepositAddress = big_wallet:to_address(Pub3),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{Address1, ?BIG(10000), <<>>},
 		{DepositAddress, ?BIG(10000), <<>>}
 	]),

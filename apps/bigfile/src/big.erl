@@ -819,9 +819,9 @@ benchmark_hash(Args) ->
 	erlang:halt().
 
 benchmark_2_9() ->
-	ar_bench_2_9:show_help().
+	big_bench_2_9:show_help().
 benchmark_2_9(Args) ->
-	ar_bench_2_9:run_benchmark_from_cli(Args),
+	big_bench_2_9:run_benchmark_from_cli(Args),
 	erlang:halt().
 	
 shutdown([NodeName]) ->

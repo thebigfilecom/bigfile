@@ -294,7 +294,7 @@ test_auto_redenomination_and_endowment_debt() ->
 	Key1 = {_, Pub1} = big_wallet:new(),
 	{_, Pub2} = big_wallet:new(),
 	Key3 = {_, Pub3} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub1), 20000000000000, <<>>},
 		{big_wallet:to_address(Pub2), 2000000000, <<>>},
 		{big_wallet:to_address(Pub3), ?BIG(1000000000000000000), <<>>}

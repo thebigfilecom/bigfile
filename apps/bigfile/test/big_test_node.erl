@@ -272,7 +272,7 @@ start_node(B0, Config, WaitUntilSync) ->
 start_coordinated(MiningNodeCount) when MiningNodeCount >= 1, MiningNodeCount =< ?MAX_MINERS ->
 	%% Set weave larger than what we'll cover with the 3 nodes so that every node can find
 	%% a solution.
-	[B0] = ar_weave:init([], get_difficulty_for_invalid_hash(), ?PARTITION_SIZE * 5),
+	[B0] = big_weave:init([], get_difficulty_for_invalid_hash(), ?PARTITION_SIZE * 5),
 	ExitPeer = peer_ip(peer1),
 	ValidatorPeer = peer_ip(main),
 	MinerNodes = lists:sublist([peer2, peer3, peer4], MiningNodeCount),
@@ -535,7 +535,7 @@ start(Options) when is_map(Options) ->
 	B0 =
 		case maps:get(b0, Options, not_set) of
 			not_set ->
-				hd(ar_weave:init());
+				hd(big_weave:init());
 			Value ->
 				Value
 		end,
@@ -1477,4 +1477,4 @@ get_genesis_chunk(EndOffset) ->
 get_genesis_chunk(StartOffset, EndOffset) ->
 	Size = EndOffset - StartOffset,
 	StartValue = StartOffset div 4,
-	ar_weave:generate_data(StartValue, Size, <<>>).
+	big_weave:generate_data(StartValue, Size, <<>>).

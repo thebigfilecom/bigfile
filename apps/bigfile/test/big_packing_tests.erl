@@ -13,7 +13,7 @@
 % request_test() ->
 % 	RewardAddress = big_test_node:load_fixture("big_packing_tests/address.bin"),
 
-% 	[B0] = ar_weave:init([]),
+% 	[B0] = big_weave:init([]),
 % 	big_test_node:start(B0, RewardAddress),
 
 % 	test_full_chunk(),
@@ -39,7 +39,7 @@ packing_test_() ->
 
 setup() ->
     RewardAddress = big_test_node:load_fixture("big_packing_tests/address.bin"),
-    [B0] = ar_weave:init([]),
+    [B0] = big_weave:init([]),
     big_test_node:start(B0, RewardAddress),
     RewardAddress.
 

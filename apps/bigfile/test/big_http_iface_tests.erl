@@ -13,7 +13,7 @@ start_node() ->
 	Wallet2 = {_, Pub2} = big_wallet:new(),
 	%% This wallet is never spent from or deposited to, so the balance is predictable
 	StaticWallet = {_, Pub3} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub1), ?BIG(10000), <<>>},
 		{big_wallet:to_address(Pub2), ?BIG(10000), <<>>},
 		{big_wallet:to_address(Pub3), ?BIG(10), <<"TEST_ID">>}

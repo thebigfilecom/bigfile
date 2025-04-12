@@ -1,4 +1,4 @@
--module(ar_replica_2_9).
+-module(big_replica_2_9).
 
 -export([get_entropy_partition/1, get_entropy_key/3, get_sector_size/0, 
     get_slice_index/1, get_partition_offset/1]).

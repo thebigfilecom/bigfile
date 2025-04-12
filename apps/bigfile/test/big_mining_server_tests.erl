@@ -19,7 +19,7 @@
 %% Fixtures
 %% ------------------------------------------------------------------------------------------------
 setup_all() ->
-	[B0] = ar_weave:init([], big_test_node:get_difficulty_for_invalid_hash(), ?WEAVE_SIZE),
+	[B0] = big_weave:init([], big_test_node:get_difficulty_for_invalid_hash(), ?WEAVE_SIZE),
 	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
 	{ok, Config} = application:get_env(bigfile, config),
 	%% We'll use partition 0 for any unsynced ranges.
@@ -35,7 +35,7 @@ cleanup_all(Config) ->
 
 %% @doc Setup the environment so we can control VDF step generation.
 setup_pool_client() ->
-	[B0] = ar_weave:init([], big_test_node:get_difficulty_for_invalid_hash(), ?WEAVE_SIZE),
+	[B0] = big_weave:init([], big_test_node:get_difficulty_for_invalid_hash(), ?WEAVE_SIZE),
 	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
 	{ok, Config} = application:get_env(bigfile, config),
 	%% We'll use partition 0 for any unsynced ranges.

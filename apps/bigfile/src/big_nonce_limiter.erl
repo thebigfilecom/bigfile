@@ -1414,7 +1414,7 @@ reorg_after_join_test_() ->
 	{timeout, 120, fun test_reorg_after_join/0}.
 
 test_reorg_after_join() ->
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:connect_to_peer(peer1),
@@ -1431,7 +1431,7 @@ reorg_after_join2_test_() ->
 	{timeout, 120, fun test_reorg_after_join2/0}.
 
 test_reorg_after_join2() ->
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:connect_to_peer(peer1),

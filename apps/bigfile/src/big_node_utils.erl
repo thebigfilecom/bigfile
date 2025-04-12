@@ -700,7 +700,7 @@ block_validation_test_() ->
 
 test_block_validation() ->
 	Wallet = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(200), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(200), <<>>}]),
 	big_test_node:start(B0),
 	%% Add at least 10 KiB of data to the weave and mine a block on top,
 	%% to make sure SPoRA mining activates.

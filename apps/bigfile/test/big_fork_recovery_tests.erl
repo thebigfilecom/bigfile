@@ -13,7 +13,7 @@ test_height_plus_one_fork_recovery() ->
 	%% Mine on two nodes until they fork. Mine an extra block on one of them.
 	%% Expect the other one to recover.
 	{_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
@@ -42,7 +42,7 @@ test_height_plus_three_fork_recovery() ->
 	%% Mine on two nodes until they fork. Mine three extra blocks on one of them.
 	%% Expect the other one to recover.
 	{_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
@@ -71,7 +71,7 @@ test_missing_txs_fork_recovery() ->
 	%% but do not gossip the transaction. The main node
 	%% is expected fetch the missing transaction and apply the block.
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
@@ -93,7 +93,7 @@ test_orphaned_txs_are_remined_after_fork_recovery() ->
 	%% make the transaction orphaned. Mine a block on peer1 and
 	%% assert the transaction is re-mined.
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(20), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
@@ -130,7 +130,7 @@ test_invalid_block_with_high_cumulative_difficulty() ->
 	PeerPath = big_test_node:remote_call(peer1, big_wallet, wallet_filepath, [WalletName]),
 	%% Copy the key because we mine blocks on both nodes using the same key in this test.
 	{ok, _} = file:copy(Path, PeerPath),
-	[B0] = ar_weave:init([]),
+	[B0] = big_weave:init([]),
 	big_test_node:start(B0, RewardAddr),
 	big_test_node:start_peer(peer1, B0, RewardAddr),
 	big_test_node:disconnect_from(peer1),

@@ -1,4 +1,4 @@
--module(ar_weave).
+-module(big_weave).
 
 -export([init/0, init/1, init/2, init/3, create_mainnet_genesis_txs/0, generate_data/3,
 		add_mainnet_v1_genesis_txs/0]).

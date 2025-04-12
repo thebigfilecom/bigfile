@@ -191,7 +191,7 @@ block_roundtrip_test_() ->
 		fun test_block_roundtrip/0).
 
 test_block_roundtrip() ->
-	[B] = ar_weave:init(),
+	[B] = big_weave:init(),
 	TXIDs = [TX#tx.id || TX <- B#block.txs],
 	JSONStruct = big_serialize:jsonify(big_serialize:block_to_json_struct(B)),
 	BRes = big_serialize:json_struct_to_block(JSONStruct),
@@ -218,7 +218,7 @@ wallet_list_roundtrip_test_() ->
 	{timeout, 30, fun test_wallet_list_roundtrip/0}.
 
 test_wallet_list_roundtrip() ->
-	[B] = ar_weave:init(),
+	[B] = big_weave:init(),
 	WL = B#block.account_tree,
 	JSONWL = big_serialize:jsonify(
 		big_serialize:wallet_list_to_json_struct(B#block.reward_addr, false, WL)),
@@ -232,7 +232,7 @@ block_index_roundtrip_test_() ->
 	{timeout, 10, fun test_block_index_roundtrip/0}.
 
 test_block_index_roundtrip() ->
-	[B] = ar_weave:init(),
+	[B] = big_weave:init(),
 	HL = [B#block.indep_hash, B#block.indep_hash],
 	JSONHL = big_serialize:jsonify(big_serialize:block_index_to_json_struct(HL)),
 	HL = big_serialize:json_struct_to_block_index(big_serialize:dejsonify(JSONHL)),

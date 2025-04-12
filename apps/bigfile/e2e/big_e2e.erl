@@ -132,7 +132,7 @@ start_source_node(Node, PackingType, WalletFixture) ->
 		[Node, PackingType, WalletFixture]),
 	{Wallet, StorageModules} = source_node_storage_modules(Node, PackingType, WalletFixture),
 	RewardAddr = big_wallet:to_address(Wallet),
-	[B0] = ar_weave:init([{RewardAddr, ?BIG(200), <<>>}], 0, ?PARTITION_SIZE),
+	[B0] = big_weave:init([{RewardAddr, ?BIG(200), <<>>}], 0, ?PARTITION_SIZE),
 
 	{ok, Config} = big_test_node:remote_call(Node, application, get_env, [bigfile, config]),
 	

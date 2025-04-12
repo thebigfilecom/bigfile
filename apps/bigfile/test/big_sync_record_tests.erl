@@ -15,7 +15,7 @@ test_sync_record() ->
 	DiskPoolStart = ?PARTITION_SIZE,
 	PartitionStart = ?PARTITION_SIZE - ?DATA_CHUNK_SIZE,
 	WeaveSize = 4 * ?DATA_CHUNK_SIZE,
-	[B0] = ar_weave:init([], 1, WeaveSize),
+	[B0] = big_weave:init([], 1, WeaveSize),
 	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
 	{ok, Config} = application:get_env(bigfile, config),
 	try
@@ -144,7 +144,7 @@ test_sync_record_with_replica_2_9() when ?BLOCK_2_9_SYNCING ->
 	SleepTime = 1000,
 	PartitionStart = ?PARTITION_SIZE - ?DATA_CHUNK_SIZE,
 	WeaveSize = 4 * ?DATA_CHUNK_SIZE,
-	[B0] = ar_weave:init([], 1, WeaveSize),
+	[B0] = big_weave:init([], 1, WeaveSize),
 	RewardAddr = big_wallet:to_address(big_wallet:new_keyfile()),
 	{ok, Config} = application:get_env(bigfile, config),
 	try
