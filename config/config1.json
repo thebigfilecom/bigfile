@@ -48,11 +48,6 @@
       "default": 100
     }
   },
-  "transaction_blacklists": ["some_blacklist_1", "some_blacklist_2"],
-  "transaction_blacklist_urls": [
-    "http://some_blacklist_1",
-    "http://some_blacklist_2/x"
-  ],
   "transaction_whitelists": ["some_whitelist_1", "some_whitelist_2"],
   "transaction_whitelist_urls": ["http://some_whitelist"],
   "disk_space": 44,
@@ -61,17 +56,6 @@
   "internal_api_secret": "some_very_very_long_secret",
   "enable": ["feature_1", "feature_2"],
   "disable": ["feature_3", "feature_4"],
-  "gateway": "gateway.localhost",
-  "custom_domains": ["domain1.example", "domain2.example"],
-  "webhooks": [
-    {
-      "events": ["transaction", "block"],
-      "url": "https://example.com/hook",
-      "headers": {
-        "Authorization": "Bearer 123456"
-      }
-    }
-  ],
   "max_connections": 512,
   "max_gateway_connections": 64,
   "disk_pool_data_root_expiration_time": 10000,
