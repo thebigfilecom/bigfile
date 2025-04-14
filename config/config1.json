@@ -7,6 +7,7 @@
   "data_dir": "/root/bigfile/data_dir",
   "log_dir": "/root/bigfile/data_dir/logs",
   "storage_modules": [
+    "0,unpacked",
     "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM.replica.2.9"
   ],
   "repack_batch_size": 200,
