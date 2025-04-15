@@ -114,7 +114,7 @@
 
 -ifdef(FORKS_RESET).
 	-ifdef(BIG_TEST).
-		-define(STRICT_DATA_SPLIT_THRESHOLD, (262144 * 3)).
+		-define(STRICT_DATA_SPLIT_THRESHOLD, 0).
 	-else.
 		-define(STRICT_DATA_SPLIT_THRESHOLD, 0).
 	-endif.
@@ -126,7 +126,7 @@
 
 -ifdef(FORKS_RESET).
 	-ifdef(BIG_TEST).
-		-define(MERKLE_REBASE_SUPPORT_THRESHOLD, (?STRICT_DATA_SPLIT_THRESHOLD * 2)).
+		-define(MERKLE_REBASE_SUPPORT_THRESHOLD, 0).
 	-else.
 		-define(MERKLE_REBASE_SUPPORT_THRESHOLD, 0).
 	-endif.

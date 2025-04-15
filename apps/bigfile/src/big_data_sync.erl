@@ -589,7 +589,14 @@ is_chunk_cache_full() ->
 
 -ifdef(BIG_TEST).
 is_disk_space_sufficient(_StoreID) ->
-	true.
+	case ets:lookup(big_data_sync_state, {is_disk_space_sufficient, StoreID}) of
+		[{_, false}] ->
+			false;
+		[{_, true}] ->
+			true;
+		_ ->
+			not_initialized
+	end.
 -else.
 %% @doc Return true if we have sufficient disk space to write new data for the
 %% given StoreID. Return not_initialized if there is no information yet.
