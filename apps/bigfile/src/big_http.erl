@@ -97,7 +97,7 @@ req(Args, ReestablishedConnection) ->
 			%%       native units and it converts it to <unit> .To query native units, use:
 			%%       erlant:monotonic_time() without any arguments.
 			%%       See: https://github.com/deadtrickster/prometheus.erl/blob/6dd56bf321e99688108bb976283a80e4d82b3d30/src/prometheus_time.erl#L2-L84
-			prometheus_histogram:observe(ar_http_request_duration_seconds, [
+			prometheus_histogram:observe(big_http_request_duration_seconds, [
 					method_to_list(Method),
 					big_http_iface_server:label_http_path(list_to_binary(Path)),
 					big_metrics:get_status_class(Response)

@@ -71,7 +71,7 @@ test_webhooks() ->
 		ets:new(?MODULE, [named_table, set, public]),
 		Routes = [{"/[...]", big_webhook_tests, []}],
 		cowboy:start_clear(
-			ar_webhook_test_listener,
+			big_webhook_test_listener,
 			[{port, Port}],
 			#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 		),
@@ -190,7 +190,7 @@ test_webhooks() ->
 		timer:sleep(3000),
 		upload_chunks(Proofs),
 		assert_transaction_data_synced(V2TXID),
-		cowboy:stop_listener(ar_webhook_test_listener)
+		cowboy:stop_listener(big_webhook_test_listener)
 	after
 		application:set_env(bigfile, config, Config#config{ webhooks = [] })
 	end.

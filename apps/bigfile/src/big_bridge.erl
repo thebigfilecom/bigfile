@@ -168,7 +168,7 @@ handle_info(Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
-	?LOG_INFO([{event, ar_bridge_terminated}, {module, ?MODULE}]),
+	?LOG_INFO([{event, big_bridge_terminated}, {module, ?MODULE}]),
 	ok.
 
 %%%===================================================================

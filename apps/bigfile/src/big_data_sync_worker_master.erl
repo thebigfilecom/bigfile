@@ -64,7 +64,7 @@ register_sync_workers() ->
 	{ok, Config} = application:get_env(bigfile, config),
 	{Workers, WorkerNames} = lists:foldl(
 		fun(Number, {AccWorkers, AccWorkerNames}) ->
-			Name = list_to_atom("ar_data_sync_worker_" ++ integer_to_list(Number)),
+			Name = list_to_atom("big_data_sync_worker_" ++ integer_to_list(Number)),
 			Worker = ?CHILD_WITH_ARGS(big_data_sync_worker, worker, Name, [Name]),
 			{[Worker | AccWorkers], [Name | AccWorkerNames]}
 		end,
@@ -220,7 +220,7 @@ process_peer_queue(PeerTasks, State) ->
 	end.
 
 %% @doc the maximum number of tasks we can have in process - including stasks queued here as well
-%% as those scheduled on ar_data_sync_workers.
+%% as those scheduled on big_data_sync_workers.
 max_tasks(WorkerCount) ->
 	WorkerCount * 50.
 

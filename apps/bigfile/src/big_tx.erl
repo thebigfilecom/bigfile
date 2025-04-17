@@ -98,8 +98,6 @@ verify(TX, Args) ->
 	verify(TX, Args, verify_signature).
 
 -ifdef(BIG_TEST).
-verify(#tx{ signature = <<>> }, _Args, _VerifySignature) ->
-	true;
 verify(TX, Args, VerifySignature) ->
 	do_verify(TX, Args, VerifySignature).
 -else.
@@ -130,8 +128,6 @@ tags_to_list(Tags) ->
 	[[Name, Value] || {Name, Value} <- Tags].
 
 -ifdef(BIG_TEST).
-check_last_tx(_WalletList, TX) when TX#tx.owner == <<>> ->
-	true;
 check_last_tx(WalletList, _TX) when map_size(WalletList) == 0 ->
 	true;
 check_last_tx(WalletList, TX) ->

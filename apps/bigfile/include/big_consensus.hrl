@@ -114,7 +114,7 @@
 
 -ifdef(FORKS_RESET).
 	-ifdef(BIG_TEST).
-		-define(STRICT_DATA_SPLIT_THRESHOLD, (262144 * 3)).
+		-define(STRICT_DATA_SPLIT_THRESHOLD, 0).
 	-else.
 		-define(STRICT_DATA_SPLIT_THRESHOLD, 0).
 	-endif.
@@ -126,7 +126,7 @@
 
 -ifdef(FORKS_RESET).
 	-ifdef(BIG_TEST).
-		-define(MERKLE_REBASE_SUPPORT_THRESHOLD, (?STRICT_DATA_SPLIT_THRESHOLD * 2)).
+		-define(MERKLE_REBASE_SUPPORT_THRESHOLD, 0).
 	-else.
 		-define(MERKLE_REBASE_SUPPORT_THRESHOLD, 0).
 	-endif.
@@ -198,13 +198,13 @@ end()).
 %% at every block. The solution must belong to the search space.
 -define(SPORA_SEARCH_SPACE_SIZE(SearchSpaceUpperBound), fun() ->
 	%% The divisor must be equal to SPORA_SEARCH_SPACE_SHARE
-	%% defined in c_src/ar_mine_randomx.h.
+	%% defined in c_src/big_mine_randomx.h.
 	SearchSpaceUpperBound div 10 % 10% of the weave.
 end()).
 
 %% The number of contiguous subspaces of the search space, a roughly equal
 %% share of the search space is sampled from each of the subspaces.
-%% Must be equal to SPORA_SUBSPACES_COUNT defined in c_src/ar_mine_randomx.h.
+%% Must be equal to SPORA_SUBSPACES_COUNT defined in c_src/big_mine_randomx.h.
 -define(SPORA_SEARCH_SPACE_SUBSPACES_COUNT, 1024).
 
 %% The key to initialize the RandomX state from, for RandomX packing.

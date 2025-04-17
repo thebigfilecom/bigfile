@@ -497,7 +497,7 @@ close(#db{db_handle = Db, name = Name}) ->
 	catch
 		Exc ->
 			?LOG_ERROR([
-				{event, ar_kv_failed}, {op, close}, {name, io_lib:format("~p", [Name])},
+				{event, big_kv_failed}, {op, close}, {name, io_lib:format("~p", [Name])},
 				{reason, io_lib:format("~p", [Exc])}
 			])
 	end.

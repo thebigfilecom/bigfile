@@ -499,7 +499,7 @@ test_reverse() ->
 
 test_scan_height() ->
 	%% Reset database
-	big_kv:delete(ar_p3_state_db, <<"scan_height">>),
+	big_kv:delete(big_p3_state_db, <<"scan_height">>),
 
 	?assertEqual(0, big_p3_db:get_scan_height()),
 	?assertEqual({ok, 100}, big_p3_db:set_scan_height(100)),

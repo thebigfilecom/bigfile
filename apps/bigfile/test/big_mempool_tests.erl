@@ -21,7 +21,7 @@ start_node() ->
 
 reset_node_state() ->
 	big_mempool:reset(),
-	ets:delete_all_objects(ar_tx_emitter_recently_emitted),
+	ets:delete_all_objects(big_tx_emitter_recently_emitted),
 	ets:match_delete(node_state, {{tx, '_'}, '_'}),
 	ets:match_delete(node_state, {{tx_prefixes, '_'}, '_'}).
 

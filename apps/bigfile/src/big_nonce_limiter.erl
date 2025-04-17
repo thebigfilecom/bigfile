@@ -358,7 +358,7 @@ request_validation(H, #nonce_limiter_info{ output = Output,
 								AllValidatedSteps = ValidatedSteps ++ SessionSteps,
 								%% The last_step_checkpoints in Info were validated as part
 								%% of an earlier call to
-								%% ar_block_pre_validator:pre_validate_nonce_limiter, so
+								%% big_block_pre_validator:pre_validate_nonce_limiter, so
 								%% we can trust them here.
 								LastStepCheckpoints = get_last_step_checkpoints(Info),
 								Args = {StepNumber, SessionKey, NextSessionKey,

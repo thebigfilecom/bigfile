@@ -175,7 +175,7 @@ test_vdf_server_push_fast_block() ->
 	%% Setup a server to listen for VDF pushes
 	Routes = [{"/[...]", big_vdf_server_tests, []}],
 	{ok, _} = cowboy:start_clear(
-		ar_vdf_server_test_listener,
+		big_vdf_server_test_listener,
 		[{port, VDFPort}],
 		#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 	),
@@ -200,7 +200,7 @@ test_vdf_server_push_fast_block() ->
 	?assertEqual(StepNumber1, LatestStepNumber0,
 		"VDF server did not post the full Session0 when starting Session1"),
 
-	cowboy:stop_listener(ar_vdf_server_test_listener).
+	cowboy:stop_listener(big_vdf_server_test_listener).
 
 test_vdf_server_push_slow_block() ->
 	{_, Pub} = big_wallet:new(),
@@ -219,7 +219,7 @@ test_vdf_server_push_slow_block() ->
 	%% Setup a server to listen for VDF pushes
 	Routes = [{"/[...]", big_vdf_server_tests, []}],
 	{ok, _} = cowboy:start_clear(
-		ar_vdf_server_test_listener,
+		big_vdf_server_test_listener,
 		[{port, 1986}],
 		#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 	),
@@ -260,7 +260,7 @@ test_vdf_server_push_slow_block() ->
 		"Session0 should not have progressed"),
 	?assert(NewLatestStepNumber1 > LatestStepNumber1, "Session1 should have progressed"),
 
-	cowboy:stop_listener(ar_vdf_server_test_listener).
+	cowboy:stop_listener(big_vdf_server_test_listener).
 
 %%
 %% vdf_client_test_

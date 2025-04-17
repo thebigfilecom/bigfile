@@ -67,7 +67,7 @@ handle_cast(garbage_collect, State) ->
 	queue:fold(
 		fun(Thread, _) ->
 			erlang:garbage_collect(Thread,
-				[{async, {ar_mining_hash_worker, Thread, erlang:monotonic_time()}}])
+				[{async, {big_mining_hash_worker, Thread, erlang:monotonic_time()}}])
 		end,
 		ok,
 		State#state.hashing_threads

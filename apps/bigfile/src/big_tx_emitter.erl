@@ -132,7 +132,7 @@ handle_info({timeout, TXID, Peer}, State) ->
 	end;
 
 handle_info({remove_from_recently_emitted, TXID}, State) ->
-	ets:delete(ar_tx_emitter_recently_emitted, TXID),
+	ets:delete(big_tx_emitter_recently_emitted, TXID),
 	{noreply, State};
 
 handle_info(Info, State) ->
@@ -162,7 +162,7 @@ emit(Set, Peers, MaxPeers, N, State) ->
 
 emit_set_not_empty(Set, Peers, MaxPeers, N, State) ->
 	{{Utility, TXID}, Set2} = gb_sets:take_largest(Set),
-	case ets:member(ar_tx_emitter_recently_emitted, TXID) of
+	case ets:member(big_tx_emitter_recently_emitted, TXID) of
 		true ->
 			emit(Set2, Peers, MaxPeers, N, State);
 		false ->
@@ -200,7 +200,7 @@ emit_set_not_empty(Set, Peers, MaxPeers, N, State) ->
 			%% of an explicit synchronization of the propagation queue updates
 			%% with big_node_worker - we do not rely on big_node_worker removing
 			%% emitted transactions from the queue on time.
-			ets:insert(ar_tx_emitter_recently_emitted, {TXID}),
+			ets:insert(big_tx_emitter_recently_emitted, {TXID}),
 			erlang:send_after(?CLEANUP_RECENTLY_EMITTED_TIMEOUT, ?MODULE,
 				{remove_from_recently_emitted, TXID}),
 			big_events:send(tx, {emitting_scheduled, Utility, TXID}),

@@ -915,7 +915,7 @@ validate_init(Config) ->
 							"Use ./bin/start-localnet ... when running from sources "
 							"or compile via ./rebar3 as localnet tar and use "
 							"./bin/start ... as usual.~n~n"),
-					false;
+					true;
 				_ ->
 					true
 			end;

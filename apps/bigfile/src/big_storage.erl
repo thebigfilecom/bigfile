@@ -1036,10 +1036,10 @@ init([]) ->
 	ensure_directories(Config#config.data_dir),
 	%% Copy genesis transactions (snapshotted in the repo) into data_dir/txs
 	big_weave:add_mainnet_v1_genesis_txs(),
-	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "ar_storage_tx_confirmation_db"),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_storage_tx_confirmation_db"),
 			tx_confirmation_db),
-	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "ar_storage_tx_db"), tx_db),
-	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "ar_storage_block_db"), block_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_storage_tx_db"), tx_db),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_storage_block_db"), block_db),
 	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "reward_history_db"), reward_history_db),
 	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "block_time_history_db"),
 			block_time_history_db),

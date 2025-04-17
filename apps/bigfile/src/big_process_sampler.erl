@@ -44,7 +44,7 @@ handle_info(sample_processes, State) ->
 			%% Sum the data for each process. This is a compromise for handling unregistered
 			%% processes. It has the effect of summing the memory and message queue length across all unregistered processes running off the
 			%% same function. In general this is what we want (e.g. for the io threads within
-			%% big_mining_io and the hashing threads within ar_mining_hashing, we wand to
+			%% big_mining_io and the hashing threads within big_mining_hashing, we wand to
 			%% see if, in aggregate, their memory or message queue length has spiked).
 			{MemoryTotal, ReductionsTotal, MsgQueueLenTotal} =
 				maps:get(ProcessName, Acc, {0, 0, 0}),

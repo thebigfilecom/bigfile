@@ -30,7 +30,7 @@ start_link(Name, StorageModule) ->
 
 -spec name(binary()) -> atom().
 name(StoreID) ->
-	list_to_atom("ar_verify_chunks_" ++ big_storage_module:label_by_id(StoreID)).
+	list_to_atom("big_verify_chunks_" ++ big_storage_module:label_by_id(StoreID)).
 
 %%%===================================================================
 %%% Generic server callbacks.

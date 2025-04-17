@@ -38,7 +38,7 @@
 %% The number of blocks which have to pass since the 2.6.8 fork before we
 %% start mixing in the new fee calculation method.
 -ifdef(BIG_TEST).
-	-define(PRICE_2_6_8_TRANSITION_START, 2).
+	-define(PRICE_2_6_8_TRANSITION_START, 0).
 -else.
 	-ifndef(PRICE_2_6_8_TRANSITION_START).
 		-ifdef(FORKS_RESET).
@@ -82,7 +82,7 @@
 %% Note: Even though this constant is related to the *2.7.2* fork we count the blocks
 %% since the *2.6.8* fork for easier comparison with ?PRICE_2_6_8_TRANSITION_START
 -ifdef(BIG_TEST).
-	-define(PRICE_2_7_2_TRANSITION_START, 4).
+	-define(PRICE_2_7_2_TRANSITION_START, 0).
 -else.
 	-ifndef(PRICE_2_7_2_TRANSITION_START).
 		-ifdef(FORKS_RESET).
@@ -121,7 +121,7 @@
 -endif.
 
 -ifdef(BIG_TEST).
-	-define(PRICE_PER_GIB_MINUTE_PRE_TRANSITION, 8162).
+	-define(PRICE_PER_GIB_MINUTE_PRE_TRANSITION, 400).
 -else.
 	%% STATIC_2_6_8_FEE_WEI / (200 (years) * 365 (days) * 24 * 60) / 20 (replicas)
 	%% = ~400 Wei per GiB per minute.
@@ -129,7 +129,7 @@
 -endif.
 
 -ifdef(BIG_TEST).
-	-define(PRICE_2_7_2_PER_GIB_MINUTE_UPPER_BOUND, 30000).
+	-define(PRICE_2_7_2_PER_GIB_MINUTE_UPPER_BOUND, 340).
 -else.
 	-ifndef(PRICE_2_7_2_PER_GIB_MINUTE_UPPER_BOUND).
 		%% 714_000_000_000 / (200 (years) * 365 (days) * 24 * 60) / 20 (replicas)
@@ -139,7 +139,7 @@
 -endif.
 
 -ifdef(BIG_TEST).
-	-define(PRICE_2_7_2_PER_GIB_MINUTE_LOWER_BOUND, 0).
+	-define(PRICE_2_7_2_PER_GIB_MINUTE_LOWER_BOUND, 170).
 -else.
 	-ifndef(PRICE_2_7_2_PER_GIB_MINUTE_LOWER_BOUND).
 		%% 357_000_000_000 / (200 (years) * 365 (days) * 24 * 60) / 20 (replicas)

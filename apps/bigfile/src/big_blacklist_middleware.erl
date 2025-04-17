@@ -30,7 +30,7 @@ execute(Req, Env) ->
 	end.
 
 start() ->
-	?LOG_INFO([{event, ar_blacklist_middleware_start}]),
+	?LOG_INFO([{event, big_blacklist_middleware_start}]),
 	{ok, _} =
 		timer:apply_after(
 			?BAN_CLEANUP_INTERVAL,

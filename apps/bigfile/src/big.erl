@@ -962,10 +962,10 @@ commandline_parser_test_() ->
 
 -ifdef(BIG_TEST).
 console(Format) ->
-	?LOG_INFO(io_lib:format(Format, [])).
+	io:format(Format).
 
 console(Format, Params) ->
-	?LOG_INFO(io_lib:format(Format, Params)).
+	io:format(Format, Params).
 -else.
 console(Format) ->
 	io:format(Format).

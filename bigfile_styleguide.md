@@ -407,7 +407,7 @@ Code commits should aim to be a single logical change or addition to the codebas
 
 ```
 - Added generic protocol implementation.
-- Removed ar_deprecated.
+- Removed big_deprecated.
 - Added block shadows, refactored HTTP iface.
 ```
 
