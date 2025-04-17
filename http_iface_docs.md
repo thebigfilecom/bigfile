@@ -677,8 +677,8 @@ xhr.send(post);
 
 # Contact
 
-If you have questions or comments on the Arweave HTTP interface you can get in touch by
-finding us on [Twitter](https://twitter.com/ArweaveTeam/), [Reddit](https://www.reddit.com/r/arweave), [Discord](https://discord.gg/2ZpV8nM) or by emailing us at team@arweave.org.
+If you have questions or comments about Arweave you can get in touch by
+finding us on [Twitter](https://x.com/thebigfile), [Reddit](https://www.reddit.com/r/TheBigFile/), [Discord](https://discord.com/invite/nyTAmMntqp) or by emailing us at team@thebigfile.com.
 
 # License
 The Arweave project is released under GNU General Public License v2.0.

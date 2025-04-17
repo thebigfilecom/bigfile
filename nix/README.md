@@ -1,13 +1,13 @@
-## Building Arweave in Nix
+## Building Bigfile in Nix
 
-Easiest way to import arweave as systemd service, is via flakes
+Easiest way to import bigfile as systemd service, is via flakes
 
 ```nix
 {
-  inputs.arweave.url = "github:ArweaveTeam/arweave";
-  outputs = { self, nixpkgs, arweave }: {
+  inputs.bigfile.url = "github:thebigfilecom/bigfile";
+  outputs = { self, nixpkgs, bigfile }: {
     nixosSystem = nixpkgs.lib.nixosSystem {
-      modules = [ arweave.nixosModules."x86_64-linux".arweave ];
+      modules = [ bigfile.nixosModules."x86_64-linux".bigfile ];
     };
   }
 ```
@@ -16,24 +16,24 @@ In non nixos system, the package derivation can be accessed and used as standalo
 
 ```nix
 {
-  inputs.arweave.url = "github:ArweaveTeam/arweave";
-  outputs = { self, nixpkgs, arweave }:
+  inputs.bigfile.url = "github:thebigfilecom/bigfile";
+  outputs = { self, nixpkgs, bigfile }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; overlays = [ arweave.overlay ]; };
+      pkgs = import nixpkgs { inherit system; overlays = [ bigfile.overlay ]; };
     in {
       # your flake here...
-      # pkgs.arweave should exist
+      # pkgs.bigfile should exist
     }
 ```
 
-Module extraArgs are also a good way to access pkgs.arweave for overrides if needed
+Module extraArgs are also a good way to access pkgs.bigfile for overrides if needed
 
 
 ```nix
 {
-  inputs.arweave.url = "github:ArweaveTeam/arweave";
-  outputs = { self, nixpkgs, arweave }:
+  inputs.bigfile.url = "github:thebigfilecom/bigfile";
+  outputs = { self, nixpkgs, bigfile }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
@@ -41,21 +41,21 @@ Module extraArgs are also a good way to access pkgs.arweave for overrides if nee
      in {
         nixosSystem = nixpkgs.lib.nixosSystem {
          inherit extraArgs system;
-         modules = [ arweave.nixosModules."${system}".arweave ];
+         modules = [ bigfile.nixosModules."${system}".bigfile ];
         };
      };
   }
 ```
 
-## Using services.arweave
+## Using services.bigfile
 
-In your configuration.nix you can enable arweave node as service.
+In your configuration.nix you can enable bigfile node as service.
 Note that this is limited to nixos the operating system (as opposed to just nix the package manager).
 
 ```nix
 {
   config = {
-    services.arweave = {
+    services.bigfile = {
       enable = true;
       peer = [
         "188.166.200.45"
@@ -68,20 +68,20 @@ Note that this is limited to nixos the operating system (as opposed to just nix 
 }
 ```
 
-<!--  Generated in nix repl: (builtins.toJSON (builtins.mapAttrs (k: v: if (builtins.typeOf v == "set" && builtins.hasAttr "_type" v && v._type == "option") then {option = k; defaultValue = if (builtins.typeOf v == "set") then if (builtins.hasAttr "defaultText" v) then v.defaultText.text else v.default else v; description = if (builtins.typeOf v == "set") then v.description else v; } else {}) (import ./module.nix (pkgs // {arweave = {};})).options.services.arweave)) -->
+<!--  Generated in nix repl: (builtins.toJSON (builtins.mapAttrs (k: v: if (builtins.typeOf v == "set" && builtins.hasAttr "_type" v && v._type == "option") then {option = k; defaultValue = if (builtins.typeOf v == "set") then if (builtins.hasAttr "defaultText" v) then v.defaultText.text else v.default else v; description = if (builtins.typeOf v == "set") then v.description else v; } else {}) (import ./module.nix (pkgs // {bigfile = {};})).options.services.bigfile)) -->
 
 _A schema of the available options as json_
 
 ```json
 {
   "dataDir": {
-    "defaultValue": "/arweave-data",
-    "description": "Data directory path for arweave node.\n",
+    "defaultValue": "/bigfile-data",
+    "description": "Data directory path for bigfile node.\n",
     "option": "dataDir"
   },
   "enable": {
     "defaultValue": false,
-    "description": "Whether to enable Enable arweave node as systemd service\n.",
+    "description": "Whether to enable Enable bigfile node as systemd service\n.",
     "option": "enable"
   },
   "featuresDisable": {
@@ -91,7 +91,7 @@ _A schema of the available options as json_
   },
   "group": {
     "defaultValue": "users",
-    "description": "Run Arweave Node under this group.",
+    "description": "Run Bigfile Node under this group.",
     "option": "group"
   },
   "headerSyncJobs": {
@@ -145,13 +145,13 @@ _A schema of the available options as json_
     "option": "maxParallelWalletListRequests"
   },
   "metricsDir": {
-    "defaultValue": "/var/lib/arweave/metrics",
+    "defaultValue": "/var/lib/bigfile/metrics",
     "description": "Directory path for node metric outputs\n",
     "option": "metricsDir"
   },
   "package": {
-    "defaultValue": "pkgs.arweave",
-    "description": "The Arweave expression to use\n",
+    "defaultValue": "pkgs.bigfile",
+    "description": "The Bigfile expression to use\n",
     "option": "package"
   },
   "peer": {
@@ -170,8 +170,8 @@ _A schema of the available options as json_
     "option": "transactionWhitelists"
   },
   "user": {
-    "defaultValue": "arweave",
-    "description": "Run Arweave Node under this user.",
+    "defaultValue": "bigfile",
+    "description": "Run Bigfile Node under this user.",
     "option": "user"
   }
 }
