@@ -3,11 +3,9 @@
 This is the repository for the official Erlang implementation of the Bigfile
 protocol and a gateway implementation.
 
-Bigfile is a distributed, cryptographically verified permanent archive built
-on a cryptocurrency that aims to, for the first time, provide feasible data
-permanence. By leveraging our novel Blockweave datastructure, data is stored
-in a decentralised, peer-to-peer manner where miners are incentivised to
-store rare data.
+BigFile is an AI-powered decentralized blockchain network engineered to provide decentralized, immutable, and scalable data storage solutions. It is designed to securely host applications, files, and Big Data, while facilitating computations on smart contracts at unparalleled scalability.
+
+"The Bigfile source code was developed by modifying and enhancing the original Arweave project's source code, preserving its core functionality. However, the Bigfile project operates independently and has no affiliation with Arweave; it is considered an entirely separate blockchain network and project." [arweave](https://github.com/ArweaveTeam/arweave)
 
 # Getting Started
 
@@ -79,11 +77,7 @@ limits](https://docs.arweave.org/info/mining/mining-guide#preparation-file-descr
 
 ```sh
 ./bigfile-server \
-peer ams-1.eu-central-1.arweave.xyz \
-peer fra-1.eu-central-2.arweave.xyz \
-peer sgp-1.ap-central-2.arweave.xyz \
-peer blr-1.ap-central-1.arweave.xyz \
-peer sfo-1.na-west-1.arweave.xyz
+peer testnet.thebigfile.info
 ```
 
 **Make a production build:**
