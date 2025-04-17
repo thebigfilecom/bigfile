@@ -3,25 +3,23 @@
 This is the repository for the official Erlang implementation of the Bigfile
 protocol and a gateway implementation.
 
-Bigfile is a distributed, cryptographically verified permanent archive built
-on a cryptocurrency that aims to, for the first time, provide feasible data
-permanence. By leveraging our novel Blockweave datastructure, data is stored
-in a decentralised, peer-to-peer manner where miners are incentivised to
-store rare data.
+BigFile is an AI-powered decentralized blockchain network engineered to provide decentralized, immutable, and scalable data storage solutions. It is designed to securely host applications, files, and Big Data, while facilitating computations on smart contracts at unparalleled scalability.
+
+"The Bigfile source code was developed by modifying and enhancing the original Arweave project's source code, preserving its core functionality. However, the Bigfile project operates independently and has no affiliation with Arweave; it is considered an entirely separate blockchain network and project." [arweave](https://github.com/ArweaveTeam/arweave)
 
 # Getting Started
 
 Download and extract the latest archive for your platform on the release
 page, then run the included `bin/start` script to get started.
 
-For more information, refer to the [mining guide](https://docs.arweave.org/info/mining/mining-guide).
+For more information, refer to the [mining guide]().
 
 # Building from source
 
 ## Requirements
 
-The full arweave node functionality is only supported on Linux, but it is possible to run a
-VDF Server on MacOS. Refer to the [mining VDF guide](https://docs.arweave.org/developers/mining/vdf)
+The full bigfile node functionality is only supported on Linux, but it is possible to run a
+VDF Server on MacOS. Refer to the [mining VDF guide]()
 for more information on running your own VDF server.
 
 **General requirements:**
@@ -59,7 +57,7 @@ for more information on running your own VDF server.
 
   **Notes:** 
   1. This process has only been tested on a fresh install of MacOS Ventura running on a Mac Mini M2. It may or may not work on other configurations.
-  2. We have not validated mining or packing on MacOS, but as of May, 2024 the M2 provides the fastest known VDF implementation and so makes a good candidate for [VDF Servers](https://docs.arweave.org/developers/mining/vdf).
+  2. We have not validated mining or packing on MacOS, but as of May, 2024 the M2 provides the fastest known VDF implementation and so makes a good candidate for [VDF Servers]().
 
 </details>
 </br>
@@ -79,11 +77,7 @@ limits](https://docs.arweave.org/info/mining/mining-guide#preparation-file-descr
 
 ```sh
 ./bigfile-server \
-peer ams-1.eu-central-1.arweave.xyz \
-peer fra-1.eu-central-2.arweave.xyz \
-peer sgp-1.ap-central-2.arweave.xyz \
-peer blr-1.ap-central-1.arweave.xyz \
-peer sfo-1.na-west-1.arweave.xyz
+peer testnet.thebigfile.info
 ```
 
 **Make a production build:**
@@ -107,7 +101,7 @@ The tarball is created at `_build/testnet/rel/bigfile/bigfile-x.y.z.tar.gz`.
 You can join the public testnet now:
 
 ```
-./bin/start peer testnet-1.arweave.xyz peer testnet-2.arweave.xyz peer testnet-3.arweave.xyz
+./bin/start peer testnet.thebigfile.info
 ```
 
 We recommend you do not use your mainnet mining address on testnet. Also, do not join the
@@ -197,22 +191,14 @@ You can find documentation regarding our HTTP interface [here](http_iface_docs.m
 # Contact
 
 If you have questions or comments about Arweave you can get in touch by
-finding us on [Twitter](https://twitter.com/ArweaveTeam/), [Reddit](https://www.reddit.com/r/arweave), [Discord](https://discord.gg/DjAFMJc) or by
-emailing us at team@arweave.org.
+finding us on [Twitter](https://x.com/thebigfile), [Reddit](https://www.reddit.com/r/TheBigFile/), [Discord](https://discord.com/invite/nyTAmMntqp) or by
+emailing us at team@thebigfile.com.
 
 
-For more information about the Arweave project visit [https://www.arweave.org](https://www.arweave.org/)
-or have a look at our [yellow paper](https://yellow-paper.arweave.dev).
+For more information about the Arweave project visit [https://thebigfile.com](https://thebigfile.com/)
+or have a look at our [yellow paper]().
 
 # License
 
 The Arweave project is released under GNU General Public License v2.0.
 See [LICENSE](LICENSE.md) for full license conditions.
-
-# Arweave Bug Bounty Program
-
-Arweave core team has initiated an Arweave bug bounty program, with a maximum bounty of up to USD `1,000,000`. The program is focused on discovering potential technical vulnerabilities and strengthening Arweave core protocol security.
-
-The Arweave core team puts security as its top priority and has dedicated resources to ensure high incentives to attract the community at large to evaluate and safeguard the ecosystem. Whilst building Arweave, the team has engaged with industry-leading cybersecurity audit firms specializing in Blockchain Security to help secure the codebase of Arweave protocol.
-
-We encourage developers, whitehat hackers to participate, evaluate the code base and hunt for bugs, especially on issues that could potentially put users’ funds or data at risk. In exchange for a responsibly disclosed bug, the bug bounty program will reward up to USD `1,000,000` (paid in `$BIG` tokens) based on the vulnerability severity level, at the discretion of the Arweave team. Please email us at team@arweave.org to get in touch.
