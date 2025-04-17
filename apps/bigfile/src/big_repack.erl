@@ -37,7 +37,7 @@ store_cursor(Cursor, StoreID, TargetPacking) ->
 %% beginning, but offset by the repack interval size. Repeat this loop back process until
 %% the looped back position is greater than the sector size.
 advance_cursor(Cursor, RangeStart, RangeEnd) ->
-	SectorSize = ar_replica_2_9:get_sector_size(),
+	SectorSize = big_replica_2_9:get_sector_size(),
 	Cursor2 = big_chunk_storage:get_chunk_bucket_start(Cursor + SectorSize + ?DATA_CHUNK_SIZE),
 	case Cursor2 > big_chunk_storage:get_chunk_bucket_start(RangeEnd) of
 		true ->
@@ -106,7 +106,7 @@ repack_batch(Cursor, RangeStart, RangeEnd, RequiredPacking, StoreID) ->
 						{range_start, RangeStart},
 						{range_end, RangeEnd},
 						{required_packing, big_serialize:encode_packing(RequiredPacking, true)}]),
-				ar_util:cast_after(200, Server,
+				big_util:cast_after(200, Server,
 						{repack, Cursor, RangeStart, RangeEnd, RequiredPacking}),
 				continue;
 			false ->
@@ -271,7 +271,7 @@ send_chunk_for_repacking(AbsoluteOffset, ChunkMeta, Args) ->
 							DataRoot, TXPath, none, none},
 					gen_server:cast(Server,
 							{register_packing_ref, Ref, RepackArgs}),
-					ar_util:cast_after(300000, Server,
+					big_util:cast_after(300000, Server,
 							{expire_repack_request, Ref}),
 					big_packing_server:request_repack(Ref, whereis(Server),
 							{RequiredPacking2, Packing, Chunk,
@@ -368,7 +368,7 @@ read_chunk_and_data_path(StoreID, ChunkDataKey, AbsoluteOffset, MaybeChunk) ->
 %% a single repack batch to cross a sector boundary.
 get_repack_interval_size(Cursor, RangeStart) ->
 	{ok, Config} = application:get_env(bigfile, config),
-	SectorSize = ar_replica_2_9:get_sector_size(),
+	SectorSize = big_replica_2_9:get_sector_size(),
 	RepackBatchSize = ?DATA_CHUNK_SIZE * Config#config.repack_batch_size,
 	RangeStart2 = big_chunk_storage:get_chunk_bucket_start(RangeStart + 1),
 	RelativeSectorOffset = (Cursor - RangeStart2) rem SectorSize,

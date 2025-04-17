@@ -7,11 +7,11 @@
 
 -import(big_test_node, [sign_v1_tx/3, read_block_when_stored/1]).
 
-ar_node_interface_test_() ->
-	{timeout, 300, fun test_ar_node_interface/0}.
+big_node_interface_test_() ->
+	{timeout, 300, fun test_big_node_interface/0}.
 
-test_ar_node_interface() ->
-	[B0] = ar_weave:init(),
+test_big_node_interface() ->
+	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	?assertEqual(0, big_node:get_height()),
 	?assertEqual(B0#block.indep_hash, big_node:get_current_block_hash()),
@@ -26,7 +26,7 @@ mining_reward_test_() ->
 
 test_mining_reward() ->
 	{_Priv1, Pub1} = big_wallet:new_keyfile(),
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	big_test_node:start(B0, MiningAddr = big_wallet:to_address(Pub1)),
 	big_test_node:mine(),
 	big_test_node:wait_until_height(main, 1),
@@ -62,7 +62,7 @@ multi_node_mining_reward_test_() ->
 
 test_multi_node_mining_reward() ->
 	{_Priv1, Pub1} = big_test_node:remote_call(peer1, big_wallet, new_keyfile, []),
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0, MiningAddr = big_wallet:to_address(Pub1)),
 	big_test_node:connect_to_peer(peer1),
@@ -86,7 +86,7 @@ replay_attack_test_() ->
 	{timeout, 120, fun() ->
 		Key1 = {_Priv1, Pub1} = big_wallet:new(),
 		{_Priv2, Pub2} = big_wallet:new(),
-		[B0] = ar_weave:init([{big_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
+		[B0] = big_weave:init([{big_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
 		big_test_node:start(B0),
 		big_test_node:start_peer(peer1, B0),
 		big_test_node:connect_to_peer(peer1),
@@ -118,7 +118,7 @@ test_wallet_transaction() ->
 			{_Priv2, Pub2} = big_wallet:new(),
 			TX = big_tx:new(big_wallet:to_address(Pub2), ?BIG(1), ?BIG(9000), <<>>),
 			SignedTX = big_tx:sign(TX#tx{ format = 2 }, Priv1, Pub1),
-			[B0] = ar_weave:init([{big_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
+			[B0] = big_weave:init([{big_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
 			big_test_node:start(B0, big_wallet:to_address(big_wallet:new_keyfile({eddsa, ed25519}))),
 			big_test_node:start_peer(peer1, B0),
 			big_test_node:connect_to_peer(peer1),
@@ -141,7 +141,7 @@ tx_threading_test_() ->
 	{timeout, 120, fun() ->
 		Key1 = {_Priv1, Pub1} = big_wallet:new(),
 		{_Priv2, Pub2} = big_wallet:new(),
-		[B0] = ar_weave:init([{big_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
+		[B0] = big_weave:init([{big_wallet:to_address(Pub1), ?BIG(10000), <<>>}]),
 		big_test_node:start(B0),
 		big_test_node:start_peer(peer1, B0),
 		big_test_node:connect_to_peer(peer1),
@@ -168,14 +168,14 @@ persisted_mempool_test_() ->
 
 test_persisted_mempool() ->
 	{_, Pub} = Wallet = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),
 	SignedTX = big_test_node:sign_tx(Wallet, #{ last_tx => big_test_node:get_tx_anchor(main) }),
 	{ok, {{<<"200">>, _}, _, <<"OK">>, _, _}} = big_test_node:post_tx_to_peer(main, SignedTX, false),
 	Mempool = big_mempool:get_map(),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			maps:is_key(SignedTX#tx.id, Mempool)
 		end,

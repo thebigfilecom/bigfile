@@ -30,7 +30,7 @@
 %% middlewares. It uses the `handler` env value set by cowboy_router
 %% to determine whether or not it should run, otherwise it lets
 %% the cowboy_handler middleware run prometheus_cowboy2_handler.
-execute(Req, #{ handler := ar_http_iface_handler }) ->
+execute(Req, #{ handler := big_http_iface_handler }) ->
 	Pid = self(),
 	HandlerPid = spawn_link(fun() ->
 		Pid ! {handled, handle(Req, Pid)}
@@ -96,7 +96,7 @@ handle(Peer, Req, Pid) ->
 				{event, http_request},
 				{method, Method},
 				{path, SplitPath},
-				{peer, ar_util:format_peer(Peer)}
+				{peer, big_util:format_peer(Peer)}
 			]);
 		_ ->
 			do_nothing
@@ -162,7 +162,7 @@ handle4(<<"GET">>, [<<"tx">>, <<"ready_for_mining">>], Req, _Pid) ->
 	{200, #{},
 			big_serialize:jsonify(
 				lists:map(
-					fun ar_util:encode/1,
+					fun big_util:encode/1,
 					big_node:get_ready_for_mining_txs()
 				)
 			),
@@ -192,7 +192,7 @@ handle(<<"GET">>, [<<"recent">>], Req, _Pid) ->
 	end;
 	
 handle(<<"GET">>, [<<"is_tx_blacklisted">>, EncodedTXID], Req, _Pid) ->
-	case ar_util:safe_decode(EncodedTXID) of
+	case big_util:safe_decode(EncodedTXID) of
 		{error, invalid} ->
 			{400, #{}, jiffy:encode(#{ error => invalid_tx_id }), Req};
 		{ok, TXID} ->
@@ -234,7 +234,7 @@ handle(<<"GET">>, [<<"tx">>, <<"pending">>], Req, _Pid) ->
 					big_serialize:jsonify(
 						%% Should encode
 						lists:map(
-							fun ar_util:encode/1,
+							fun big_util:encode/1,
 							big_mempool:get_all_txids()
 						)
 					),
@@ -286,7 +286,7 @@ handle(<<"GET">>, [<<"tx">>, Hash, << "data.", _/binary >>], Req, _Pid) ->
 		true ->
 			{421, #{}, <<"Serving HTML data is disabled on this node.">>, Req};
 		_ ->
-			case ar_util:safe_decode(Hash) of
+			case big_util:safe_decode(Hash) of
 				{error, invalid} ->
 					{400, #{}, <<"Invalid hash.">>, Req};
 				{ok, ID} ->
@@ -373,7 +373,7 @@ handle(<<"GET">>, [<<"tx">>, EncodedID, <<"offset">>], Req, _Pid) ->
 		false ->
 			not_joined(Req);
 		true ->
-			case ar_util:safe_decode(EncodedID) of
+			case big_util:safe_decode(EncodedID) of
 				{error, invalid} ->
 					{400, #{}, jiffy:encode(#{ error => invalid_address }), Req};
 				{ok, ID} ->
@@ -528,7 +528,7 @@ handle(<<"GET">>, [<<"jobs">>, EncodedPrevOutput], Req, _Pid) ->
 		false ->
 			not_joined(Req);
 		true ->
-			case ar_util:safe_decode(EncodedPrevOutput) of
+			case big_util:safe_decode(EncodedPrevOutput) of
 				{ok, PrevOutput} ->
 					handle_get_jobs(PrevOutput, Req);
 				{error, invalid} ->
@@ -558,7 +558,7 @@ handle(<<"POST">>, [<<"pool_cm_jobs">>], Req, Pid) ->
 handle(<<"POST">>, [<<"wallet">>], Req, _Pid) ->
 	case check_internal_api_secret(Req) of
 		pass ->
-			WalletAccessCode = ar_util:encode(crypto:strong_rand_bytes(32)),
+			WalletAccessCode = big_util:encode(crypto:strong_rand_bytes(32)),
 			case big_wallet:new_keyfile(?DEFAULT_KEY_TYPE, WalletAccessCode) of
 				{error, Reason} ->
 					?LOG_ERROR([{event, failed_to_create_new_wallet},
@@ -566,7 +566,7 @@ handle(<<"POST">>, [<<"wallet">>], Req, _Pid) ->
 					{500, #{}, <<>>, Req};
 				{_, Pub} ->
 					ResponseProps = [
-						{<<"wallet_address">>, ar_util:encode(big_wallet:to_address(Pub))},
+						{<<"wallet_address">>, big_util:encode(big_wallet:to_address(Pub))},
 						{<<"wallet_access_code">>, WalletAccessCode}
 					],
 					{200, #{}, big_serialize:jsonify({ResponseProps}), Req}
@@ -605,9 +605,9 @@ handle(<<"POST">>, [<<"unsigned_tx">>], Req, Pid) ->
 					FullTxProps = lists:append(
 						proplists:delete(<<"wallet_access_code">>, UnsignedTXProps),
 						[
-							{<<"id">>, ar_util:encode(crypto:strong_rand_bytes(32))},
-							{<<"owner">>, ar_util:encode(<<"owner placeholder">>)},
-							{<<"signature">>, ar_util:encode(<<"signature placeholder">>)}
+							{<<"id">>, big_util:encode(crypto:strong_rand_bytes(32))},
+							{<<"owner">>, big_util:encode(<<"owner placeholder">>)},
+							{<<"signature">>, big_util:encode(<<"signature placeholder">>)}
 						]
 					),
 					KeyPair = big_wallet:load_keyfile(
@@ -630,7 +630,7 @@ handle(<<"POST">>, [<<"unsigned_tx">>], Req, Pid) ->
 					SignedTX = big_tx:sign(Format2TX, KeyPair),
 					Peer = big_http_util:bigfile_peer(Req),
 					Reply = big_serialize:jsonify({[{<<"id">>,
-							ar_util:encode(SignedTX#tx.id)}]}),
+							big_util:encode(SignedTX#tx.id)}]}),
 					case handle_post_tx(Req2, Peer, SignedTX) of
 						ok ->
 							{200, #{}, Reply, Req2};
@@ -652,7 +652,7 @@ handle(<<"GET">>, [<<"peers">>], Req, _Pid) ->
 	{200, #{},
 		big_serialize:jsonify(
 			[
-				list_to_binary(ar_util:format_peer(P))
+				list_to_binary(big_util:format_peer(P))
 			||
 				P <- big_peers:get_peers(current),
 				P /= big_http_util:bigfile_peer(Req),
@@ -848,7 +848,7 @@ handle(<<"GET">>, [<<"reward_history">>, EncodedBH], Req, _Pid) ->
 			not_joined(Req);
 		true ->
 			ok = big_semaphore:acquire(get_reward_history, infinity),
-			case ar_util:safe_decode(EncodedBH) of
+			case big_util:safe_decode(EncodedBH) of
 				{ok, BH} ->
 					Fork_2_6 = big_fork:height_2_6(),
 					case big_block_cache:get_block_and_status(block_cache, BH) of
@@ -872,7 +872,7 @@ handle(<<"GET">>, [<<"block_time_history">>, EncodedBH], Req, _Pid) ->
 		false ->
 			not_joined(Req);
 		true ->
-			case ar_util:safe_decode(EncodedBH) of
+			case big_util:safe_decode(EncodedBH) of
 				{ok, BH} ->
 					Fork_2_7 = big_fork:height_2_7(),
 					case big_block_cache:get_block_and_status(block_cache, BH) of
@@ -975,7 +975,7 @@ handle(<<"GET">>, [<<"recent_hash_list">>], Req, _Pid) ->
 		false ->
 			not_joined(Req);
 		true ->
-			Encoded = [ar_util:encode(H) || H <- big_node:get_block_anchors()],
+			Encoded = [big_util:encode(H) || H <- big_node:get_block_anchors()],
 			{200, #{}, big_serialize:jsonify(Encoded), Req}
 	end;
 
@@ -1033,7 +1033,7 @@ handle(<<"GET">>, [<<"wallet_list">>], Req, _Pid) ->
 			not_joined(Req);
 		true ->
 			H = big_node:get_current_block_hash(),
-			process_request(get_block, [<<"hash">>, ar_util:encode(H), <<"wallet_list">>], Req)
+			process_request(get_block, [<<"hash">>, big_util:encode(H), <<"wallet_list">>], Req)
 	end;
 
 %% Return a bunch of wallets, up to ?WALLET_LIST_CHUNK_SIZE, from the tree with
@@ -1064,7 +1064,7 @@ handle(<<"GET">>, [<<"wallet_list">>, EncodedRootHash, EncodedAddr, <<"balance">
 		false ->
 			not_joined(Req);
 		true ->
-			case {ar_util:safe_decode(EncodedRootHash), ar_util:safe_decode(EncodedAddr)} of
+			case {big_util:safe_decode(EncodedRootHash), big_util:safe_decode(EncodedAddr)} of
 				{{error, invalid}, _} ->
 					{400, #{}, jiffy:encode(#{ error => invalid_root_hash_encoding }), Req};
 				{_, {error, invalid}} ->
@@ -1135,7 +1135,7 @@ handle(<<"GET">>, [<<"wallet">>, Addr, <<"last_tx">>], Req, _Pid) ->
 					{400, #{}, <<"Invalid address.">>, Req};
 				{ok, AddrOK} ->
 					{200, #{},
-						ar_util:encode(
+						big_util:encode(
 							?OK(big_node:get_last_tx(AddrOK))
 						),
 					Req}
@@ -1150,7 +1150,7 @@ handle(<<"GET">>, [<<"tx_anchor">>], Req, _Pid) ->
 		true ->
 			List = big_node:get_block_anchors(),
 			SuggestedAnchor = lists:nth(min(length(List), ?SUGGESTED_TX_ANCHOR_DEPTH), List),
-			{200, #{}, ar_util:encode(SuggestedAnchor), Req}
+			{200, #{}, big_util:encode(SuggestedAnchor), Req}
 	end;
 
 %% Return the JSON-encoded block with the given height or hash.
@@ -1195,7 +1195,7 @@ handle(<<"GET">>, [<<"block">>, <<"current">>], Req, Pid) ->
 		not_joined ->
 			not_joined(Req);
 		H when is_binary(H) ->
-			handle(<<"GET">>, [<<"block">>, <<"hash">>, ar_util:encode(H)], Req, Pid)
+			handle(<<"GET">>, [<<"block">>, <<"hash">>, big_util:encode(H)], Req, Pid)
 	end;
 
 %% DEPRECATED (12/07/2018)
@@ -1212,7 +1212,7 @@ handle(<<"GET">>, [<<"tx">>, Hash, Field], Req, _Pid) ->
 			not_joined(Req);
 		true ->
 			ReadTX =
-				case ar_util:safe_decode(Hash) of
+				case big_util:safe_decode(Hash) of
 					{error, invalid} ->
 						{reply, {400, #{}, <<"Invalid hash.">>, Req}};
 					{ok, ID} ->
@@ -1233,8 +1233,8 @@ handle(<<"GET">>, [<<"tx">>, Hash, Field], Req, _Pid) ->
 						<<"tags">> ->
 							{200, #{}, big_serialize:jsonify(lists:map(
 									fun({Name, Value}) ->
-										{[{name, ar_util:encode(Name)},
-												{value, ar_util:encode(Value)}]}
+										{[{name, big_util:encode(Name)},
+												{value, big_util:encode(Value)}]}
 									end,
 									TX#tx.tags)), Req};
 						<<"data">> ->
@@ -1434,7 +1434,7 @@ handle(<<"GET">>, [<<"coordinated_mining">>, <<"state">>], Req, _Pid) ->
 							PartitionList
 						),
 						Val = {[
-							{peer, list_to_binary(ar_util:format_peer(Peer))},
+							{peer, list_to_binary(big_util:format_peer(Peer))},
 							{alive, AliveStatus},
 							{partition_table, Table}
 						]},
@@ -1557,7 +1557,7 @@ not_joined(Req) ->
 	{503, #{}, jiffy:encode(#{ error => not_joined }), Req}.
 
 handle_get_tx_status(EncodedTXID, Req) ->
-	case ar_util:safe_decode(EncodedTXID) of
+	case big_util:safe_decode(EncodedTXID) of
 		{error, invalid} ->
 			{400, #{}, <<"Invalid address.">>, Req};
 		{ok, TXID} ->
@@ -1569,7 +1569,7 @@ handle_get_tx_status(EncodedTXID, Req) ->
 						{ok, {Height, BH}} ->
 							PseudoTags = [
 								{<<"block_height">>, Height},
-								{<<"block_indep_hash">>, ar_util:encode(BH)}
+								{<<"block_indep_hash">>, big_util:encode(BH)}
 							],
 							case big_block_index:get_element_by_height(Height) of
 								not_found ->
@@ -1595,7 +1595,7 @@ handle_get_tx_status(EncodedTXID, Req) ->
 	end.
 
 handle_get_tx(Hash, Req, Encoding) ->
-	case ar_util:safe_decode(Hash) of
+	case big_util:safe_decode(Hash) of
 		{error, invalid} ->
 			{400, #{}, <<"Invalid hash.">>, Req};
 		{ok, ID} ->
@@ -1616,7 +1616,7 @@ handle_get_tx(Hash, Req, Encoding) ->
 	end.
 
 handle_get_unconfirmed_tx(Hash, Req, Encoding) ->
-	case ar_util:safe_decode(Hash) of
+	case big_util:safe_decode(Hash) of
 		{error, invalid} ->
 			{400, #{}, <<"Invalid hash.">>, Req};
 		{ok, TXID} ->
@@ -1650,7 +1650,7 @@ maybe_tx_is_pending_response(ID, Req) ->
 	end.
 
 serve_tx_data(Req, #tx{ format = 1 } = TX) ->
-	{200, #{}, ar_util:encode(TX#tx.data), Req};
+	{200, #{}, big_util:encode(TX#tx.data), Req};
 serve_tx_data(Req, #tx{ format = 2, id = ID, data_size = DataSize } = TX) ->
 	DataFilename = big_storage:tx_data_filepath(TX),
 	case filelib:is_file(DataFilename) of
@@ -1660,7 +1660,7 @@ serve_tx_data(Req, #tx{ format = 2, id = ID, data_size = DataSize } = TX) ->
 			ok = big_semaphore:acquire(get_tx_data, infinity),
 			case big_data_sync:get_tx_data(ID) of
 				{ok, Data} ->
-					{200, #{}, ar_util:encode(Data), Req};
+					{200, #{}, big_util:encode(Data), Req};
 				{error, tx_data_too_big} ->
 					{400, #{}, jiffy:encode(#{ error => tx_data_too_big }), Req};
 				{error, not_found} when DataSize == 0 ->
@@ -1787,7 +1787,7 @@ estimate_tx_fee_v2(Size, Addr) ->
 handle_get_block(Type, ID, Req, Pid, Encoding) ->
 	case Type of
 		<<"hash">> ->
-			case ar_util:safe_decode(ID) of
+			case big_util:safe_decode(ID) of
 				{error, invalid} ->
 					{404, #{}, <<"Block not found.">>, Req};
 				{ok, H} ->
@@ -1809,7 +1809,7 @@ handle_get_block(Type, ID, Req, Pid, Encoding) ->
 								not_found ->
 									{404, #{}, <<"Block not found.">>, Req};
 								{H, _, _} ->
-									handle_get_block(<<"hash">>, ar_util:encode(H), Req, Pid,
+									handle_get_block(<<"hash">>, big_util:encode(H), Req, Pid,
 											Encoding)
 							end
 					catch _:_ ->
@@ -1829,7 +1829,7 @@ handle_get_block(H, Req, Pid, Encoding) ->
 					%% include the requested transactions without doing disk lookups.
 					case read_complete_body(Req, Pid, ?MAX_SERIALIZED_MISSING_TX_INDICES) of
 						{ok, Body, Req2} ->
-							case ar_util:parse_list_indices(Body) of
+							case big_util:parse_list_indices(Body) of
 								error ->
 									{400, #{}, <<>>, Req2};
 								Indices ->
@@ -2145,7 +2145,7 @@ get_data_root_from_headers(Req) ->
 		{EncodedDataRoot, EncodedDataSize} when byte_size(EncodedDataRoot) == 43 ->
 			case catch binary_to_integer(EncodedDataSize) of
 				DataSize when is_integer(DataSize) ->
-					case ar_util:safe_decode(EncodedDataRoot) of
+					case big_util:safe_decode(EncodedDataRoot) of
 						{ok, DataRoot} ->
 							{ok, {DataRoot, DataSize}};
 						_ ->
@@ -2405,7 +2405,7 @@ post_block(check_block_hash_header, Peer, {Req, Pid, Encoding}, ReceiveTimestamp
 		not_set ->
 			post_block(read_body, Peer, {Req, Pid, Encoding}, ReceiveTimestamp);
 		EncodedBH ->
-			case ar_util:safe_decode(EncodedBH) of
+			case big_util:safe_decode(EncodedBH) of
 				{ok, BH} when byte_size(BH) =< 48 ->
 					case big_ignore_registry:member(BH) of
 						true ->
@@ -2466,8 +2466,8 @@ post_block(enqueue_block, {B, Peer}, Req, ReceiveTimestamp) ->
 						end
 				end
 		end,
-	?LOG_INFO([{event, received_block}, {block, ar_util:encode(B#block.indep_hash)},
-		{peer, ar_util:format_peer(Peer)}]),
+	?LOG_INFO([{event, received_block}, {block, big_util:encode(B#block.indep_hash)},
+		{peer, big_util:format_peer(Peer)}]),
 	BodyReadTime = big_http_req:body_read_time(Req),
 	case big_block_pre_validator:pre_validate(B2, Peer, ReceiveTimestamp) of
 		ok ->
@@ -2578,7 +2578,7 @@ handle_get_jobs_pool_server(PrevOutput, Req) ->
 		),
 	DiffPair = proplists:get_value(diff_pair, Props),
 	Info = proplists:get_value(nonce_limiter_info, Props),
-	Result = ar_util:do_until(
+	Result = big_util:do_until(
 		fun() ->
 			S = big_nonce_limiter:get_step_triplets(Info, PrevOutput, ?GET_JOBS_COUNT),
 			case S of
@@ -2729,7 +2729,7 @@ process_request(get_block, [Type, ID, <<"hash_list">>], Req) ->
 				false ->
 					CurrentBI = big_node:get_block_index(),
 					HL = big_block:generate_hash_list_for_block(B#block.indep_hash, CurrentBI),
-					{200, #{}, big_serialize:jsonify(lists:map(fun ar_util:encode/1, HL)), Req}
+					{200, #{}, big_serialize:jsonify(lists:map(fun big_util:encode/1, HL)), Req}
 			end
 	end;
 %% @doc Return the wallet list associated with a block.
@@ -2830,7 +2830,7 @@ handle_get_block_wallet_balance(EncodedHeight, EncodedAddr, Req) ->
 									{404, #{}, jiffy:encode(#{ error => block_not_found }),
 											Req};
 								#block{ wallet_list = RootHash } ->
-									case ar_util:safe_decode(EncodedAddr) of
+									case big_util:safe_decode(EncodedAddr) of
 										{ok, Addr} ->
 											handle_get_block_wallet_balance2(Addr, RootHash,
 													Req);
@@ -2871,9 +2871,9 @@ process_get_wallet_list_chunk(EncodedRootHash, EncodedCursor, Req) ->
 			first ->
 				{ok, first};
 			_ ->
-				ar_util:safe_decode(EncodedCursor)
+				big_util:safe_decode(EncodedCursor)
 		end,
-	case {ar_util:safe_decode(EncodedRootHash), DecodeCursorResult} of
+	case {big_util:safe_decode(EncodedRootHash), DecodeCursorResult} of
 		{{error, invalid}, _} ->
 			{400, #{}, <<"Invalid root hash.">>, Req};
 		{_, {error, invalid}} ->
@@ -2906,7 +2906,7 @@ wallet_list_chunk_to_json(#{ next_cursor := NextCursor, wallets := Wallets }) ->
 			jiffy:encode(#{ wallets => SerializedWallets });
 		Cursor when is_binary(Cursor) ->
 			jiffy:encode(#{
-				next_cursor => ar_util:encode(Cursor),
+				next_cursor => big_util:encode(Cursor),
 				wallets => SerializedWallets
 			})
 	end.
@@ -2925,7 +2925,7 @@ find_block(<<"height">>, RawHeight) ->
 			end
 	end;
 find_block(<<"hash">>, ID) ->
-	case ar_util:safe_decode(ID) of
+	case big_util:safe_decode(ID) of
 		{ok, H} ->
 			big_storage:read_block(H);
 		_ ->
@@ -2940,7 +2940,7 @@ post_tx_parse_id(check_header, {Req, Pid, Encoding}) ->
 		not_set ->
 			post_tx_parse_id(read_body, {not_set, Req, Pid, Encoding});
 		EncodedTXID ->
-			case ar_util:safe_decode(EncodedTXID) of
+			case big_util:safe_decode(EncodedTXID) of
 				{ok, TXID} when byte_size(TXID) =< 32 ->
 					post_tx_parse_id(check_ignore_list, {TXID, Req, Pid, Encoding});
 				_ ->
@@ -3152,14 +3152,14 @@ read_body_chunk(Req, Pid, Size, Timeout) ->
 		{read_body_chunk, {'EXIT', timeout}} ->
 			Peer = big_http_util:bigfile_peer(Req),
 			?LOG_DEBUG([{event, body_read_cowboy_timeout}, {method, cowboy_req:method(Req)},
-					{path, cowboy_req:path(Req)}, {peer, ar_util:format_peer(Peer)}]),
+					{path, cowboy_req:path(Req)}, {peer, big_util:format_peer(Peer)}]),
 			{error, timeout};
 		{read_body_chunk, Term} ->
 			Term
 	after Timeout ->
 		Peer = big_http_util:bigfile_peer(Req),
 		?LOG_DEBUG([{event, body_read_timeout}, {method, cowboy_req:method(Req)},
-				{path, cowboy_req:path(Req)}, {peer, ar_util:format_peer(Peer)}]),
+				{path, cowboy_req:path(Req)}, {peer, big_util:format_peer(Peer)}]),
 		{error, timeout}
 	end.
 
@@ -3206,7 +3206,7 @@ handle_mining_h2(Req, Pid) ->
 							{400, #{}, jiffy:encode(#{ error => invalid_json }), Req2};
 						Candidate ->
 							?LOG_INFO([{event, h2_received},
-									{peer, ar_util:format_peer(Peer)}]),
+									{peer, big_util:format_peer(Peer)}]),
 							case {big_pool:is_client(), big_coordination:is_exit_peer()} of
 								{true, true} ->
 									PoolPeer = big_pool:pool_peer(),
@@ -3241,11 +3241,11 @@ handle_mining_cm_publish(Req, Pid) ->
 							{400, #{}, jiffy:encode(#{ error => invalid_json }), Req2};
 						Solution ->
 							big:console("Block candidate ~p from ~p ~n", [
-								ar_util:encode(Solution#mining_solution.solution_hash),
-								ar_util:format_peer(Peer)]),
+								big_util:encode(Solution#mining_solution.solution_hash),
+								big_util:format_peer(Peer)]),
 							?LOG_INFO("Block candidate ~p from ~p ~n", [
-								ar_util:encode(Solution#mining_solution.solution_hash),
-								ar_util:format_peer(Peer)]),
+								big_util:encode(Solution#mining_solution.solution_hash),
+								big_util:format_peer(Peer)]),
 							big_mining_server:prepare_and_post_solution(Solution),
 							{200, #{}, <<>>, Req}
 					end;

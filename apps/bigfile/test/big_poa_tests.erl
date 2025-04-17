@@ -11,7 +11,7 @@ v1_transactions_after_2_0_test_() ->
 test_v1_transactions_after_2_0() ->
 	Key = {_, Pub1} = big_wallet:new(),
 	Key2 = {_, Pub2} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub1), ?BIG(100), <<>>},
 		{big_wallet:to_address(Pub2), ?BIG(100), <<>>}
 	]),
@@ -69,7 +69,7 @@ v2_transactions_after_2_0_test_() ->
 test_v2_transactions_after_2_0() ->
 	Key = {_, Pub1} = big_wallet:new(),
 	Key2 = {_, Pub2} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub1), ?BIG(100), <<>>},
 		{big_wallet:to_address(Pub2), ?BIG(100), <<>>}
 	]),
@@ -126,7 +126,7 @@ recall_byte_on_the_border_test_() ->
 
 test_recall_byte_on_the_border() ->
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub), ?BIG(100), <<>>}
 	]),
 	big_test_node:start(B0),
@@ -167,7 +167,7 @@ ignores_transactions_with_invalid_data_root_test_() ->
 
 test_ignores_transactions_with_invalid_data_root() ->
 	Key = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([
+	[B0] = big_weave:init([
 		{big_wallet:to_address(Pub), ?BIG(100), <<>>}
 	]),
 	big_test_node:start(B0),

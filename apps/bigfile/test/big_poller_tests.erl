@@ -11,7 +11,7 @@ polling_test_() ->
 
 test_polling() ->
 	{_, Pub} = Wallet = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 	big_test_node:start(B0),
 	big_test_node:start_peer(peer1, B0),
 	big_test_node:disconnect_from(peer1),

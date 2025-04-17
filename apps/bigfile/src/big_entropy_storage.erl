@@ -23,10 +23,10 @@ start_link(Name, {StoreID, _}) ->
 
 %% @doc Return the name of the server serving the given StoreID.
 name(StoreID) ->
-    list_to_atom("ar_entropy_storage_" ++ big_storage_module:label_by_id(StoreID)).
+    list_to_atom("big_entropy_storage_" ++ big_storage_module:label_by_id(StoreID)).
 
 init(StoreID) ->
-    ?LOG_INFO([{event, ar_entropy_storage_init}, {name, name(StoreID)}, {store_id, StoreID}]),
+    ?LOG_INFO([{event, big_entropy_storage_init}, {name, name(StoreID)}, {store_id, StoreID}]),
     {ok, #state{store_id = StoreID}}.
 
 store_entropy(StoreID,
@@ -100,17 +100,17 @@ handle_info(Info, State) ->
 %% @doc Return true if the 2.9 entropy with the given offset is recorded.
 is_entropy_recorded(PaddedEndOffset, StoreID) ->
     %% Entropy indexing changed between 2.9.0 and 2.9.1. So we'll use a new
-    %% sync_record id (ar_chunk_storage_replica_2_9_1_entropy) going forward.
-    %% The old id (ar_chunk_storage_replica_2_9_entropy) should not be used.
-    ID = ar_chunk_storage_replica_2_9_1_entropy,
+    %% sync_record id (big_chunk_storage_replica_2_9_1_entropy) going forward.
+    %% The old id (big_chunk_storage_replica_2_9_entropy) should not be used.
+    ID = big_chunk_storage_replica_2_9_1_entropy,
     ChunkBucketStart = big_chunk_storage:get_chunk_bucket_start(PaddedEndOffset),
     big_sync_record:is_recorded(ChunkBucketStart + 1, ID, StoreID).
 
 update_sync_records(IsComplete, PaddedEndOffset, StoreID, RewardAddr) ->
     %% Entropy indexing changed between 2.9.0 and 2.9.1. So we'll use a new
-    %% sync_record id (ar_chunk_storage_replica_2_9_1_entropy) going forward.
-    %% The old id (ar_chunk_storage_replica_2_9_entropy) should not be used.
-    ID = ar_chunk_storage_replica_2_9_1_entropy,
+    %% sync_record id (big_chunk_storage_replica_2_9_1_entropy) going forward.
+    %% The old id (big_chunk_storage_replica_2_9_entropy) should not be used.
+    ID = big_chunk_storage_replica_2_9_1_entropy,
     BucketEnd = big_chunk_storage:get_chunk_bucket_end(PaddedEndOffset),
     BucketStart = big_chunk_storage:get_chunk_bucket_start(PaddedEndOffset),
     big_sync_record:add_async(replica_2_9_entropy, BucketEnd, BucketStart, ID, StoreID),
@@ -141,9 +141,9 @@ update_sync_records(IsComplete, PaddedEndOffset, StoreID, RewardAddr) ->
 
 delete_record(PaddedEndOffset, StoreID) ->
     %% Entropy indexing changed between 2.9.0 and 2.9.1. So we'll use a new
-    %% sync_record id (ar_chunk_storage_replica_2_9_1_entropy) going forward.
-    %% The old id (ar_chunk_storage_replica_2_9_entropy) should not be used.
-    ID = ar_chunk_storage_replica_2_9_1_entropy,
+    %% sync_record id (big_chunk_storage_replica_2_9_1_entropy) going forward.
+    %% The old id (big_chunk_storage_replica_2_9_entropy) should not be used.
+    ID = big_chunk_storage_replica_2_9_1_entropy,
     BucketStart = big_chunk_storage:get_chunk_bucket_start(PaddedEndOffset),
     big_sync_record:delete(BucketStart + ?DATA_CHUNK_SIZE, BucketStart, ID, StoreID).
 
@@ -153,7 +153,7 @@ generate_missing_entropy(PaddedEndOffset, RewardAddr) ->
         {error, Reason} ->
             {error, Reason};
         _ ->
-            EntropyIndex = ar_replica_2_9:get_slice_index(PaddedEndOffset),
+            EntropyIndex = big_replica_2_9:get_slice_index(PaddedEndOffset),
             take_combined_entropy_by_index(Entropies, EntropyIndex)
     end.
 
@@ -184,8 +184,8 @@ do_store_entropy(Entropies,
         {ChunkEntropy, Rest} ->
             %% Sanity checks
             true =
-                ar_replica_2_9:get_entropy_partition(BucketEndOffset)
-                == ar_replica_2_9:get_entropy_partition(RangeEnd),
+                big_replica_2_9:get_entropy_partition(BucketEndOffset)
+                == big_replica_2_9:get_entropy_partition(RangeEnd),
             sanity_check_replica_2_9_entropy_keys(BucketEndOffset, RewardAddr, Keys),
             %% End sanity checks
             case BucketEndOffset > RangeStart of
@@ -304,7 +304,7 @@ get_chunk_byte_from_bucket_end(BucketEndOffset) ->
                     BucketEndOffset - ?DATA_CHUNK_SIZE;
                 _ ->
                     ?STRICT_DATA_SPLIT_THRESHOLD
-                    + ar_util:floor_int(RelativeBucketEndOffset, ?DATA_CHUNK_SIZE)
+                    + big_util:floor_int(RelativeBucketEndOffset, ?DATA_CHUNK_SIZE)
             end;
         false ->
             BucketEndOffset - 1
@@ -327,7 +327,7 @@ record_entropy(ChunkEntropy, BucketEndOffset, StoreID, RewardAddr) ->
             {_IntervalEnd, IntervalStart} ->
                 EndOffset2 =
                     IntervalStart
-                    + ar_util:floor_int(Byte - IntervalStart, ?DATA_CHUNK_SIZE)
+                    + big_util:floor_int(Byte - IntervalStart, ?DATA_CHUNK_SIZE)
                     + ?DATA_CHUNK_SIZE,
                 case big_chunk_storage:get_chunk_bucket_end(EndOffset2) of
                     BucketEndOffset ->
@@ -412,7 +412,7 @@ reset_entropy_offset(BucketEndOffset) ->
     %% Sanity checks
     BucketEndOffset = big_chunk_storage:get_chunk_bucket_end(BucketEndOffset),
     %% End sanity checks
-    SliceIndex = ar_replica_2_9:get_slice_index(BucketEndOffset),
+    SliceIndex = big_replica_2_9:get_slice_index(BucketEndOffset),
     shift_entropy_offset(BucketEndOffset, -SliceIndex).
 
 %% @doc Take the first slice of each entropy and combine into a single binary. This binary
@@ -459,7 +459,7 @@ sanity_check_replica_2_9_entropy_keys(PaddedEndOffset,
                                       RewardAddr,
                                       SubChunkStartOffset,
                                       [Key | Keys]) ->
-    Key = ar_replica_2_9:get_entropy_key(RewardAddr, PaddedEndOffset, SubChunkStartOffset),
+    Key = big_replica_2_9:get_entropy_key(RewardAddr, PaddedEndOffset, SubChunkStartOffset),
     SubChunkSize = ?COMPOSITE_PACKING_SUB_CHUNK_SIZE,
     sanity_check_replica_2_9_entropy_keys(PaddedEndOffset,
                                           RewardAddr,
@@ -467,7 +467,7 @@ sanity_check_replica_2_9_entropy_keys(PaddedEndOffset,
                                           Keys).
 
 shift_entropy_offset(Offset, SectorCount) ->
-    SectorSize = ar_replica_2_9:get_sector_size(),
+    SectorSize = big_replica_2_9:get_sector_size(),
     big_chunk_storage:get_chunk_bucket_end(Offset + SectorSize * SectorCount).
 
 acquire_semaphore(Filepath) ->
@@ -490,7 +490,7 @@ release_semaphore(Filepath) ->
 %%%===================================================================
 
 reset_entropy_offset_test() ->
-    ?assertEqual(786432, ar_replica_2_9:get_sector_size()),
+    ?assertEqual(786432, big_replica_2_9:get_sector_size()),
     ?assertEqual(786432, ?STRICT_DATA_SPLIT_THRESHOLD),
     %% Slice index of 0 means no shift (all offsets at or below the strict data split
     %% threshold are not padded)

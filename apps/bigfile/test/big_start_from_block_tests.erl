@@ -10,7 +10,7 @@ start_from_block_test_() ->
 	].
 
 test_start_from_block() ->
-    [B0] = ar_weave:init([], 0), %% Set difficulty to 0 to speed up tests
+    [B0] = big_weave:init([], 0), %% Set difficulty to 0 to speed up tests
 	big_test_node:start(B0),
     big_test_node:start_peer(peer1, B0),
     big_test_node:start_peer(peer2, B0),
@@ -153,7 +153,7 @@ get_reward_history(Peer, H) ->
     case big_http:req(#{
         peer => PeerIP,
         method => get,
-        path => "/reward_history/" ++ binary_to_list(ar_util:encode(H)),
+        path => "/reward_history/" ++ binary_to_list(big_util:encode(H)),
         timeout => 30000
     }) of
         {ok, {{<<"200">>, _}, _, Body, _, _}} ->

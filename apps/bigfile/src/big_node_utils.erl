@@ -60,7 +60,7 @@ update_accounts(B, PrevB, Accounts) ->
 %% are made in  , big_nonce_limiter.erl, and
 %% big_node_utils:update_accounts/3.
 validate(NewB, B, Wallets, BlockAnchors, RecentTXMap, PartitionUpperBound) ->
-	?LOG_INFO([{event, validating_block}, {hash, ar_util:encode(NewB#block.indep_hash)}]),
+	?LOG_INFO([{event, validating_block}, {hash, big_util:encode(NewB#block.indep_hash)}]),
 	case timer:tc(
 		fun() ->
 			do_validate(NewB, B, Wallets, BlockAnchors, RecentTXMap, PartitionUpperBound)
@@ -68,12 +68,12 @@ validate(NewB, B, Wallets, BlockAnchors, RecentTXMap, PartitionUpperBound) ->
 	) of
 		{TimeTaken, valid} ->
 			?LOG_INFO([{event, block_validation_successful},
-					{hash, ar_util:encode(NewB#block.indep_hash)},
+					{hash, big_util:encode(NewB#block.indep_hash)},
 					{time_taken_us, TimeTaken}]),
 			valid;
 		{TimeTaken, {invalid, Reason}} ->
 			?LOG_INFO([{event, block_validation_failed}, {reason, Reason},
-					{hash, ar_util:encode(NewB#block.indep_hash)},
+					{hash, big_util:encode(NewB#block.indep_hash)},
 					{time_taken_us, TimeTaken}]),
 			{invalid, Reason}
 	end.
@@ -303,8 +303,8 @@ may_be_apply_double_signing_proof3(B, PrevB, Accounts) ->
 					{error, invalid_double_signing_proof_invalid_signature};
 				true ->
 					?LOG_INFO([{event, banning_account},
-							{address, ar_util:encode(Addr)},
-							{previous_block, ar_util:encode(B#block.previous_block)},
+							{address, big_util:encode(Addr)},
+							{previous_block, big_util:encode(B#block.previous_block)},
 							{height, Height}]),
 					{ok, ban_account(Addr, Accounts, PrevB#block.denomination)}
 			end
@@ -700,7 +700,7 @@ block_validation_test_() ->
 
 test_block_validation() ->
 	Wallet = {_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(200), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(200), <<>>}]),
 	big_test_node:start(B0),
 	%% Add at least 10 KiB of data to the weave and mine a block on top,
 	%% to make sure SPoRA mining activates.

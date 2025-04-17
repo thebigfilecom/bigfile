@@ -15,9 +15,9 @@ validate_test_() ->
 	].
 
 test_parse_config() ->
-	ExpectedMiningAddr = ar_util:decode(<<"LKC84RnISouGUw4uMQGCpPS9yDC-tIoqM2UVbUIt-Sw">>),
+	ExpectedMiningAddr = big_util:decode(<<"LKC84RnISouGUw4uMQGCpPS9yDC-tIoqM2UVbUIt-Sw">>),
 	{ok, ParsedConfig} = big_config:parse(config_fixture()),
-	ExpectedBlockHash = ar_util:decode(
+	ExpectedBlockHash = big_util:decode(
 			<<"lfoR_PyKV6t7Z6Xi2QJZlZ0JWThh0Ke7Zc5Q82CSshUhFGcjiYufP234ph1mVofX">>),
 	?assertMatch(#config{
 		init = true,
@@ -138,7 +138,7 @@ test_parse_config() ->
 
 config_fixture() ->
 	{ok, Cwd} = file:get_cwd(),
-	Path = filename:join(Cwd, "./apps/bigfile/test/ar_config_tests_config_fixture.json"),
+	Path = filename:join(Cwd, "./apps/bigfile/test/big_config_tests_config_fixture.json"),
 	{ok, FileData} = file:read_file(Path),
 	FileData.
 

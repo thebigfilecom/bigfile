@@ -1,4 +1,4 @@
--module(ar_bench_2_9).
+-module(big_bench_2_9).
 
 -export([show_help/0, run_benchmark_from_cli/1, run_benchmark/1]).
 
@@ -77,7 +77,7 @@ run_benchmark({Format, Dirs, Threads, DataMiB}) ->
 			big:console("~n~nRunning ~p threads (~p iterations per thread) to pack and write ~.1f MiB of data~n", [Threads, Iterations, PackedData]),
 			big:console("Directories: ~p~n", [Dirs])
 	end,
-	Times = ar_util:pmap(
+	Times = big_util:pmap(
 		fun({Thread, Dir}) ->
 			Start = erlang:monotonic_time(millisecond),
 			pack_chunks(Format, Thread, Dir, Context, Iterations),
@@ -107,7 +107,7 @@ prepare_context(replica_2_9, Threads, DataMiB) ->
 	SubChunk = crypto:strong_rand_bytes(?COMPOSITE_PACKING_SUB_CHUNK_SIZE),
 	SubChunkIndex = rand:uniform(32768),
 	Offset = rand:uniform(1024 * 1024 * 1024),
-	Key = ar_replica_2_9:get_entropy_key(Address, Offset, SubChunkIndex),
+	Key = big_replica_2_9:get_entropy_key(Address, Offset, SubChunkIndex),
 	DataPerThread = DataMiB * ?MiB div Threads,
 	EntropyPerThread = DataPerThread div ?REPLICA_2_9_ENTROPY_SIZE,
 	RandomXState = big_mine_randomx:init_fast2(

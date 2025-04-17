@@ -39,7 +39,7 @@
 %%% API
 %%%===================================================================
 
-event_to_process(Event) when is_atom(Event) -> list_to_atom("ar_event_" ++ atom_to_list(Event)).
+event_to_process(Event) when is_atom(Event) -> list_to_atom("big_event_" ++ atom_to_list(Event)).
 
 subscribe(Event) when is_atom(Event) ->
 	Process = event_to_process(Event),

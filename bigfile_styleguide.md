@@ -92,7 +92,7 @@ The name of the module can sometimes be used to help increase clarity without in
 ```erlang
 %% Bad function names
 big_tx:generate_data_segment_for_signing(TX).
-ar_util:pretty_print_internal_ip_representation(IPAddr).
+big_util:pretty_print_internal_ip_representation(IPAddr).
 big_retarget:is_current_block_retarget_block(Block).
 
 %% Good function names
@@ -407,7 +407,7 @@ Code commits should aim to be a single logical change or addition to the codebas
 
 ```
 - Added generic protocol implementation.
-- Removed ar_deprecated.
+- Removed big_deprecated.
 - Added block shadows, refactored HTTP iface.
 ```
 

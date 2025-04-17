@@ -46,7 +46,7 @@ start_link(Partition, PackingDifficulty) ->
 	gen_server:start_link({local, Name}, ?MODULE, {Partition, PackingDifficulty}, []).
 
 name(Partition, PackingDifficulty) ->
-	list_to_atom("ar_mining_worker_" ++ integer_to_list(Partition) ++ "_" ++
+	list_to_atom("big_mining_worker_" ++ integer_to_list(Partition) ++ "_" ++
 			integer_to_list(PackingDifficulty)).
 
 reset(Worker, DiffPair) ->
@@ -67,7 +67,7 @@ add_delayed_task(Worker, TaskType, Candidate) ->
 	%% in particular when the chunk cache fills up it's possible for all queued compute_h0 tasks
 	%% to be delayed at about the same time.
 	Delay = rand:uniform(?TASK_CHECK_FREQUENCY_MS) + ?TASK_CHECK_FREQUENCY_MS,
-	ar_util:cast_after(Delay, Worker, {add_task, {TaskType, Candidate, []}}).
+	big_util:cast_after(Delay, Worker, {add_task, {TaskType, Candidate, []}}).
 
 chunks_read(Worker, WhichChunk, Candidate, RangeStart, ChunkOffsets) ->
 	add_task(Worker, WhichChunk, Candidate, [RangeStart, ChunkOffsets]).
@@ -174,7 +174,7 @@ handle_cast({add_task, {TaskType, Candidate, _ExtraArgs} = Task}, State) ->
 handle_cast(handle_task, #state{ task_queue = Q } = State) ->
 	case gb_sets:is_empty(Q) of
 		true ->
-			ar_util:cast_after(?TASK_CHECK_FREQUENCY_MS, self(), handle_task),
+			big_util:cast_after(?TASK_CHECK_FREQUENCY_MS, self(), handle_task),
 			{noreply, State};
 		_ ->
 			{{_Priority, _ID, Task}, Q2} = gb_sets:take_smallest(Q),
@@ -205,7 +205,7 @@ handle_cast({remove_sub_chunks_from_cache, SubChunkCount, Candidate}, State) ->
 handle_cast(check_worker_status, State) ->
 	maybe_warn_about_lag(State#state.task_queue, State#state.name),
 	maybe_warn_about_stale_chunks(State),
-	ar_util:cast_after(?STATUS_CHECK_FREQUENCY_MS, self(), check_worker_status),
+	big_util:cast_after(?STATUS_CHECK_FREQUENCY_MS, self(), check_worker_status),
 	{noreply, State};
 
 handle_cast(garbage_collect, State) ->
@@ -360,7 +360,7 @@ process_sub_chunk(chunk2, Candidate, SubChunk, State) ->
 						{worker, State#state.name},
 						{partition_number, Candidate2#mining_candidate.partition_number},
 						{partition_number2, Candidate2#mining_candidate.partition_number2},
-						{cm_peer, ar_util:format_peer(Candidate2#mining_candidate.cm_lead_peer)},
+						{cm_peer, big_util:format_peer(Candidate2#mining_candidate.cm_lead_peer)},
 						{cache_ref, Candidate2#mining_candidate.cache_ref},
 						{nonce, Candidate2#mining_candidate.nonce},
 						{session, big_nonce_limiter:encode_session_key(SessionKey)}])
@@ -460,7 +460,7 @@ handle_task({computed_h1, Candidate, _ExtraArgs}, State) ->
 			?LOG_INFO([{event, found_h1_solution},
 				{step, Candidate#mining_candidate.step_number},
 				{worker, State2#state.name},
-				{h1, ar_util:encode(H1)}, 
+				{h1, big_util:encode(H1)}, 
 				{p1, Candidate#mining_candidate.partition_number},
 				{difficulty, get_difficulty(State2, Candidate)}]),
 			big_mining_stats:h1_solution(),
@@ -524,7 +524,7 @@ handle_task({computed_h2, Candidate, _ExtraArgs}, State) ->
 			?LOG_INFO([{event, found_h2_solution},
 					{worker, State#state.name},
 					{step, Candidate#mining_candidate.step_number},
-					{h2, ar_util:encode(H2)},
+					{h2, big_util:encode(H2)},
 					{p1, Candidate#mining_candidate.partition_number},
 					{p2, Candidate#mining_candidate.partition_number2},
 					{difficulty, get_difficulty(State2, Candidate)},
@@ -534,7 +534,7 @@ handle_task({computed_h2, Candidate, _ExtraArgs}, State) ->
 			?LOG_INFO([{event, found_h2_partial_solution},
 					{worker, State2#state.name},
 					{step, Candidate#mining_candidate.step_number},
-					{h2, ar_util:encode(H2)},
+					{h2, big_util:encode(H2)},
 					{p1, Candidate#mining_candidate.partition_number},
 					{p2, Candidate#mining_candidate.partition_number2},
 					{partial_difficulty, get_partial_difficulty(State2, Candidate)}])

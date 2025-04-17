@@ -78,7 +78,7 @@ handle_cast(pre_validate, #state{ pqueue = Q, size = Size, ip_timestamps = IPTim
 			throttle_by_solution_interval = ThrottleBySolutionInterval } = State) ->
 	case gb_sets:is_empty(Q) of
 		true ->
-			ar_util:cast_after(50, ?MODULE, pre_validate),
+			big_util:cast_after(50, ?MODULE, pre_validate),
 			{noreply, State};
 		false ->
 			{{_, {B, PrevB, SolutionResigned, Peer, Ref}}, Q2} = gb_sets:take_largest(Q),
@@ -102,14 +102,14 @@ handle_cast(pre_validate, #state{ pqueue = Q, size = Size, ip_timestamps = IPTim
 										ThrottleBySolutionInterval) of
 									{true, HashTimestamps2} ->
 										?LOG_INFO([{event, processing_block},
-												{peer, ar_util:format_peer(Peer)},
+												{peer, big_util:format_peer(Peer)},
 												{height, B#block.height},
 												{step_number, big_block:vdf_step_number(B)},
-												{block, ar_util:encode(B#block.indep_hash)},
+												{block, big_util:encode(B#block.indep_hash)},
 												{miner_address,
-														ar_util:encode(B#block.reward_addr)},
+														big_util:encode(B#block.reward_addr)},
 												{previous_block,
-													ar_util:encode(PrevB#block.indep_hash)}]),
+													big_util:encode(PrevB#block.indep_hash)}]),
 										pre_validate_nonce_limiter_seed_data(B, PrevB,
 												SolutionResigned, Peer),
 										record_block_pre_validation_time(
@@ -455,9 +455,9 @@ may_be_report_double_signing(B, B2) ->
 			Proof = {Key, Signature1, CDiff1, PrevCDiff, Preimage1, Signature2, CDiff2,
 					PrevCDiff2, Preimage2},
 			?LOG_INFO([{event, report_double_signing},
-				{key, ar_util:encode(Key)}, 
-				{block1, ar_util:encode(B#block.indep_hash)},
-				{block2, ar_util:encode(B2#block.indep_hash)},
+				{key, big_util:encode(Key)}, 
+				{block1, big_util:encode(B#block.indep_hash)},
+				{block2, big_util:encode(B2#block.indep_hash)},
 				{height1, B#block.height}, {height2, B2#block.height}]),
 			big_events:send(block, {double_signing, Proof});
 		false ->
@@ -711,7 +711,7 @@ pre_validate_poa(B, PrevB, PartitionUpperBound, H0, H1, Peer) ->
 					Packing, SubChunkIndex, not_set}) of
 		error ->
 			?LOG_ERROR([{event, failed_to_validate_proof_of_access},
-					{block, ar_util:encode(B#block.indep_hash)}]),
+					{block, big_util:encode(B#block.indep_hash)}]),
 			invalid;
 		false ->
 			post_block_reject_warn_and_error_dump(B, check_poa, Peer),
@@ -739,7 +739,7 @@ pre_validate_poa(B, PrevB, PartitionUpperBound, H0, H1, Peer) ->
 									B#block.poa2, Packing, SubChunkIndex, not_set}) of
 						error ->
 							?LOG_ERROR([{event, failed_to_validate_proof_of_access},
-									{block, ar_util:encode(B#block.indep_hash)}]),
+									{block, big_util:encode(B#block.indep_hash)}]),
 							invalid;
 						false ->
 							post_block_reject_warn_and_error_dump(B, check_poa2, Peer),
@@ -780,7 +780,7 @@ accept_block(B, Peer, Gossip) ->
 	big_events:send(block, {new, B, 
 		#{ source => {peer, Peer}, gossip => Gossip }}),
 	?LOG_INFO([{event, accepted_block}, {height, B#block.height},
-			{indep_hash, ar_util:encode(B#block.indep_hash)}]),
+			{indep_hash, big_util:encode(B#block.indep_hash)}]),
 	ok.
 
 compute_hash(B, PrevCDiff) ->
@@ -795,24 +795,24 @@ compute_hash(B, PrevCDiff) ->
 
 post_block_reject_warn_and_error_dump(B, Step, Peer) ->
 	{ok, Config} = application:get_env(bigfile, config),
-	ID = binary_to_list(ar_util:encode(crypto:strong_rand_bytes(16))),
+	ID = binary_to_list(big_util:encode(crypto:strong_rand_bytes(16))),
 	File = filename:join(Config#config.data_dir, "invalid_block_dump_" ++ ID),
 	file:write_file(File, term_to_binary(B)),
 	post_block_reject_warn(B, Step, Peer),
 	?LOG_WARNING([{event, post_block_rejected},
-			{hash, ar_util:encode(B#block.indep_hash)}, {step, Step},
-			{peer, ar_util:format_peer(Peer)},
+			{hash, big_util:encode(B#block.indep_hash)}, {step, Step},
+			{peer, big_util:format_peer(Peer)},
 			{error_dump, File}]).
 
 post_block_reject_warn(B, Step, Peer) ->
 	?LOG_WARNING([{event, post_block_rejected},
-			{hash, ar_util:encode(B#block.indep_hash)}, {step, Step},
-			{peer, ar_util:format_peer(Peer)}]).
+			{hash, big_util:encode(B#block.indep_hash)}, {step, Step},
+			{peer, big_util:format_peer(Peer)}]).
 
 post_block_reject_warn(B, Step, Peer, Params) ->
 	?LOG_WARNING([{event, post_block_rejected},
-			{hash, ar_util:encode(B#block.indep_hash)}, {step, Step},
-			{params, Params}, {peer, ar_util:format_peer(Peer)}]).
+			{hash, big_util:encode(B#block.indep_hash)}, {step, Step},
+			{params, Params}, {peer, big_util:format_peer(Peer)}]).
 
 record_block_pre_validation_time(ReceiveTimestamp) ->
 	TimeMs = timer:now_diff(erlang:timestamp(), ReceiveTimestamp) / 1000,
@@ -842,7 +842,7 @@ drop_tail(Q, Size) ->
 throttle_by_ip(Peer, Timestamps, ThrottleInterval) ->
 	IP = get_ip(Peer),
 	Now = os:system_time(millisecond),
-	ar_util:cast_after(ThrottleInterval * 2, ?MODULE, {may_be_remove_ip_timestamp, IP}),
+	big_util:cast_after(ThrottleInterval * 2, ?MODULE, {may_be_remove_ip_timestamp, IP}),
 	case maps:get(IP, Timestamps, not_set) of
 		not_set ->
 			{true, maps:put(IP, Now, Timestamps)};
@@ -857,7 +857,7 @@ get_ip({A, B, C, D, _Port}) ->
 
 throttle_by_solution_hash(H, Timestamps, ThrottleInterval) ->
 	Now = os:system_time(millisecond),
-	ar_util:cast_after(ThrottleInterval * 2, ?MODULE, {may_be_remove_h_timestamp, H}),
+	big_util:cast_after(ThrottleInterval * 2, ?MODULE, {may_be_remove_h_timestamp, H}),
 	case maps:get(H, Timestamps, not_set) of
 		not_set ->
 			{true, maps:put(H, Now, Timestamps)};

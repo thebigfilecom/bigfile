@@ -32,15 +32,15 @@ cleanup({Config, PeerConfig}) ->
 
 setup_external_update() ->
 	{ok, Config} = application:get_env(bigfile, config),
-	[B0] = ar_weave:init(),
+	[B0] = big_weave:init(),
 	%% Start the testnode with a configured VDF server so that it doesn't compute its own VDF -
 	%% this is necessary so that we can test the behavior of apply_external_update without any
 	%% auto-computed VDF steps getting in the way.
 	_ = big_test_node:start(
 		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_server_trusted_peers = [
-			ar_util:format_peer(vdf_server_1()),
-			ar_util:format_peer(vdf_server_2()) ],
+			big_util:format_peer(vdf_server_1()),
+			big_util:format_peer(vdf_server_2()) ],
 			mine = true}),
 	ets:new(computed_output, [named_table, ordered_set, public]),
 	ets:new(add_task, [named_table, bag, public]),
@@ -161,7 +161,7 @@ mining_session_test_() ->
 test_vdf_server_push_fast_block() ->
 	VDFPort = big_test_node:get_unused_port(),
 	{_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	%% Let peer1 get ahead of main in the VDF chain
 	_ = big_test_node:start_peer(peer1, B0),
@@ -175,7 +175,7 @@ test_vdf_server_push_fast_block() ->
 	%% Setup a server to listen for VDF pushes
 	Routes = [{"/[...]", big_vdf_server_tests, []}],
 	{ok, _} = cowboy:start_clear(
-		ar_vdf_server_test_listener,
+		big_vdf_server_test_listener,
 		[{port, VDFPort}],
 		#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 	),
@@ -200,11 +200,11 @@ test_vdf_server_push_fast_block() ->
 	?assertEqual(StepNumber1, LatestStepNumber0,
 		"VDF server did not post the full Session0 when starting Session1"),
 
-	cowboy:stop_listener(ar_vdf_server_test_listener).
+	cowboy:stop_listener(big_vdf_server_test_listener).
 
 test_vdf_server_push_slow_block() ->
 	{_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	{ok, Config} = application:get_env(bigfile, config),
 	_ = big_test_node:start(
@@ -219,7 +219,7 @@ test_vdf_server_push_slow_block() ->
 	%% Setup a server to listen for VDF pushes
 	Routes = [{"/[...]", big_vdf_server_tests, []}],
 	{ok, _} = cowboy:start_clear(
-		ar_vdf_server_test_listener,
+		big_vdf_server_test_listener,
 		[{port, 1986}],
 		#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 	),
@@ -260,7 +260,7 @@ test_vdf_server_push_slow_block() ->
 		"Session0 should not have progressed"),
 	?assert(NewLatestStepNumber1 > LatestStepNumber1, "Session1 should have progressed"),
 
-	cowboy:stop_listener(ar_vdf_server_test_listener).
+	cowboy:stop_listener(big_vdf_server_test_listener).
 
 %%
 %% vdf_client_test_
@@ -268,7 +268,7 @@ test_vdf_server_push_slow_block() ->
 test_vdf_client_fast_block() ->
 	{ok, Config} = application:get_env(bigfile, config),
 	{_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	PeerAddress = big_wallet:to_address(big_test_node:remote_call(peer1, big_wallet, new_keyfile, [])),
 
@@ -288,12 +288,12 @@ test_vdf_client_fast_block() ->
 	_ = big_test_node:start_peer(peer1,
 		B0, PeerAddress,
 		PeerConfig#config{ nonce_limiter_server_trusted_peers = [
-			ar_util:format_peer(big_test_node:peer_ip(main)) ] }),
+			big_util:format_peer(big_test_node:peer_ip(main)) ] }),
 	%% Start main as a VDF server
 	_ = big_test_node:start(
 		B0, big_wallet:to_address(big_wallet:new_keyfile()),
 		Config#config{ nonce_limiter_client_peers = [
-			ar_util:format_peer(big_test_node:peer_ip(peer1)) ]}),
+			big_util:format_peer(big_test_node:peer_ip(peer1)) ]}),
 	big_test_node:connect_to_peer(peer1),
 
 	%% Post the block to the VDF client. It won't be able to validate it since the VDF server
@@ -315,7 +315,7 @@ test_vdf_client_fast_block() ->
 test_vdf_client_fast_block_pull_interface() ->
   	{ok, Config} = application:get_env(bigfile, config),
 	{_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	PeerAddress = big_wallet:to_address(big_test_node:remote_call(peer1, big_wallet, new_keyfile, [])),
 
@@ -361,7 +361,7 @@ test_vdf_client_fast_block_pull_interface() ->
 test_vdf_client_slow_block() ->
 	{ok, Config} = application:get_env(bigfile, config),
 	{_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	PeerAddress = big_wallet:to_address(big_test_node:remote_call(peer1, big_wallet, new_keyfile, [])),
 
@@ -399,7 +399,7 @@ test_vdf_client_slow_block() ->
 test_vdf_client_slow_block_pull_interface() ->
   {ok, Config} = application:get_env(bigfile, config),
 	{_, Pub} = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 
 	PeerAddress = big_wallet:to_address(big_test_node:remote_call(peer1, big_wallet, new_keyfile, [])),
 

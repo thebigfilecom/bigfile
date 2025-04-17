@@ -188,7 +188,7 @@ filter_peers(Peers, {timestamp, Seconds})
 	when is_integer(Seconds) ->
 		Timefilter = erlang:system_time(seconds) - Seconds,
 		Tag = {connection, last},
-		Pattern = {{ar_tags, ?MODULE, '$1', Tag}, '$3'},
+		Pattern = {{big_tags, ?MODULE, '$1', Tag}, '$3'},
 		Guard = [{'>=', '$3', Timefilter}],
 		Select = ['$1'],
 		TaggedPeers = ets:select(?MODULE, [{Pattern, Guard, Select}]),
@@ -207,7 +207,7 @@ get_peer_performances(Peers) ->
 resolve_peers([]) ->
 	[];
 resolve_peers([RawPeer | Peers]) ->
-	case ar_util:safe_parse_peer(RawPeer) of
+	case big_util:safe_parse_peer(RawPeer) of
 		{ok, Peer} ->
 			[Peer | resolve_peers(Peers)];
 		{error, invalid} ->
@@ -327,7 +327,7 @@ discover_peers() ->
 		[] ->
 			ok;
 		Peers ->
-			Peer = ar_util:pick_random(Peers),
+			Peer = big_util:pick_random(Peers),
 			discover_peers(get_peer_peers(Peer))
 	end.
 
@@ -339,7 +339,7 @@ resolve_and_cache_peer(RawPeer, Type) ->
 	Now = os:system_time(second),
 	case ets:lookup(?MODULE, {raw_peer, RawPeer}) of
 		[] ->
-			case ar_util:safe_parse_peer(RawPeer) of
+			case big_util:safe_parse_peer(RawPeer) of
 				{ok, Peer} ->
 					ets:insert(?MODULE, {{raw_peer, RawPeer}, {Peer, Now}}),
 					ets:insert(?MODULE, {{Type, Peer}, RawPeer}),
@@ -350,7 +350,7 @@ resolve_and_cache_peer(RawPeer, Type) ->
 		[{_, {Peer, Timestamp}}] ->
 			case Timestamp + ?STORE_RESOLVED_DOMAIN_S < Now of
 				true ->
-					case ar_util:safe_parse_peer(RawPeer) of
+					case big_util:safe_parse_peer(RawPeer) of
 						{ok, Peer2} ->
 							%% The cache entry has expired.
 							ets:delete(?MODULE, {Type, {Peer, Timestamp}}),
@@ -400,7 +400,7 @@ handle_cast(rank_peers, State) ->
 	prometheus_gauge:set(bigfile_peer_count, length(LifetimePeers)),
 	set_ranked_peers(lifetime, rank_peers(LifetimePeers)),
 	set_ranked_peers(current, rank_peers(CurrentPeers)),
-	ar_util:cast_after(?RANK_PEERS_FREQUENCY_MS, ?MODULE, rank_peers),
+	big_util:cast_after(?RANK_PEERS_FREQUENCY_MS, ?MODULE, rank_peers),
 	{noreply, State};
 
 handle_cast(ping_peers, State) ->
@@ -551,13 +551,13 @@ format_stats(lifetime, Peer, Perf) ->
 	KB = Perf#performance.total_bytes / 1024,
 	io:format(
 		"\t~s ~.2f kB/s (~.2f kB, ~.2f success, ~p transfers)~n",
-		[string:pad(ar_util:format_peer(Peer), 21, trailing, $\s),
+		[string:pad(big_util:format_peer(Peer), 21, trailing, $\s),
 			float(Perf#performance.lifetime_rating), KB,
 			Perf#performance.average_success, Perf#performance.total_transfers]);
 format_stats(current, Peer, Perf) ->
 	io:format(
 		"\t~s ~.2f kB/s (~.2f success)~n",
-		[string:pad(ar_util:format_peer(Peer), 21, trailing, $\s),
+		[string:pad(big_util:format_peer(Peer), 21, trailing, $\s),
 			float(Perf#performance.current_rating),
 			Perf#performance.average_success]).
 
@@ -585,16 +585,16 @@ load_peers() ->
 	end.
 
 load_peers(Peers) when length(Peers) < 20 ->
-	ar_util:pmap(fun load_peer/1, Peers);
+	big_util:pmap(fun load_peer/1, Peers);
 load_peers(Peers) ->
 	{Peers2, Peers3} = lists:split(20, Peers),
-	ar_util:pmap(fun load_peer/1, Peers2),
+	big_util:pmap(fun load_peer/1, Peers2),
 	load_peers(Peers3).
 
 load_peer({Peer, Performance}) ->
 	case big_http_iface_client:get_info(Peer, network) of
 		info_unavailable ->
-			?LOG_DEBUG([{event, peer_unavailable}, {peer, ar_util:format_peer(Peer)}]),
+			?LOG_DEBUG([{event, peer_unavailable}, {peer, big_util:format_peer(Peer)}]),
 			ok;
 		<<?NETWORK_NAME>> ->
 			maybe_rotate_peer_ports(Peer),
@@ -632,7 +632,7 @@ load_peer({Peer, Performance}) ->
 			ok;
 		Network ->
 			?LOG_DEBUG([{event, peer_from_the_wrong_network},
-					{peer, ar_util:format_peer(Peer)}, {network, Network}]),
+					{peer, big_util:format_peer(Peer)}, {network, Network}]),
 			ok
 	end.
 
@@ -692,20 +692,21 @@ shift_port_map_left(PortMap, Max, N) ->
 	shift_port_map_left(PortMap2, Max, N + 1).
 
 ping_peers(Peers) when length(Peers) < 100 ->
-	ar_util:pmap(fun big_http_iface_client:add_peer/1, Peers);
+	big_util:pmap(fun big_http_iface_client:add_peer/1, Peers);
 ping_peers(Peers) ->
 	{Send, Rest} = lists:split(100, Peers),
-	ar_util:pmap(fun big_http_iface_client:add_peer/1, Send),
+	big_util:pmap(fun big_http_iface_client:add_peer/1, Send),
 	ping_peers(Rest).
 
 -ifdef(BIG_TEST).
 %% Do not filter out loopback IP addresses with custom port in the debug mode
 %% to allow multiple local VMs to peer with each other.
-is_loopback_ip({127, _, _, _, Port}) ->
-	{ok, Config} = application:get_env(bigfile, config),
-	Port == Config#config.port;
-is_loopback_ip({_, _, _, _, _}) ->
-	false.
+is_loopback_ip({A, B, C, D, _Port}) -> is_loopback_ip({A, B, C, D});
+is_loopback_ip({127, _, _, _}) -> true;
+is_loopback_ip({0, _, _, _}) -> true;
+is_loopback_ip({169, 254, _, _}) -> true;
+is_loopback_ip({255, 255, 255, 255}) -> true;
+is_loopback_ip({_, _, _, _}) -> false.
 -else.
 %% @doc Is the IP address in question a loopback ('us') address?
 is_loopback_ip({A, B, C, D, _Port}) -> is_loopback_ip({A, B, C, D});
@@ -830,7 +831,7 @@ update_rating(Peer, LatencyMilliseconds, DataSize, Concurrency, IsSuccess) ->
 		undefined -> TotalTransfers;
 		_ -> TotalTransfers + 1
 	end,
-	AverageSuccess2 = calculate_ema(AverageSuccess, ar_util:bool_to_int(IsSuccess), ?SUCCESS_ALPHA),
+	AverageSuccess2 = calculate_ema(AverageSuccess, big_util:bool_to_int(IsSuccess), ?SUCCESS_ALPHA),
 	%% Rating is an estimate of the peer's effective throughput in bytes per millisecond.
 	%% 'lifetime' considers all data ever received from this peer
 	%% 'current' considers recently received data
@@ -887,7 +888,7 @@ maybe_add_peer(Peer, Release) ->
 remove_peer(Reason, RemovedPeer) ->
 	?LOG_DEBUG([
 		{event, remove_peer},
-		{peer, ar_util:format_peer(RemovedPeer)},
+		{peer, big_util:format_peer(RemovedPeer)},
 		{reason, Reason}
 	]),
 	Performance = get_or_init_performance(RemovedPeer),
@@ -947,7 +948,7 @@ store_peers() ->
 					[],
 					?MODULE
 				),
-			Tags = ets:foldl(fun ({{ar_tags, _, _, _}, _} = Tag, Acc) ->
+			Tags = ets:foldl(fun ({{big_tags, _, _, _}, _} = Tag, Acc) ->
 						[Tag|Acc];
 					     (_, Acc) -> Acc
 					end, [], ?MODULE),
@@ -964,7 +965,7 @@ store_peers() ->
 %% @end
 %%--------------------------------------------------------------------
 set_tag(Peer, Tag, Value) ->
-	ets:insert(?MODULE, {{ar_tags, ?MODULE, Peer, Tag}, Value}).
+	ets:insert(?MODULE, {{big_tags, ?MODULE, Peer, Tag}, Value}).
 
 %%--------------------------------------------------------------------
 %% @hidden
@@ -972,7 +973,7 @@ set_tag(Peer, Tag, Value) ->
 %% @end
 %%--------------------------------------------------------------------
 get_tag(Peer, Tag) ->
-	Pattern = {{ar_tags, ?MODULE, Peer, Tag}, '$1'},
+	Pattern = {{big_tags, ?MODULE, Peer, Tag}, '$1'},
 	Guard = [],
 	Select = ['$1'],
 	case ets:select(?MODULE, [{Pattern, Guard, Select}]) of

@@ -18,7 +18,7 @@ test_rejects_invalid_chunks() ->
 	?assertMatch(
 		{ok, {{<<"400">>, _}, _, <<"{\"error\":\"chunk_too_big\"}">>, _, _}},
 		big_test_node:post_chunk(main, big_serialize:jsonify(#{
-			chunk => ar_util:encode(crypto:strong_rand_bytes(?DATA_CHUNK_SIZE + 1)),
+			chunk => big_util:encode(crypto:strong_rand_bytes(?DATA_CHUNK_SIZE + 1)),
 			data_path => <<>>,
 			offset => <<"0">>,
 			data_size => <<"0">>
@@ -27,7 +27,7 @@ test_rejects_invalid_chunks() ->
 	?assertMatch(
 		{ok, {{<<"400">>, _}, _, <<"{\"error\":\"data_path_too_big\"}">>, _, _}},
 		big_test_node:post_chunk(main, big_serialize:jsonify(#{
-			data_path => ar_util:encode(crypto:strong_rand_bytes(?MAX_PATH_SIZE + 1)),
+			data_path => big_util:encode(crypto:strong_rand_bytes(?MAX_PATH_SIZE + 1)),
 			chunk => <<>>,
 			offset => <<"0">>,
 			data_size => <<"0">>
@@ -54,8 +54,8 @@ test_rejects_invalid_chunks() ->
 	?assertMatch(
 		{ok, {{<<"400">>, _}, _, <<"{\"error\":\"chunk_proof_ratio_not_attractive\"}">>, _, _}},
 		big_test_node:post_chunk(main, big_serialize:jsonify(#{
-			chunk => ar_util:encode(<<"a">>),
-			data_path => ar_util:encode(<<"bb">>),
+			chunk => big_util:encode(<<"a">>),
+			data_path => big_util:encode(<<"bb">>),
 			offset => <<"0">>,
 			data_size => <<"0">>
 		}))
@@ -70,9 +70,9 @@ test_rejects_invalid_chunks() ->
 	?assertMatch(
 		{ok, {{<<"400">>, _}, _, <<"{\"error\":\"data_root_not_found\"}">>, _, _}},
 		big_test_node:post_chunk(main, big_serialize:jsonify(#{
-			data_root => ar_util:encode(DataRoot),
-			chunk => ar_util:encode(Chunk),
-			data_path => ar_util:encode(DataPath),
+			data_root => big_util:encode(DataRoot),
+			chunk => big_util:encode(Chunk),
+			data_path => big_util:encode(DataPath),
 			offset => <<"0">>,
 			data_size => <<"500">>
 		}))
@@ -149,9 +149,9 @@ test_does_not_store_small_chunks_after_2_5() ->
 			lists:foreach(
 				fun({Chunk, Offset}) ->
 					DataPath = big_merkle:generate_path(DataRoot, Offset, DataTree),
-					Proof = #{ data_root => ar_util:encode(DataRoot),
-							data_path => ar_util:encode(DataPath),
-							chunk => ar_util:encode(Chunk),
+					Proof = #{ data_root => big_util:encode(DataRoot),
+							data_path => big_util:encode(DataPath),
+							chunk => big_util:encode(Chunk),
 							offset => integer_to_binary(Offset),
 							data_size => integer_to_binary(DataSize) },
 					%% All chunks are accepted because we do not know their offsets yet -
@@ -174,17 +174,17 @@ test_does_not_store_small_chunks_after_2_5() ->
 					({Offset, first}) ->
 						{ok, {{<<"200">>, _}, _, ProofJSON, _, _}} = big_test_node:get_chunk(main, 
 								GenesisOffset + Offset),
-						?assertEqual(FirstChunk, ar_util:decode(maps:get(<<"chunk">>,
+						?assertEqual(FirstChunk, big_util:decode(maps:get(<<"chunk">>,
 								jiffy:decode(ProofJSON, [return_maps]))), Title);
 					({Offset, second}) ->
 						{ok, {{<<"200">>, _}, _, ProofJSON, _, _}} = big_test_node:get_chunk(main, 
 								GenesisOffset + Offset),
-						?assertEqual(SecondChunk, ar_util:decode(maps:get(<<"chunk">>,
+						?assertEqual(SecondChunk, big_util:decode(maps:get(<<"chunk">>,
 								jiffy:decode(ProofJSON, [return_maps]))), Title);
 					({Offset, third}) ->
 						{ok, {{<<"200">>, _}, _, ProofJSON, _, _}} = big_test_node:get_chunk(main, 
 								GenesisOffset + Offset),
-						?assertEqual(ThirdChunk, ar_util:decode(maps:get(<<"chunk">>,
+						?assertEqual(ThirdChunk, big_util:decode(maps:get(<<"chunk">>,
 								jiffy:decode(ProofJSON, [return_maps]))), Title)
 				end,
 				Expectations
@@ -206,9 +206,9 @@ test_rejects_chunks_with_merkle_tree_borders_exceeding_max_chunk_size() ->
 			data_root => BigDataRoot }),
 	big_test_node:post_and_mine(#{ miner => main, await_on => main }, [BigTX]),
 	BigDataPath = big_merkle:generate_path(BigDataRoot, 0, BigDataTree),
-	BigProof = #{ data_root => ar_util:encode(BigDataRoot),
-			data_path => ar_util:encode(BigDataPath),
-			chunk => ar_util:encode(BigOutOfBoundsOffsetChunk), offset => <<"0">>,
+	BigProof = #{ data_root => big_util:encode(BigDataRoot),
+			data_path => big_util:encode(BigDataPath),
+			chunk => big_util:encode(BigOutOfBoundsOffsetChunk), offset => <<"0">>,
 			data_size => integer_to_binary(?DATA_CHUNK_SIZE)},
 	?assertMatch({ok, {{<<"400">>, _}, _, <<"{\"error\":\"invalid_proof\"}">>, _, _}},
 			big_test_node:post_chunk(main, big_serialize:jsonify(BigProof))).
@@ -300,7 +300,7 @@ test_rejects_chunks_exceeding_disk_pool_limit() ->
 		big_test_node:post_chunk(main, big_serialize:jsonify(FirstProof3))
 	),
 	big_test_node:mine(peer1),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			%% After a block is mined, the chunks receive their absolute offsets, which
 			%% end up above the strict data split threshold and so the node discovers
@@ -329,7 +329,7 @@ test_rejects_chunks_exceeding_disk_pool_limit() ->
 	big_test_node:mine(peer1),
 	assert_wait_until_height(peer1, 2),
 	big_test_node:mine(peer1),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			case big_test_node:post_chunk(main, big_serialize:jsonify(FirstProof1)) of
 				{ok, {{<<"200">>, _}, _, _, _, _}} ->
@@ -375,12 +375,12 @@ test_accepts_chunks(Split) ->
 	),
 	%% Expect the chunk to be retrieved by any offset within
 	%% (EndOffset - ChunkSize, EndOffset], but not outside of it.
-	FirstChunk = ar_util:decode(maps:get(chunk, FirstProof)),
+	FirstChunk = big_util:decode(maps:get(chunk, FirstProof)),
 	FirstChunkSize = byte_size(FirstChunk),
 	ExpectedProof = #{
 		data_path => maps:get(data_path, FirstProof),
 		tx_path => maps:get(tx_path, FirstProof),
-		chunk => ar_util:encode(FirstChunk)
+		chunk => big_util:encode(FirstChunk)
 	},
 	big_test_data_sync:wait_until_syncs_chunk(EndOffset, ExpectedProof),
 	big_test_data_sync:wait_until_syncs_chunk(
@@ -405,13 +405,13 @@ test_accepts_chunks(Split) ->
 		tx_path => maps:get(tx_path, SecondProof),
 		chunk => maps:get(chunk, SecondProof)
 	},
-	SecondChunk = ar_util:decode(maps:get(chunk, SecondProof)),
+	SecondChunk = big_util:decode(maps:get(chunk, SecondProof)),
 	SecondChunkOffset = ?STRICT_DATA_SPLIT_THRESHOLD + FirstChunkSize + byte_size(SecondChunk),
 	big_test_data_sync:wait_until_syncs_chunk(SecondChunkOffset, ExpectedSecondProof),
-	true = ar_util:do_until(
+	true = big_util:do_until(
 		fun() ->
 			{ok, {{<<"200">>, _}, _, Data, _, _}} = big_test_data_sync:get_tx_data(TX#tx.id),
-			ar_util:encode(binary:list_to_bin(Chunks)) == Data
+			big_util:encode(binary:list_to_bin(Chunks)) == Data
 		end,
 		500,
 		10 * 1000

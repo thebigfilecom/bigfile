@@ -41,7 +41,7 @@ start_link(Name, {StoreID, Packing}) ->
 
 %% @doc Return the name of the server serving the given StoreID.
 name(StoreID) ->
-	list_to_atom("ar_entropy_gen_" ++ big_storage_module:label_by_id(StoreID)).
+	list_to_atom("big_entropy_gen_" ++ big_storage_module:label_by_id(StoreID)).
 
 
 register_workers(Module) ->
@@ -115,7 +115,7 @@ set_repack_cursor(StoreID, RepackCursor) ->
     gen_server:cast(name(StoreID), {set_repack_cursor, RepackCursor}).
 
 init({StoreID, Packing}) ->
-	?LOG_INFO([{event, ar_entropy_storage_init},
+	?LOG_INFO([{event, big_entropy_gen_init},
         {name, name(StoreID)}, {store_id, StoreID},
         {packing, big_serialize:encode_packing(Packing, true)}]),
 
@@ -161,7 +161,7 @@ init({StoreID, Packing}) ->
         range_start = RangeStart,
         range_end = RangeEnd,
         cursor = Cursor,
-        slice_index = ar_replica_2_9:get_slice_index(BucketEndOffset),
+        slice_index = big_replica_2_9:get_slice_index(BucketEndOffset),
         prepare_status = PrepareStatus,
         repack_cursor = RepackCursor
     },
@@ -177,7 +177,7 @@ handle_cast(prepare_entropy, State) ->
         active ->
             do_prepare_entropy(State2);
         paused ->
-            ar_util:cast_after(?DEVICE_LOCK_WAIT, self(), prepare_entropy),
+            big_util:cast_after(?DEVICE_LOCK_WAIT, self(), prepare_entropy),
             State2;
         _ ->
             State2
@@ -227,7 +227,7 @@ do_prepare_entropy(State) ->
     ),
     %% End of sanity checks.
 
-    SliceIndex = ar_replica_2_9:get_slice_index(BucketEndOffset),
+    SliceIndex = big_replica_2_9:get_slice_index(BucketEndOffset),
 
     %% Make sure all prior entropy writes are complete.
     big_entropy_storage:is_ready(StoreID),
@@ -257,7 +257,7 @@ do_prepare_entropy(State) ->
                     none ->
                         false;
                     _ ->
-                        SectorSize = ar_replica_2_9:get_sector_size(),
+                        SectorSize = big_replica_2_9:get_sector_size(),
                         RangeStart2 = 
                             big_chunk_storage:get_chunk_bucket_start(RangeStart + 1),
                         RepackCursor2 =
@@ -283,7 +283,7 @@ do_prepare_entropy(State) ->
         end,
 
     %% get_entropy_partition will use bucket *start* offset to determine the partition.
-    Partition = ar_replica_2_9:get_entropy_partition(BucketEndOffset),
+    Partition = big_replica_2_9:get_entropy_partition(BucketEndOffset),
     StoreEntropy =
         case CheckIsRecorded of
             complete ->
@@ -337,7 +337,7 @@ do_prepare_entropy(State) ->
                     {cursor, Start},
                     {range_start, RangeStart},
                     {range_end, RangeEnd}]),
-            ar_util:cast_after(10000, self(), prepare_entropy),
+            big_util:cast_after(10000, self(), prepare_entropy),
             State;
         is_recorded ->
             gen_server:cast(self(), prepare_entropy),
@@ -347,7 +347,7 @@ do_prepare_entropy(State) ->
                     {cursor, Start},
                     {store_id, StoreID},
                     {reason, io_lib:format("~p", [Error])}]),
-            ar_util:cast_after(500, self(), prepare_entropy),
+            big_util:cast_after(500, self(), prepare_entropy),
             State;
         ok ->
             gen_server:cast(self(), prepare_entropy),
@@ -385,7 +385,7 @@ generate_entropies(RewardAddr, PaddedEndOffset) ->
 	Entropies.
 
 advance_entropy_offset(BucketEndOffset, StoreID) ->
-    ID = ar_chunk_storage_replica_2_9_1_entropy,
+    ID = big_chunk_storage_replica_2_9_1_entropy,
     case big_sync_record:get_next_unsynced_interval(
             BucketEndOffset, infinity, ID, StoreID) of
         not_found ->
@@ -401,7 +401,7 @@ generate_entropy_keys(_RewardAddr, _Offset, SubChunkStart)
 	[];
 generate_entropy_keys(RewardAddr, Offset, SubChunkStart) ->
 	SubChunkSize = ?COMPOSITE_PACKING_SUB_CHUNK_SIZE,
-	[ar_replica_2_9:get_entropy_key(RewardAddr, Offset, SubChunkStart)
+	[big_replica_2_9:get_entropy_key(RewardAddr, Offset, SubChunkStart)
 	 | generate_entropy_keys(RewardAddr, Offset, SubChunkStart + SubChunkSize)].
 
 collect_entropies([], Acc) ->

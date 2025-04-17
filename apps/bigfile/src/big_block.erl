@@ -818,7 +818,7 @@ hash_list_gen_test_() ->
 	{timeout, 60, fun test_hash_list_gen/0}.
 
 test_hash_list_gen() ->
-	[B0] = ar_weave:init([]),
+	[B0] = big_weave:init([]),
 	big_test_node:start(B0),
 	big_test_node:mine(),
 	BI1 = big_test_node:wait_until_height(main, 1),
@@ -869,7 +869,7 @@ test_wallet_list_performance(Length, Algo) ->
 	test_wallet_list_performance(Length, Algo, mixed).
 
 test_wallet_list_performance(Length, Algo, Denominations) ->
-	SupportedAlgos = [big_deep_hash, no_ar_deep_hash_sha384, sha256],
+	SupportedAlgos = [big_deep_hash, no_big_deep_hash_sha384, sha256],
 	case lists:member(Algo, SupportedAlgos) of
 		false ->
 			io:format("Supported Algo: ~p~n", [SupportedAlgos]);
@@ -940,7 +940,7 @@ test_wallet_list_performance2(Length, Algo, Denominations) ->
 								(big_serialize:encode_int(Denomination, 8))/binary,
 								MiningPermissionBin/binary >>,
 						case Algo of
-							no_ar_deep_hash_sha384 ->
+							no_big_deep_hash_sha384 ->
 								crypto:hash(sha384, Preimage);
 							sha256 ->
 								crypto:hash(sha256, Preimage)

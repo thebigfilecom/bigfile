@@ -21,7 +21,7 @@ start_link() ->
 %% gen_server callbacks
 init([]) ->
 	timer:send_interval(?SAMPLE_PROCESSES_INTERVAL, sample_processes),
-	ar_util:cast_after(?SAMPLE_SCHEDULERS_INTERVAL, ?MODULE, sample_schedulers),
+	big_util:cast_after(?SAMPLE_SCHEDULERS_INTERVAL, ?MODULE, sample_schedulers),
 	{ok, #state{}}.
 
 handle_call(_Request, _From, State) ->
@@ -44,7 +44,7 @@ handle_info(sample_processes, State) ->
 			%% Sum the data for each process. This is a compromise for handling unregistered
 			%% processes. It has the effect of summing the memory and message queue length across all unregistered processes running off the
 			%% same function. In general this is what we want (e.g. for the io threads within
-			%% big_mining_io and the hashing threads within ar_mining_hashing, we wand to
+			%% big_mining_io and the hashing threads within big_mining_hashing, we wand to
 			%% see if, in aggregate, their memory or message queue length has spiked).
 			{MemoryTotal, ReductionsTotal, MsgQueueLenTotal} =
 				maps:get(ProcessName, Acc, {0, 0, 0}),
@@ -100,8 +100,8 @@ sample_schedulers(#state{ scheduler_samples = undefined } = State) ->
 	Samples = scheduler:sample_all(),
 	%% Every ?SAMPLE_SCHEDULERS_INTERVAL ms, we'll sample the schedulers for 
 	%% ?SAMPLE_SCHEDULERS_DURATION ms.
-	ar_util:cast_after(?SAMPLE_SCHEDULERS_INTERVAL, ?MODULE, sample_schedulers),
-	ar_util:cast_after(?SAMPLE_SCHEDULERS_DURATION, ?MODULE, sample_schedulers),
+	big_util:cast_after(?SAMPLE_SCHEDULERS_INTERVAL, ?MODULE, sample_schedulers),
+	big_util:cast_after(?SAMPLE_SCHEDULERS_DURATION, ?MODULE, sample_schedulers),
 	State#state{ scheduler_samples = Samples };
 sample_schedulers(#state{ scheduler_samples = Samples1 } = State) ->
 	%% Finish sampling

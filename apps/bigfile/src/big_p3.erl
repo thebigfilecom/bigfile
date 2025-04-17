@@ -205,7 +205,7 @@ validate_address(Req) ->
 	end.
 
 validate_signature(DecodedAddress, Req) ->
-	case ar_util:safe_decode(cowboy_req:header(?P3_SIGNATURE_HEADER, Req)) of
+	case big_util:safe_decode(cowboy_req:header(?P3_SIGNATURE_HEADER, Req)) of
 		{ok, DecodedSignature} ->
 			validate_signature(DecodedAddress, DecodedSignature, Req);
 		Result ->

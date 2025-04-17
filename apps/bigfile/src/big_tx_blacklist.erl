@@ -211,7 +211,7 @@ handle_cast(maybe_request_takedown, State) ->
 handle_cast(maybe_restore, #big_tx_blacklist_state{ pending_restore_cursor = Cursor,
 		unblacklist_timeout = UnblacklistTimeout } = State) ->
 	Now = os:system_time(second),
-	ar_util:cast_after(200, ?MODULE, maybe_restore),
+	big_util:cast_after(200, ?MODULE, maybe_restore),
 	case UnblacklistTimeout + 30000 < Now of
 		true ->
 			Read =
@@ -228,7 +228,7 @@ handle_cast(maybe_restore, #big_tx_blacklist_state{ pending_restore_cursor = Cur
 				TXID ->
 					?LOG_DEBUG([{event, preparing_transaction_unblacklisting},
 							{tags, [tx_blacklist]},
-							{tx, ar_util:encode(TXID)}]),
+							{tx, big_util:encode(TXID)}]),
 					big_events:send(tx, {preparing_unblacklisting, TXID}),
 					{noreply, State#big_tx_blacklist_state{ pending_restore_cursor = TXID,
 							unblacklist_timeout = Now }}
@@ -302,7 +302,7 @@ handle_info({removed_range, Ref}, State) ->
 handle_info({event, tx, {ready_for_unblacklisting, TXID}}, State) ->
 	?LOG_DEBUG([{event, unblacklisting_transaction},
 		{tags, [tx_blacklist]},
-		{tx, ar_util:encode(TXID)}]),
+		{tx, big_util:encode(TXID)}]),
 	ets:delete(big_tx_blacklist_pending_restore_headers, TXID),
 	{noreply, State#big_tx_blacklist_state{ unblacklist_timeout = os:system_time(second) }};
 
@@ -509,7 +509,7 @@ parse_binary(Binary) ->
 									false
 							end;
 						_ ->
-							case ar_util:safe_decode(TXIDOrRange) of
+							case big_util:safe_decode(TXIDOrRange) of
 								{error, invalid} ->
 									?LOG_WARNING([{event, failed_to_parse_line},
 											{tags, [tx_blacklist]},
@@ -596,7 +596,7 @@ request_data_takedown(State) ->
 						{error, Reason} ->
 							?LOG_WARNING([{event, failed_to_find_blocklisted_tx_in_the_index},
 									{tags, [tx_blacklist]},
-									{tx, ar_util:encode(TXID)},
+									{tx, big_util:encode(TXID)},
 									{reason, io_lib:format("~p", [Reason])}]),
 							ets:delete(big_tx_blacklist_pending_data, TXID),
 							ets:delete(big_tx_blacklist, TXID),
@@ -656,7 +656,7 @@ blacklist_offsets(TXID, End, Start, State) ->
 	erlang:put(Ref, {tx, {TXID, Start, End}}),
 	?LOG_DEBUG([{event, requesting_tx_data_removal},
 		{tags, [tx_blacklist]},
-		{tx, ar_util:encode(TXID)},
+		{tx, big_util:encode(TXID)},
 		{s, Start},
 		{e, End}]),
 	big_data_sync:request_tx_data_removal(TXID, Ref, self()),

@@ -97,7 +97,7 @@ req(Args, ReestablishedConnection) ->
 			%%       native units and it converts it to <unit> .To query native units, use:
 			%%       erlant:monotonic_time() without any arguments.
 			%%       See: https://github.com/deadtrickster/prometheus.erl/blob/6dd56bf321e99688108bb976283a80e4d82b3d30/src/prometheus_time.erl#L2-L84
-			prometheus_histogram:observe(ar_http_request_duration_seconds, [
+			prometheus_histogram:observe(big_http_request_duration_seconds, [
 					method_to_list(Method),
 					big_http_iface_server:label_http_path(list_to_binary(Path)),
 					big_metrics:get_status_class(Response)
@@ -154,7 +154,7 @@ handle_info({gun_up, PID, _Protocol}, #state{ status_by_pid = StatusByPID } = St
 			{noreply, State#state{ status_by_pid = StatusByPID2 }};
 		{connected, _MonitorRef, Peer} ->
 			?LOG_WARNING([{event, gun_up_pid_already_exists},
-					{peer, ar_util:format_peer(Peer)}]),
+					{peer, big_util:format_peer(Peer)}]),
 			big_peers:connected_peer(Peer),
 			{noreply, State}
 	end;
@@ -395,7 +395,7 @@ log(Type, Event, #{method := Method, peer := Peer, path := Path}, Reason) ->
 			?LOG_WARNING([
 				{event, Event},
 				{http_method, Method},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{path, Path},
 				{reason, Reason}
 			]);
@@ -403,7 +403,7 @@ log(Type, Event, #{method := Method, peer := Peer, path := Path}, Reason) ->
 			?LOG_ERROR([
 				{event, Event},
 				{http_method, Method},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{path, Path},
 				{reason, Reason}
 			]);

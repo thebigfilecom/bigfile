@@ -89,7 +89,7 @@ record_fork_depth([], N) ->
     prometheus_histogram:observe(fork_recovery_depth, N),
     ok;
 record_fork_depth([H | Orphans], N) ->
-    ?LOG_INFO([{event, orphaning_block}, {block, ar_util:encode(H)}, {depth, N}]),
+    ?LOG_INFO([{event, orphaning_block}, {block, big_util:encode(H)}, {depth, N}]),
     record_fork_depth(Orphans, N + 1).
 
 

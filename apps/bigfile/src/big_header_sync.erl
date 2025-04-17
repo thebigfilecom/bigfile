@@ -58,12 +58,12 @@ remove_block(Height) ->
 %%%===================================================================
 
 init([]) ->
-	?LOG_INFO([{event, ar_header_sync_start}]),
+	?LOG_INFO([{event, big_header_sync_start}]),
 	%% Trap exit to avoid corrupting any open files on quit..
 	process_flag(trap_exit, true),
 	[ok, ok] = big_events:subscribe([tx, disksup]),
 	{ok, Config} = application:get_env(bigfile, config),
-	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "ar_header_sync_db"), ?MODULE),
+	ok = big_kv:open(filename:join(?ROCKS_DB_DIR, "big_header_sync_db"), ?MODULE),
 	{SyncRecord, Height, CurrentBI} =
 		case big_storage:read_term(header_sync_state) of
 			not_found ->
@@ -176,7 +176,7 @@ handle_cast({add_block, B}, State) ->
 	{noreply, element(2, add_block(B, State))};
 
 handle_cast(process_item, #state{ is_disk_space_sufficient = false } = State) ->
-	ar_util:cast_after(?CHECK_AFTER_SYNCED_INTERVAL_MS, ?MODULE, process_item),
+	big_util:cast_after(?CHECK_AFTER_SYNCED_INTERVAL_MS, ?MODULE, process_item),
 	{noreply, State};
 handle_cast(process_item, #state{ retry_queue = Queue, retry_record = RetryRecord } = State) ->
 	prometheus_gauge:set(downloader_queue_size, queue:len(Queue)),
@@ -229,7 +229,7 @@ handle_cast({remove_block, Height}, State) ->
 	{noreply, State#state{ sync_record = big_intervals:delete(Record, Height, Height - 1) }};
 
 handle_cast(store_sync_state, State) ->
-	ar_util:cast_after(?STORE_HEADER_STATE_FREQUENCY_MS, ?MODULE, store_sync_state),
+	big_util:cast_after(?STORE_HEADER_STATE_FREQUENCY_MS, ?MODULE, store_sync_state),
 	case store_sync_state(State) of
 		ok ->
 			{noreply, State};
@@ -251,7 +251,7 @@ handle_info({event, tx, {preparing_unblacklisting, TXID}}, State) ->
 	case big_storage:get_tx_confirmation_data(TXID) of
 		{ok, {Height, _BH}} ->
 			?LOG_DEBUG([{event, mark_block_with_blacklisted_tx_for_resyncing},
-					{tx, ar_util:encode(TXID)}, {height, Height}]),
+					{tx, big_util:encode(TXID)}, {height, Height}]),
 			State2 = State#state{ sync_record = big_intervals:delete(SyncRecord, Height,
 					Height - 1), retry_record = big_intervals:delete(RetryRecord, Height,
 					Height - 1) },
@@ -289,7 +289,7 @@ handle_info({event, disksup, {remaining_disk_space, "default", true, _Percentage
 							"stays available for the node.~n~n"
 							"The mining performance is not affected.~n",
 					big:console(Msg, []),
-					?LOG_INFO([{event, ar_header_sync_stopped_syncing},
+					?LOG_INFO([{event, big_header_sync_stopped_syncing},
 							{reason, insufficient_disk_space}]);
 				false ->
 					ok
@@ -305,7 +305,7 @@ handle_info({event, disksup, {remaining_disk_space, "default", true, _Percentage
 							Msg = "The available disk space has been detected, "
 									"resuming header syncing.~n",
 							big:console(Msg, []),
-							?LOG_INFO([{event, ar_header_sync_resumed_syncing}])
+							?LOG_INFO([{event, big_header_sync_resumed_syncing}])
 					end,
 					{noreply, State#state{ is_disk_space_sufficient = true }};
 				false ->
@@ -336,7 +336,7 @@ handle_info(Info, State) ->
 	{noreply, State}.
 
 terminate(Reason, _State) ->
-	?LOG_INFO([{event, ar_header_sync_terminate}, {reason, Reason}]).
+	?LOG_INFO([{event, big_header_sync_terminate}, {reason, Reason}]).
 
 %%%===================================================================
 %%% Private functions.
@@ -394,7 +394,7 @@ add_block2(B, #state{ sync_record = SyncRecord, retry_record = RetryRecord } = S
 					{ok, State#state{ sync_record = SyncRecord2, retry_record = RetryRecord2 }}
 			end;
 		{error, Reason} ->
-			?LOG_WARNING([{event, failed_to_store_block}, {block, ar_util:encode(H)},
+			?LOG_WARNING([{event, failed_to_store_block}, {block, big_util:encode(H)},
 					{height, Height}, {reason, Reason}]),
 			{{error, Reason}, State}
 	end.
@@ -428,11 +428,11 @@ process_item(Queue) ->
 	Now = os:system_time(second),
 	case queue:out(Queue) of
 		{empty, _Queue} ->
-			ar_util:cast_after(?PROCESS_ITEM_INTERVAL_MS, ?MODULE, process_item),
+			big_util:cast_after(?PROCESS_ITEM_INTERVAL_MS, ?MODULE, process_item),
 			Queue;
 		{{value, {Item, {BackoffTimestamp, _} = Backoff}}, Queue2}
 				when BackoffTimestamp > Now ->
-			ar_util:cast_after(?PROCESS_ITEM_INTERVAL_MS, ?MODULE, process_item),
+			big_util:cast_after(?PROCESS_ITEM_INTERVAL_MS, ?MODULE, process_item),
 			enqueue(Item, Backoff, Queue2);
 		{{value, {{block, {H, H2, TXRoot, Height}}, Backoff}}, Queue2} ->
 			case check_fork(Height, H, TXRoot) of
@@ -496,8 +496,8 @@ download_block(Peers, H, H2, TXRoot) ->
 	case big_http_iface_client:get_block_shadow(Peers, H, Opts) of
 		unavailable ->
 			?LOG_WARNING([
-				{event, ar_header_sync_failed_to_download_block_header},
-				{block, ar_util:encode(H)}
+				{event, big_header_sync_failed_to_download_block_header},
+				{block, big_util:encode(H)}
 			]),
 			{error, block_header_unavailable};
 		{Peer, #block{ height = Height } = B, Time, BlockSize} ->
@@ -519,9 +519,9 @@ download_block(Peers, H, H2, TXRoot) ->
 					download_txs(Peers, B, TXRoot);
 				_ ->
 					?LOG_WARNING([
-						{event, ar_header_sync_block_hash_mismatch},
-						{block, ar_util:encode(H)},
-						{peer, ar_util:format_peer(Peer)}
+						{event, big_header_sync_block_hash_mismatch},
+						{block, big_util:encode(H)},
+						{peer, big_util:format_peer(Peer)}
 					]),
 					{error, block_hash_mismatch}
 			end
@@ -538,27 +538,27 @@ download_txs(Peers, B, TXRoot) ->
 					{ok, B#block{ txs = TXs, size_tagged_txs = SizeTaggedTXs }};
 				_ ->
 					?LOG_WARNING([
-						{event, ar_header_sync_block_tx_root_mismatch},
-						{block, ar_util:encode(B#block.indep_hash)}
+						{event, big_header_sync_block_tx_root_mismatch},
+						{block, big_util:encode(B#block.indep_hash)}
 					]),
 					{error, block_tx_root_mismatch}
 			end;
 		{error, txs_exceed_block_size_limit} ->
 			?LOG_WARNING([
-				{event, ar_header_sync_block_txs_exceed_block_size_limit},
-				{block, ar_util:encode(B#block.indep_hash)}
+				{event, big_header_sync_block_txs_exceed_block_size_limit},
+				{block, big_util:encode(B#block.indep_hash)}
 			]),
 			{error, txs_exceed_block_size_limit};
 		{error, txs_count_exceeds_limit} ->
 			?LOG_WARNING([
-				{event, ar_header_sync_block_txs_count_exceeds_limit},
-				{block, ar_util:encode(B#block.indep_hash)}
+				{event, big_header_sync_block_txs_count_exceeds_limit},
+				{block, big_util:encode(B#block.indep_hash)}
 			]),
 			{error, txs_count_exceeds_limit};
 		{error, tx_not_found} ->
 			?LOG_WARNING([
-				{event, ar_header_sync_block_tx_not_found},
-				{block, ar_util:encode(B#block.indep_hash)}
+				{event, big_header_sync_block_tx_not_found},
+				{block, big_util:encode(B#block.indep_hash)}
 			]),
 			{error, tx_not_found}
 	end.

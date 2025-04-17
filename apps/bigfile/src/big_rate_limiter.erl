@@ -95,8 +95,8 @@ handle_cast({throttle, Peer, Path, From}, State) ->
 				true ->
 					?LOG_DEBUG([{event, approaching_peer_rpm_limit},
 							{path, Path}, {minute_limit, Limit},
-							{peer, ar_util:format_peer(Peer)}, {caller, From}]),
-					ar_util:cast_after(1000, ?MODULE, {throttle, Peer, Path, From}),
+							{peer, big_util:format_peer(Peer)}, {caller, From}]),
+					big_util:cast_after(1000, ?MODULE, {throttle, Peer, Path, From}),
 					{noreply, State};
 				false ->
 					gen_server:reply(From, ok),

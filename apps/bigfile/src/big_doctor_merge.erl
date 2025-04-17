@@ -32,10 +32,10 @@ merge(DataDir, StorageModule, StoreID, [SrcDir | SrcDirs]) ->
 
     move_chunk_storage(SrcDir, DstDir),
 
-    copy_db("ar_data_sync_db", SrcDir, DstDir),
-    copy_db("ar_data_sync_chunk_db", SrcDir, DstDir),
-    copy_db("ar_data_sync_disk_pool_chunks_index_db", SrcDir, DstDir),
-    copy_db("ar_data_sync_data_root_index_db", SrcDir, DstDir),
+    copy_db("big_data_sync_db", SrcDir, DstDir),
+    copy_db("big_data_sync_chunk_db", SrcDir, DstDir),
+    copy_db("big_data_sync_disk_pool_chunks_index_db", SrcDir, DstDir),
+    copy_db("big_data_sync_data_root_index_db", SrcDir, DstDir),
     copy_sync_records(SrcDir, DstDir),
 
     merge(DataDir, StorageModule, StoreID, SrcDirs).
@@ -100,8 +100,8 @@ copy_from_iterator(Itr, Res, DstDB, DstCF) ->
 
 copy_sync_records(SrcDir, DstDir) ->
     big:console("Copying sync records~n", []),
-    SrcPath = filename:join([SrcDir, "rocksdb", "ar_sync_record_db"]),
-    DstPath = filename:join([DstDir, "rocksdb", "ar_sync_record_db"]),
+    SrcPath = filename:join([SrcDir, "rocksdb", "big_sync_record_db"]),
+    DstPath = filename:join([DstDir, "rocksdb", "big_sync_record_db"]),
     {ok, SrcDB} = rocksdb:open(SrcPath, [{create_if_missing, false}]),
     {ok, DstDB} = rocksdb:open(DstPath, [{create_if_missing, true}]),
     SrcSyncRecords = get_sync_records(SrcDB),

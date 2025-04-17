@@ -69,7 +69,7 @@ handle_cast({poll, Ref}, #state{ ref = Ref, peer = Peer,
 	end,
 	case big_http_iface_client:get_recent_hash_list_diff(Peer, HL) of
 		{ok, in_sync} ->
-			ar_util:cast_after(FrequencyMs, self(), {poll, Ref}),
+			big_util:cast_after(FrequencyMs, self(), {poll, Ref}),
 			{noreply, State};
 		{ok, {H, TXIDs, BlocksOnTop}} ->
 			case big_ignore_registry:member(H) of
@@ -100,29 +100,29 @@ handle_cast({poll, Ref}, #state{ ref = Ref, peer = Peer,
 									ok;
 								failed ->
 									?LOG_WARNING([{event, failed_to_get_block_txs_from_peer},
-											{block, ar_util:encode(H)},
-											{peer, ar_util:format_peer(Peer)},
+											{block, big_util:encode(H)},
+											{peer, big_util:format_peer(Peer)},
 											{tx_count, length(B#block.txs)}]),
 									ok
 							end;
 						Error ->
 							big_ignore_registry:remove_temporary(H),
 							?LOG_DEBUG([{event, failed_to_fetch_block},
-									{peer, ar_util:format_peer(Peer)},
-									{block, ar_util:encode(H)},
+									{peer, big_util:format_peer(Peer)},
+									{block, big_util:encode(H)},
 									{error, io_lib:format("~p", [Error])}]),
 							ok
 					end
 			end,
-			ar_util:cast_after(FrequencyMs, self(), {poll, Ref}),
+			big_util:cast_after(FrequencyMs, self(), {poll, Ref}),
 			{noreply, State};
 		{error, not_found} ->
-			?LOG_DEBUG([{event, peer_out_of_sync}, {peer, ar_util:format_peer(Peer)}]),
+			?LOG_DEBUG([{event, peer_out_of_sync}, {peer, big_util:format_peer(Peer)}]),
 			gen_server:cast(big_poller, {peer_out_of_sync, Peer}),
 			{noreply, State#state{ pause = true }};
 		{error, Reason} ->
 			?LOG_DEBUG([{event, failed_to_get_recent_hash_list_diff},
-					{peer, ar_util:format_peer(Peer)},
+					{peer, big_util:format_peer(Peer)},
 					{reason, io_lib:format("~p", [Reason])}]),
 			{noreply, State#state{ pause = true }}
 	end;
@@ -189,7 +189,7 @@ get_missing_tx_indices([TXID | TXIDs], N) ->
 
 slow_block_application_warning(N) ->
 	big_mining_stats:pause_performance_reports(60000),
-	ar_util:terminal_clear(),
+	big_util:terminal_clear(),
 	big:console("WARNING: there are more than ~B not yet validated blocks on the longest chain."
 			" Please, double-check if you are in sync with the network and make sure your "
 			"CPU computes VDF fast enough or you are connected to a VDF server."
@@ -210,13 +210,13 @@ warning(Peer, Event) ->
 					fork ->
 						"is on a fork branching off of our fork 5 or more blocks behind"
 				end,
-			ar_util:terminal_clear(),
+			big_util:terminal_clear(),
 			big:console("WARNING: peer ~s ~s. "
 					"Please, double-check if you are in sync with the network and "
 					"make sure your CPU computes VDF fast enough or you are connected "
 					"to a VDF server.~nThe node may be still mining, but console performance "
 					"reports are temporarily paused.~n~n",
-					[ar_util:format_peer(Peer), EventMessage])
+					[big_util:format_peer(Peer), EventMessage])
 	end.
 
 collect_missing_transactions([#tx{} = TX | TXs]) ->

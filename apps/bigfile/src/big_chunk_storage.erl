@@ -57,7 +57,7 @@ start_link(Name, {StoreID, RepackInPlacePacking}) ->
 
 %% @doc Return the name of the server serving the given StoreID.
 name(StoreID) ->
-	list_to_atom("ar_chunk_storage_" ++ big_storage_module:label_by_id(StoreID)).
+	list_to_atom("big_chunk_storage_" ++ big_storage_module:label_by_id(StoreID)).
 
 register_workers() ->
 	{ok, Config} = application:get_env(bigfile, config),
@@ -73,7 +73,7 @@ register_workers() ->
 	),
 	
 	DefaultChunkStorageWorker = ?CHILD_WITH_ARGS(big_chunk_storage, worker,
-		ar_chunk_storage_default, [ar_chunk_storage_default, {"default", none}]),
+		big_chunk_storage_default, [big_chunk_storage_default, {"default", none}]),
 
 	RepackInPlaceWorkers = lists:map(
 		fun({StorageModule, Packing}) ->
@@ -303,7 +303,7 @@ get_chunk_storage_path(DataDir, StoreID) ->
 -spec get_chunk_bucket_start(Offset :: non_neg_integer()) -> non_neg_integer().
 get_chunk_bucket_start(Offset) ->
 	PaddedEndOffset = big_block:get_chunk_padded_offset(Offset),
-	ar_util:floor_int(max(0, PaddedEndOffset - ?DATA_CHUNK_SIZE), ?DATA_CHUNK_SIZE).
+	big_util:floor_int(max(0, PaddedEndOffset - ?DATA_CHUNK_SIZE), ?DATA_CHUNK_SIZE).
 
 -spec get_chunk_bucket_end(Offset :: non_neg_integer()) -> non_neg_integer().
 get_chunk_bucket_end(Offset) ->
@@ -444,7 +444,7 @@ handle_cast({repack, Packing},
 			spawn(fun() ->
 				big_repack:repack(Cursor, RangeStart, RangeEnd, Packing, StoreID) end);
 		paused ->
-			ar_util:cast_after(?DEVICE_LOCK_WAIT, self(), {repack, Packing});
+			big_util:cast_after(?DEVICE_LOCK_WAIT, self(), {repack, Packing});
 		_ ->
 			ok
 	end,
@@ -460,7 +460,7 @@ handle_cast({repack, Cursor, RangeStart, RangeEnd, Packing}, State) ->
 			spawn(fun() ->
 				big_repack:repack(Cursor, RangeStart, RangeEnd, Packing, StoreID) end);
 		paused ->
-			ar_util:cast_after(?DEVICE_LOCK_WAIT, self(),
+			big_util:cast_after(?DEVICE_LOCK_WAIT, self(),
 				{repack, Cursor, RangeStart, RangeEnd, Packing});
 		_ ->
 			ok
@@ -670,9 +670,9 @@ record_chunk(
 
 sync_record_id(unpacked_padded) ->
 	%% Entropy indexing changed between 2.9.0 and 2.9.1. So we'll use a new
-	%% sync_record id (ar_chunk_storage_replica_2_9_1_unpacked) going forward.
-	%% The old id (ar_chunk_storage_replica_2_9_unpacked) should not be used.
-	ar_chunk_storage_replica_2_9_1_unpacked;
+	%% sync_record id (big_chunk_storage_replica_2_9_1_unpacked) going forward.
+	%% The old id (big_chunk_storage_replica_2_9_unpacked) should not be used.
+	big_chunk_storage_replica_2_9_1_unpacked;
 sync_record_id(_Packing) ->
 	big_chunk_storage.
 
@@ -681,7 +681,7 @@ get_chunk_file_start(EndOffset) ->
 	get_chunk_file_start_by_start_offset(StartOffset).
 
 get_chunk_file_start_by_start_offset(StartOffset) ->
-	ar_util:floor_int(StartOffset, get_chunk_group_size()).
+	big_util:floor_int(StartOffset, get_chunk_group_size()).
 
 write_chunk(PaddedOffset, Chunk, FileIndex, StoreID) ->
 	{_ChunkFileStart, Filepath, Position, ChunkOffset} =
@@ -750,7 +750,7 @@ get_position_and_relative_chunk_offset(ChunkFileStart, Offset) ->
 	get_position_and_relative_chunk_offset_by_start_offset(ChunkFileStart, BucketPickOffset).
 
 get_position_and_relative_chunk_offset_by_start_offset(ChunkFileStart, BucketPickOffset) ->
-	BucketStart = ar_util:floor_int(BucketPickOffset, ?DATA_CHUNK_SIZE),
+	BucketStart = big_util:floor_int(BucketPickOffset, ?DATA_CHUNK_SIZE),
 	ChunkOffset = BucketPickOffset - BucketStart,
 	RelativeOffset = BucketStart - ChunkFileStart,
 	Position = RelativeOffset + ?OFFSET_SIZE * (RelativeOffset div ?DATA_CHUNK_SIZE),
@@ -817,7 +817,7 @@ read_chunk(Byte, Start, ChunkFileStart, Filepath, ChunkCount) ->
 read_chunk2(Byte, Start, ChunkFileStart, File, ChunkCount) ->
 	{Position, _ChunkOffset} =
 			get_position_and_relative_chunk_offset_by_start_offset(ChunkFileStart, Start),
-	BucketStart = ar_util:floor_int(Start, ?DATA_CHUNK_SIZE),
+	BucketStart = big_util:floor_int(Start, ?DATA_CHUNK_SIZE),
 	read_chunk3(Byte, Position, BucketStart, File, ChunkCount).
 
 read_chunk3(Byte, Position, BucketStart, File, ChunkCount) ->
@@ -1317,7 +1317,7 @@ assert_get(Expected, Offset, StoreID) ->
 
 defrag_command_test() ->
 	RandomID = crypto:strong_rand_bytes(16),
-	Filepath = "test_defrag_" ++ binary_to_list(ar_util:encode(RandomID)),
+	Filepath = "test_defrag_" ++ binary_to_list(big_util:encode(RandomID)),
 	{ok, F} = file:open(Filepath, [binary, write]),
 	{O1, C1} = {236, crypto:strong_rand_bytes(262144)},
 	{O2, C2} = {262144, crypto:strong_rand_bytes(262144)},

@@ -64,7 +64,7 @@ register_sync_workers() ->
 	{ok, Config} = application:get_env(bigfile, config),
 	{Workers, WorkerNames} = lists:foldl(
 		fun(Number, {AccWorkers, AccWorkerNames}) ->
-			Name = list_to_atom("ar_data_sync_worker_" ++ integer_to_list(Number)),
+			Name = list_to_atom("big_data_sync_worker_" ++ integer_to_list(Number)),
 			Worker = ?CHILD_WITH_ARGS(big_data_sync_worker, worker, Name, [Name]),
 			{[Worker | AccWorkers], [Name | AccWorkerNames]}
 		end,
@@ -94,7 +94,7 @@ ready_for_work() ->
 
 init(Workers) ->
 	gen_server:cast(?MODULE, process_main_queue),
-	ar_util:cast_after(?REBALANCE_FREQUENCY_MS, ?MODULE, rebalance_peers),
+	big_util:cast_after(?REBALANCE_FREQUENCY_MS, ?MODULE, rebalance_peers),
 
 	{ok, #state{
 		workers = queue:from_list(Workers),
@@ -111,10 +111,10 @@ handle_call(Request, _From, State) ->
 	{reply, ok, State}.
 
 handle_cast(process_main_queue, #state{ task_queue_len = 0 } = State) ->
-	ar_util:cast_after(200, ?MODULE, process_main_queue),
+	big_util:cast_after(200, ?MODULE, process_main_queue),
 	{noreply, State};
 handle_cast(process_main_queue, State) ->
-	ar_util:cast_after(200, ?MODULE, process_main_queue),
+	big_util:cast_after(200, ?MODULE, process_main_queue),
 	{noreply, process_main_queue(State)};
 
 handle_cast({sync_range, _Args}, #state{ worker_count = 0 } = State) ->
@@ -126,7 +126,7 @@ handle_cast({task_completed, {sync_range, {Worker, Result, Args, ElapsedNative}}
 	{Start, End, Peer, _, _} = Args,
 	DataSize = End - Start,
 	State2 = update_scheduled_task_count(
-		Worker, sync_range, ar_util:format_peer(Peer), -1, State),
+		Worker, sync_range, big_util:format_peer(Peer), -1, State),
 	PeerTasks = get_peer_tasks(Peer, State2),
 	{PeerTasks2, State3} = complete_sync_range(
 		PeerTasks, Result, ElapsedNative, DataSize, State2),
@@ -134,7 +134,7 @@ handle_cast({task_completed, {sync_range, {Worker, Result, Args, ElapsedNative}}
 	{noreply, set_peer_tasks(PeerTasks3, State4)};
 
 handle_cast(rebalance_peers, State) ->
-	ar_util:cast_after(?REBALANCE_FREQUENCY_MS, ?MODULE, rebalance_peers),
+	big_util:cast_after(?REBALANCE_FREQUENCY_MS, ?MODULE, rebalance_peers),
 	State2 = purge_empty_peers(State),
 	Peers = maps:keys(State2#state.peer_tasks),
 	AllPeerPerformances = big_peers:get_peer_performances(Peers),
@@ -220,7 +220,7 @@ process_peer_queue(PeerTasks, State) ->
 	end.
 
 %% @doc the maximum number of tasks we can have in process - including stasks queued here as well
-%% as those scheduled on ar_data_sync_workers.
+%% as those scheduled on big_data_sync_workers.
 max_tasks(WorkerCount) ->
 	WorkerCount * 50.
 
@@ -260,7 +260,7 @@ cut_peer_queue(MaxQueue, PeerTasks, State) ->
 			%% oldest tasks.
 			{TaskQueue2, _} = queue:split(MaxQueue, TaskQueue),
 			?LOG_DEBUG([{event, cut_peer_queue},
-				{peer, ar_util:format_peer(Peer)},
+				{peer, big_util:format_peer(Peer)},
 				{task_queue_len, queue:len(TaskQueue)},
 				{active_count, PeerTasks#peer_tasks.active_count},
 				{scheduled_tasks, State#state.scheduled_task_count},
@@ -270,7 +270,7 @@ cut_peer_queue(MaxQueue, PeerTasks, State) ->
 			{
 				PeerTasks#peer_tasks{ 
 					task_queue = TaskQueue2, task_queue_len = queue:len(TaskQueue2) },
-				update_queued_task_count(sync_range, ar_util:format_peer(Peer), -TasksToCut, State)
+				update_queued_task_count(sync_range, big_util:format_peer(Peer), -TasksToCut, State)
 			};
 		_ ->
 			{PeerTasks, State}
@@ -460,7 +460,7 @@ cycle_workers(AverageLoad, #state{ workers = Workers, worker_loads = WorkerLoads
 format_peer(Task, Args) ->
 	case Task of
 		sync_range ->
-			ar_util:format_peer(element(3, Args))
+			big_util:format_peer(element(3, Args))
 	end.
 
 %%%===================================================================

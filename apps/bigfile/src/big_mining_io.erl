@@ -129,12 +129,12 @@ handle_call(Request, _From, State) ->
 handle_cast(initialize_state, State) ->
 	State3 = case big_device_lock:is_ready() of
 		false ->
-			ar_util:cast_after(1000, self(), initialize_state),
+			big_util:cast_after(1000, self(), initialize_state),
 			State;
 		true ->
 			case start_io_threads(State) of
 				{error, _} ->
-					ar_util:cast_after(1000, self(), initialize_state),
+					big_util:cast_after(1000, self(), initialize_state),
 					State;
 				State2 ->
 					State2
@@ -148,7 +148,7 @@ handle_cast(garbage_collect, State) ->
 	maps:fold(
 		fun(_Key, Thread, _) ->
 			erlang:garbage_collect(Thread,
-				[{async, {ar_mining_io_worker, Thread, erlang:monotonic_time()}}])
+				[{async, {big_mining_io_worker, Thread, erlang:monotonic_time()}}])
 		end,
 		ok,
 		State#state.io_threads
@@ -202,7 +202,7 @@ start_io_threads(State) ->
 				{reason, io_lib:format("~p", [Reason])}]),
 			{error, Reason};
 		StoreIDToDevice ->
-			DeviceToStoreIDs = ar_util:invert_map(StoreIDToDevice),
+			DeviceToStoreIDs = big_util:invert_map(StoreIDToDevice),
 			% Step 2: Start IO threads for each device and populate map indices
 			State2 = maps:fold(
 				fun(Device, StoreIDs, StateAcc) ->
@@ -284,7 +284,7 @@ handle_io_thread_down(Ref, Reason, State) ->
 	Refs2 = maps:remove(Ref, Refs),
 	Threads2 = maps:remove(Device, Threads),
 
-	DeviceToStoreIDs = ar_util:invert_map(StoreIDToDevice),
+	DeviceToStoreIDs = big_util:invert_map(StoreIDToDevice),
 	StoreIDs = maps:get(Device, DeviceToStoreIDs, sets:new()),
 	Thread = start_io_thread(Mode, sets:to_list(StoreIDs)),
 	ThreadRef = monitor(process, Thread),
@@ -380,7 +380,7 @@ cached_read_range(Mode, WhichChunk, Candidate, RangeStart, StoreID, Cache) ->
 				{store_id, StoreID},
 				{partition_number, Candidate#mining_candidate.partition_number},
 				{partition_number2, Candidate#mining_candidate.partition_number2},
-				{cm_peer, ar_util:format_peer(Candidate#mining_candidate.cm_lead_peer)},
+				{cm_peer, big_util:format_peer(Candidate#mining_candidate.cm_lead_peer)},
 				{cache_ref, Candidate#mining_candidate.cache_ref},
 				{session,
 				big_nonce_limiter:encode_session_key(Candidate#mining_candidate.session_key)}]),

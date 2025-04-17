@@ -87,12 +87,12 @@ handle_cast(collect_peers, #state{ pause = true } = State) ->
 	{noreply, State};
 handle_cast(collect_peers, State) ->
 	#state{ worker_count = N, workers = Workers } = State,
-	TrustedPeers = ar_util:pick_random(big_peers:get_trusted_peers(), N div 3),
+	TrustedPeers = big_util:pick_random(big_peers:get_trusted_peers(), N div 3),
 	Peers = big_peers:get_peers(current),
 	OtherPeers =  big_data_discovery:pick_peers(Peers -- TrustedPeers, N - length(TrustedPeers)),
 	PickedPeers = TrustedPeers ++ OtherPeers,
 	start_polling_peers(Workers, PickedPeers),
-	ar_util:cast_after(?COLLECT_PEERS_FREQUENCY_MS, ?MODULE, collect_peers),
+	big_util:cast_after(?COLLECT_PEERS_FREQUENCY_MS, ?MODULE, collect_peers),
 	{noreply, State};
 
 handle_cast({peer_out_of_sync_timeout, Peer}, State) ->
@@ -113,14 +113,14 @@ handle_cast({peer_out_of_sync, Peer}, State) ->
 			{noreply, State};
 		true ->
 			Set2 = sets:del_element(Peer, Set),
-			ar_util:cast_after(300000, ?MODULE, {peer_out_of_sync_timeout, Peer}),
+			big_util:cast_after(300000, ?MODULE, {peer_out_of_sync_timeout, Peer}),
 			case {sets:is_empty(Set), sets:is_empty(Set2)} of
 				{false, true} ->
 					big_mining_stats:pause_performance_reports(60000),
-					ar_util:terminal_clear(),
-					TrustedPeersStr = string:join([ar_util:format_peer(Peer2)
+					big_util:terminal_clear(),
+					TrustedPeersStr = string:join([big_util:format_peer(Peer2)
 							|| Peer2 <- Config#config.peers], ", "),
-					?LOG_INFO([{event, node_out_of_sync}, {peer, ar_util:format_peer(Peer)},
+					?LOG_INFO([{event, node_out_of_sync}, {peer, big_util:format_peer(Peer)},
 						{trusted_peers, TrustedPeersStr}]),
 					big:console("WARNING: The node is out of sync with all of the specified "
 							"trusted peers: ~s.~n~n"
@@ -139,8 +139,8 @@ handle_cast({block, Peer, B, BlockQueryTime}, State) ->
 	case big_ignore_registry:member(B#block.indep_hash) of
 		false ->
 			?LOG_INFO([{event, fetched_block_for_validation},
-					{block, ar_util:encode(B#block.indep_hash)},
-					{peer, ar_util:format_peer(Peer)}]);
+					{block, big_util:encode(B#block.indep_hash)},
+					{peer, big_util:format_peer(Peer)}]);
 		true ->
 			ok
 	end,

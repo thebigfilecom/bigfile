@@ -26,10 +26,10 @@ test_recent_blocks_announcement() ->
 	test_recent_blocks(announcement).
 
 test_recent_blocks(Type) ->
-	[B0] = ar_weave:init([], 0), %% Set difficulty to 0 to speed up tests
+	[B0] = big_weave:init([], 0), %% Set difficulty to 0 to speed up tests
 	big_test_node:start_peer(peer1, B0),
 	GenesisBlock = [#{
-		<<"id">> => ar_util:encode(B0#block.indep_hash),
+		<<"id">> => big_util:encode(B0#block.indep_hash),
 		<<"received">> => <<"pending">>,
 		<<"height">> => 0
 	}],
@@ -94,11 +94,11 @@ expected_blocks(Node, BI, ForcePending) ->
 				false ->
 					case length(Acc) < ?RECENT_BLOCKS_WITHOUT_TIMESTAMP of
 						true -> <<"pending">>;
-						false -> ar_util:timestamp_to_seconds(B#block.receive_timestamp)
+						false -> big_util:timestamp_to_seconds(B#block.receive_timestamp)
 					end
 				end,
 			[#{
-				<<"id">> => ar_util:encode(H),
+				<<"id">> => big_util:encode(H),
 				<<"received">> => Timestamp,
 				<<"height">> => B#block.height
 			} | Acc]
@@ -112,7 +112,7 @@ expected_blocks(Node, BI, ForcePending) ->
 %% Recent forks tests
 %% -------------------------------------------------------------------------------------------
 test_get_recent_forks() ->
-	[B0] = ar_weave:init([]),
+	[B0] = big_weave:init([]),
 	big_test_node:start(B0),
 
     ForkRootB1 = #block{ height = 1 },
@@ -173,7 +173,7 @@ test_get_recent_forks() ->
 	ok.
 
 test_recent_forks() ->
-	[B0] = ar_weave:init([], 0), %% Set difficulty to 0 to speed up tests
+	[B0] = big_weave:init([], 0), %% Set difficulty to 0 to speed up tests
 	big_test_node:start(B0),
     big_test_node:start_peer(peer1, B0),
     big_test_node:start_peer(peer2, B0),
@@ -261,9 +261,9 @@ assert_forks_json_equal(ExpectedForks) ->
 assert_forks_json_equal(ExpectedForks, ActualForks) ->
 	ExpectedForksStripped = [ 
 		#{
-			<<"id">> => ar_util:encode(Fork#fork.id),
+			<<"id">> => big_util:encode(Fork#fork.id),
 			<<"height">> => Fork#fork.height,
-			<<"blocks">> => [ ar_util:encode(BlockID) || BlockID <- Fork#fork.block_ids ]
+			<<"blocks">> => [ big_util:encode(BlockID) || BlockID <- Fork#fork.block_ids ]
 		} 
 		|| Fork <- ExpectedForks],
 	ActualForksStripped = [ maps:remove(<<"timestamp">>, Fork) || Fork <- ActualForks ],

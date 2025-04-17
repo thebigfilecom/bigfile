@@ -15,7 +15,7 @@
 %% The overlap makes sure a 100 MiB recall range can always be fetched
 %% from a single storage module.
 -ifdef(BIG_TEST).
--define(OVERLAP, 262144).
+-define(OVERLAP, (?LEGACY_RECALL_RANGE_SIZE)).
 -else.
 -define(OVERLAP, (?LEGACY_RECALL_RANGE_SIZE)).
 -endif.
@@ -39,12 +39,12 @@ id({BucketSize, Bucket, Packing}) ->
 	PackingString =
 		case Packing of
 			{spora_2_6, Addr} ->
-				ar_util:encode(Addr);
+				big_util:encode(Addr);
 			{composite, Addr, PackingDiff} ->
-				<< (ar_util:encode(Addr))/binary, ".",
+				<< (big_util:encode(Addr))/binary, ".",
 						(integer_to_binary(PackingDiff))/binary >>;
 			{replica_2_9, Addr} ->
-				<< (ar_util:encode(Addr))/binary, ".replica.2.9" >>;
+				<< (big_util:encode(Addr))/binary, ".replica.2.9" >>;
 			_ ->
 				atom_to_list(Packing)
 		end,

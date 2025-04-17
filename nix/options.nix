@@ -113,7 +113,7 @@ in
   transactionBlacklists = mkOption {
     type = types.listOf types.str;
     default = [ ];
-    example = [ "/user/arweave/blacklist.txt" ];
+    example = [ "/user/bigfile/blacklist.txt" ];
     description = ''
       List of paths to textfiles containing blacklisted txids and/or byte ranges
     '';
@@ -131,7 +131,7 @@ in
   transactionWhitelists = mkOption {
     type = types.listOf types.str;
     default = [ ];
-    example = [ "/user/arweave/whitelist.txt" ];
+    example = [ "/user/bigfile/whitelist.txt" ];
     description = ''
       List of paths to textfiles containing whitelisted txids
     '';

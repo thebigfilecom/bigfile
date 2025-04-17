@@ -43,7 +43,7 @@ generate_keyfile_test_() ->
 		fun() ->
 			KeyType = big_serialize:binary_to_signature_type(KeyTypeEnc),
 			{Priv, Pub} = big_wallet:new_keyfile(KeyType),
-			FileName = big_wallet:wallet_filepath(ar_util:encode(big_wallet:to_address(Pub))),
+			FileName = big_wallet:wallet_filepath(big_util:encode(big_wallet:to_address(Pub))),
 			{Priv, Pub} = big_wallet:load_keyfile(FileName)
 		end
 	end,
@@ -71,4 +71,4 @@ load_keyfile_test_() ->
 
 wallet_fixture_path(KeyTypeEnc) ->
 	{ok, Cwd} = file:get_cwd(),
-	filename:join(Cwd, "./apps/bigfile/test/ar_wallet_tests_" ++ binary_to_list(KeyTypeEnc) ++ "_fixture.json").
+	filename:join(Cwd, "./apps/bigfile/test/big_wallet_tests_" ++ binary_to_list(KeyTypeEnc) ++ "_fixture.json").

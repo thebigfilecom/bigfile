@@ -111,10 +111,10 @@ unpack_sub_chunk({replica_2_9, RewardAddr} = Packing,
 		true ->
 			PackingState = get_packing_state(),
 			record_packing_request(unpack_sub_chunk, not_set, Packing, get_caller()),
-			Key = ar_replica_2_9:get_entropy_key(RewardAddr,
+			Key = big_replica_2_9:get_entropy_key(RewardAddr,
 					AbsoluteEndOffset, SubChunkStartOffset),
 			RandomXState = get_randomx_state_by_packing(Packing, PackingState),
-			EntropySubChunkIndex = ar_replica_2_9:get_slice_index(
+			EntropySubChunkIndex = big_replica_2_9:get_slice_index(
 					AbsoluteEndOffset),
 			case prometheus_histogram:observe_duration(packing_duration_milliseconds,
 					[unpack_sub_chunk, replica_2_9, external], fun() ->
@@ -230,7 +230,7 @@ encipher_replica_2_9_chunk(Chunk, Entropy) ->
 		SubChunkStartOffset :: non_neg_integer()
 ) -> binary().
 generate_replica_2_9_entropy(RewardAddr, AbsoluteEndOffset, SubChunkStartOffset) ->
-	Key = ar_replica_2_9:get_entropy_key(RewardAddr, AbsoluteEndOffset, SubChunkStartOffset),
+	Key = big_replica_2_9:get_entropy_key(RewardAddr, AbsoluteEndOffset, SubChunkStartOffset),
 	PackingState = get_packing_state(),
 	RandomXState = get_randomx_state_by_packing({replica_2_9, RewardAddr}, PackingState),
 	
@@ -266,8 +266,8 @@ init([]) ->
 	
 	big:console("~nInitialising RandomX datasets. Keys: ~p, ~p. "
 			"The process may take several minutes.~n",
-			[ar_util:encode(?RANDOMX_PACKING_KEY),
-				ar_util:encode(?RANDOMX_PACKING_KEY)]),
+			[big_util:encode(?RANDOMX_PACKING_KEY),
+				big_util:encode(?RANDOMX_PACKING_KEY)]),
 	{RandomXState512, _RandomXState4096, _RandomXStateSharedEntropy}
 			= PackingState = init_packing_state(),
 	big:console("RandomX dataset initialisation complete.~n", []),
@@ -288,7 +288,7 @@ init([]) ->
 				Free = proplists:get_value(free_memory, memsup:get_system_memory_data(),
 						2000000000),
 				Limit2 = min(1200, erlang:ceil(Free * 0.9 / 3 / 262144)),
-				Limit3 = ar_util:ceil_int(Limit2, 100),
+				Limit3 = big_util:ceil_int(Limit2, 100),
 				Limit3;
 			Limit ->
 				Limit
@@ -441,7 +441,7 @@ worker(PackingState) ->
 			decrement_buffer_size(),
 			worker(PackingState);
 		{generate_entropy, Ref, From, {RewardAddr, PaddedEndOffset, SubChunkStart}} ->
-			Entropy = ar_packing_server:generate_replica_2_9_entropy(RewardAddr, PaddedEndOffset, SubChunkStart),
+			Entropy = big_packing_server:generate_replica_2_9_entropy(RewardAddr, PaddedEndOffset, SubChunkStart),
 			From ! {entropy_generated, Ref, Entropy},
 			worker(PackingState)
 	end.
@@ -533,7 +533,7 @@ pack_replica_2_9_sub_chunks(_RewardAddr, _AbsoluteEndOffset, _RandomXState,
 			iolist_to_binary(lists:reverse(EntropyParts))};
 pack_replica_2_9_sub_chunks(RewardAddr, AbsoluteEndOffset, RandomXState,
 		SubChunkStartOffset, [SubChunk | SubChunks], PackedSubChunks, EntropyParts) ->
-	EntropySubChunkIndex = ar_replica_2_9:get_slice_index(AbsoluteEndOffset),
+	EntropySubChunkIndex = big_replica_2_9:get_slice_index(AbsoluteEndOffset),
 	Entropy = generate_replica_2_9_entropy(RewardAddr, AbsoluteEndOffset, SubChunkStartOffset),
 	case prometheus_histogram:observe_duration(packing_duration_milliseconds,
 			[pack_sub_chunk, replica_2_9, internal], fun() ->
@@ -560,8 +560,8 @@ unpack_replica_2_9_sub_chunks(_RewardAddr, _AbsoluteEndOffset, _RandomXState,
 	{ok, iolist_to_binary(lists:reverse(UnpackedSubChunks))};
 unpack_replica_2_9_sub_chunks(RewardAddr, AbsoluteEndOffset, RandomXState,
 		SubChunkStartOffset, [SubChunk | SubChunks], UnpackedSubChunks) ->
-	Key = ar_replica_2_9:get_entropy_key(RewardAddr, AbsoluteEndOffset, SubChunkStartOffset),
-	EntropySubChunkIndex = ar_replica_2_9:get_slice_index(AbsoluteEndOffset),
+	Key = big_replica_2_9:get_entropy_key(RewardAddr, AbsoluteEndOffset, SubChunkStartOffset),
+	EntropySubChunkIndex = big_replica_2_9:get_slice_index(AbsoluteEndOffset),
 	case prometheus_histogram:observe_duration(packing_duration_milliseconds,
 			[unpack_sub_chunk, replica_2_9, internal], fun() ->
 					big_mine_randomx:randomx_decrypt_replica_2_9_sub_chunk({RandomXState,
@@ -586,7 +586,7 @@ unpack({replica_2_9, RewardAddr} = Packing, AbsoluteEndOffset,
 			case unpack_replica_2_9_sub_chunks(RewardAddr, AbsoluteEndOffset,
 					RandomXState, SubChunks) of
 				{ok, Unpacked} ->
-					case ar_packing_server:unpad_chunk(Packing, Unpacked,
+					case big_packing_server:unpad_chunk(Packing, Unpacked,
 							ChunkSize, PackedSize) of
 						error ->
 							{error, invalid_padding};

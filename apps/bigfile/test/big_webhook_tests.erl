@@ -39,7 +39,7 @@ webhooks_test_() ->
 
 test_webhooks() ->
 	{_, Pub} = Wallet = big_wallet:new(),
-	[B0] = ar_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
+	[B0] = big_weave:init([{big_wallet:to_address(Pub), ?BIG(10000), <<>>}]),
 	{ok, Config} = application:get_env(bigfile, config),
 	try
 		Port = big_test_node:get_unused_port(),
@@ -71,7 +71,7 @@ test_webhooks() ->
 		ets:new(?MODULE, [named_table, set, public]),
 		Routes = [{"/[...]", big_webhook_tests, []}],
 		cowboy:start_clear(
-			ar_webhook_test_listener,
+			big_webhook_test_listener,
 			[{port, Port}],
 			#{ env => #{ dispatch => cowboy_router:compile([{'_', Routes}]) } }
 		),
@@ -104,7 +104,7 @@ test_webhooks() ->
 		lists:foreach(
 			fun(Height) ->
 				TX = lists:nth(Height, TXs),
-				true = ar_util:do_until(
+				true = big_util:do_until(
 					fun() ->
 						case ets:lookup(?MODULE, {block, Height}) of
 							[{_, B}] ->
@@ -125,9 +125,9 @@ test_webhooks() ->
 					200,
 					10000
 				),
-				true = ar_util:do_until(
+				true = big_util:do_until(
 					fun() ->
-						case ets:lookup(?MODULE, {tx, ar_util:encode(TX#tx.id)}) of
+						case ets:lookup(?MODULE, {tx, big_util:encode(TX#tx.id)}) of
 							[{_, TX2}] ->
 								Struct = big_serialize:tx_to_json_struct(TX),
 								Expected =
@@ -155,9 +155,9 @@ test_webhooks() ->
 			end,
 			lists:seq(1, 10)
 		),
-		true = ar_util:do_until(
+		true = big_util:do_until(
 			fun() ->
-				case ets:lookup(?MODULE, {tx, ar_util:encode(UnconfirmedTX#tx.id)}) of
+				case ets:lookup(?MODULE, {tx, big_util:encode(UnconfirmedTX#tx.id)}) of
 					[{_, TX}] ->
 						Struct = big_serialize:tx_to_json_struct(UnconfirmedTX),
 						Expected =
@@ -190,7 +190,7 @@ test_webhooks() ->
 		timer:sleep(3000),
 		upload_chunks(Proofs),
 		assert_transaction_data_synced(V2TXID),
-		cowboy:stop_listener(ar_webhook_test_listener)
+		cowboy:stop_listener(big_webhook_test_listener)
 	after
 		application:set_env(bigfile, config, Config#config{ webhooks = [] })
 	end.
@@ -211,16 +211,16 @@ create_v2_tx(Wallet) ->
 
 encode_proof(Proof) ->
 	big_serialize:jsonify(#{
-		chunk => ar_util:encode(maps:get(chunk, Proof)),
-		data_path => ar_util:encode(maps:get(data_path, Proof)),
-		data_root => ar_util:encode(maps:get(data_root, Proof)),
+		chunk => big_util:encode(maps:get(chunk, Proof)),
+		data_path => big_util:encode(maps:get(data_path, Proof)),
+		data_root => big_util:encode(maps:get(data_root, Proof)),
 		data_size => integer_to_binary(maps:get(data_size, Proof)),
 		offset => integer_to_binary(maps:get(offset, Proof))
 	}).
 
 assert_transaction_data_synced(TXID) ->
-	EncodedTXID = ar_util:encode(TXID),
-	true = ar_util:do_until(
+	EncodedTXID = big_util:encode(TXID),
+	true = big_util:do_until(
 		fun() ->
 			case ets:lookup(?MODULE, {tx_data_payload, EncodedTXID}) of
 				[{_, JSON}] ->
@@ -242,18 +242,18 @@ upload_chunks([Proof | Proofs]) ->
 random_tx_blacklist_filename() ->
 	{ok, Config} = application:get_env(bigfile, config),
 	filename:join(Config#config.data_dir,
-		"ar-webhook-tests-transaction-blacklist-"
+		"big-webhook-tests-transaction-blacklist-"
 		++
-		binary_to_list(ar_util:encode(crypto:strong_rand_bytes(32)))).
+		binary_to_list(big_util:encode(crypto:strong_rand_bytes(32)))).
 
 append_txid_to_file(TXID, Filename) ->
 	{ok, F} = file:open(Filename, [append]),
-	ok = file:write(F, io_lib:format("~s~n", [ar_util:encode(TXID)])),
+	ok = file:write(F, io_lib:format("~s~n", [big_util:encode(TXID)])),
 	file:close(F).
 
 assert_transaction_data_removed(TXID) ->
-	EncodedTXID = ar_util:encode(TXID),
-	true = ar_util:do_until(
+	EncodedTXID = big_util:encode(TXID),
+	true = big_util:do_until(
 		fun() ->
 			[{_, JSON}] = ets:lookup(?MODULE, {tx_data_payload, EncodedTXID}),
 			maps:get(<<"event">>, JSON) == <<"transaction_data_removed">>

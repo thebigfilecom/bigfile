@@ -245,7 +245,7 @@ to_json_payments(PaymentsConfig) ->
 
 to_json_payment(PaymentConfig) ->
 	#{
-		<<"address">> => ar_util:encode(PaymentConfig#p3_payment.address),
+		<<"address">> => big_util:encode(PaymentConfig#p3_payment.address),
 		<<"minimum_balance">> => PaymentConfig#p3_payment.minimum_balance,
 		<<"confirmations">> => PaymentConfig#p3_payment.confirmations
 	}.
@@ -273,7 +273,7 @@ to_json_rates(RatesConfig, P3Config) ->
 	maps:fold(
 		fun(Asset, Price, Acc) ->
 			{Network, Token} = ?FROM_P3_ASSET(Asset),
-			Address = ar_util:encode(get_payments_value(P3Config, Asset, #p3_payment.address)),
+			Address = big_util:encode(get_payments_value(P3Config, Asset, #p3_payment.address)),
 			Acc#{
 				Network => #{
 					Token => #{
