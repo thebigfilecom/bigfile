@@ -71,7 +71,7 @@ $ cd bigfile
 ```
 
 Increase the [open file
-limits](https://docs.arweave.org/info/mining/mining-guide#preparation-file-descriptors-limit).
+limits]().
 
 **Run in the development mode:**
 
