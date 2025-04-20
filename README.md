@@ -129,7 +129,7 @@ storage_module 0,<your-mining-addr> mine
 ```
 
 The given address (if none is specified, one will be generated for you) will be assigned
-`1_000_000_000_000` BIG in the new weave.
+`200_000_000` BIG in the new weave.
 
 The network name will be `bigfile.localnet`. You can not start the same node again with the
 init option unless you clean the data directory - you need to either restart with the
