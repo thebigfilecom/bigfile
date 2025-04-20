@@ -24,9 +24,9 @@
   "tx_validators": 3,
   "post_tx_timeout": 50,
   "max_emitters": 4,
-  "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
+  "mining_addr": "gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI",
   "storage_modules": [
-    "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
+    "0,gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI"
   ],
   "max_disk_pool_buffer_mb": 100000,
   "max_connections": 512,
@@ -58,7 +58,7 @@
   "run_defragmentation": true,
   "defragmentation_trigger_threshold": 1000,
   "defragment_modules": [
-    "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
+    "0,gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI"
   ],
   "block_throttle_by_ip_interval": 5000,
   "block_throttle_by_solution_interval": 12000
