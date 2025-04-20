@@ -49,7 +49,7 @@ basic_parse_test() ->
 		\"p3\": {
 			\"payments\": {
 				\"bigfile/BIG\": {
-					\"address\": \"D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM\",
+					\"address\": \"gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI\",
 					\"minimum_balance\": \"-1000000\",
 					\"confirmations\": 2
 				}
@@ -83,7 +83,7 @@ checksum_parse_test() ->
 		\"p3\": {
 			\"payments\": {
 				\"bigfile/BIG\": {
-					\"address\": \"D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM:ToOiTg\",
+					\"address\": \"gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI:ToOiTg\",
 					\"minimum_balance\": \"-1000000\",
 					\"confirmations\": 2
 				}
@@ -117,7 +117,7 @@ unsupported_payments_asset_parse_error_test() ->
 		\"p3\": {
 			\"payments\": {
 				\"bitcoin/BTC\": {
-					\"address\": \"D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM\",
+					\"address\": \"gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI\",
 					\"minimum_balance\": \"-1000000\",
 					\"confirmations\": 2
 				}
@@ -133,7 +133,7 @@ bad_address_parse_error_test() ->
 		\"p3\": {
 			\"payments\": {
 				\"bigfile/BIG\": {
-					\"address\": \"D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM:BAD_CHECKSUM\",
+					\"address\": \"gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI:BAD_CHECKSUM\",
 					\"minimum_balance\": \"-1000000\",
 					\"confirmations\": 2
 				}
