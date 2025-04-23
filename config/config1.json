@@ -1,14 +1,13 @@
 {
-  "peers": [],
+  "peers": ["23.88.67.250"],
   "block_gossip_peers": [],
   "local_peers": [],
-  "mine": true,
+  "mine": false,
   "port": 1984,
-  "data_dir": "/root/bigfile/data_dir",
-  "log_dir": "/root/bigfile/data_dir/logs",
+  "data_dir": "/opt/data_dir",
+  "log_dir": "/opt/log_dir",
   "storage_modules": [
-    "0,unpacked",
-    "0,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM.replica.2.9"
+    "0,gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI.replica.2.9"
   ],
   "repack_batch_size": 200,
   "polling": 10,
@@ -16,7 +15,7 @@
   "no_auto_join": true,
   "join_workers": 9,
   "diff": 42,
-  "mining_addr": "D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
+  "mining_addr": "gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI",
   "hashing_threads": 17,
   "data_cache_size_limit": 10000,
   "packing_cache_size_limit": 20000,
@@ -38,25 +37,40 @@
       "default": 100
     }
   },
-  "disk_space": 44,
+  "disk_space": 500,
   "disk_space_check_frequency": 10,
   "init": true,
-  "max_connections": 512,
-  "max_gateway_connections": 64,
+  "internal_api_secret": "some_very_very_long_secret",
+  "enable": ["feature_1", "feature_2","gateway", "gateway_metrics"],
+  "disable": ["feature_3", "feature_4"],
+  "gateway": "thebigfile.info",
+  "custom_domains": ["thebigfile.info"],
+  "webhooks": [
+    {
+      "events": ["transaction", "block"],
+      "url": "https://thebigfile.info/hook",
+      "headers": {
+        "Authorization": "Bearer 123456"
+      }
+    }
+  ],
+  "max_connections": 1024,
+  "max_gateway_connections": 256,
   "disk_pool_data_root_expiration_time": 10000,
-  "max_disk_pool_buffer_mb": 50000,
+  "max_disk_pool_buffer_mb": 100000,
   "max_disk_pool_data_root_buffer_mb": 100000000,
   "disk_cache_size_mb": 1024,
   "semaphores": {
-    "get_chunk": 1,
-    "get_and_pack_chunk": 2,
-    "get_tx_data": 3,
+    "get_chunk": 50,
+    "get_and_pack_chunk": 20,
+    "get_tx_data": 20,
     "post_chunk": 999,
-    "get_block_index": 1,
-    "get_wallet_list": 2,
-    "arql": 3,
-    "gateway_arql": 3
+    "get_block_index": 10,
+    "get_wallet_list": 10,
+    "arql": 15,
+    "gateway_arql": 15
   },
+  "packing_rate": 20,
   "replica_2_9_workers": 16,
   "packing_workers": 25,
   "max_nonce_limiter_validation_thread_count": 2,
@@ -67,11 +81,7 @@
   "run_defragmentation": true,
   "defragmentation_trigger_threshold": 1000,
   "defragment_modules": [
-    "0,unpacked",
-    "2,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM",
-    "100,unpacked",
-    "0,1,unpacked",
-    "14,1000000000000,D2z8wfCSpkcP3pw23l6p-Yw6GMuwlZUM0i2dSCpZIrM"
+    "0,gCmvhZDHpVFKQ7spt8XHxe5FGtJSxcIHxcNpBFKt9NI"
   ],
   "block_throttle_by_ip_interval": 5000,
   "block_throttle_by_solution_interval": 12000
